@@ -1,0 +1,54 @@
+import { MiddlewareConsumer, Module } from '@nestjs/common';
+
+import { ConfigModule } from '@nestjs/config';
+import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { SvixModule } from '@/src/svix/svix.module';
+import { SupabaseModule } from '@/src/supabase/supabase.module';
+import { UserModule } from '@/src/user/user.module';
+import { DocumentModule } from '@/src/document/document.module';
+import { ImageModule } from '@/src/image/image.module';
+import { DatabaseModule } from '@/src/database/database.module';
+import { TranscriptionModule } from '@/src/transcription/transcription.module';
+import { NoteModule } from '@/src/note/note.module';
+import { GotenbergModule } from './gotenberg/gotenberg.module';
+import { ListModule } from './list/list.module';
+import { ListsDocumentsModule } from '@/src/lists-documents/lists-documents.module';
+import { SearchModule } from './search/search.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { CreditModule } from './credit/credit.module';
+import SupabaseConfig from '@/src/config/supabase.config';
+import StripeConfig from '@/src/config/stripe.config';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [SupabaseConfig, StripeConfig],
+      envFilePath: [
+        '.env.local',
+        '.env.development',
+        '.env.production',
+        '.env',
+      ],
+    }),
+    SvixModule,
+    SupabaseModule,
+    UserModule,
+    DocumentModule,
+    ImageModule,
+    DatabaseModule,
+    TranscriptionModule,
+    NoteModule,
+    GotenbergModule,
+    ListModule,
+    ListsDocumentsModule,
+    SearchModule,
+    SubscriptionModule,
+    CreditModule,
+  ],
+})
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(ClerkExpressRequireAuth()).forRoutes();
+  }
+}

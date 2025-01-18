@@ -1,0 +1,91 @@
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Provides, Tables } from '@/src/shared/constant';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { UpdateTranscriptionDto } from '@/src/transcription/dto/update-transcription.dto';
+import { CreateTranscriptionDto } from '@/src/transcription/dto/create-transcription.dto';
+import { Transcription } from '@/types/transcription';
+
+@Injectable()
+export class TranscriptRepository {
+  private readonly logger: Logger = new Logger(TranscriptRepository.name);
+
+  constructor(
+    @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
+  ) {}
+
+  async createTranscription(
+    createTranscription: CreateTranscriptionDto,
+  ): Promise<Transcription> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Transcriptions)
+        .insert(createTranscription)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to create transcription');
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to create transcription');
+    }
+  }
+
+  async fetchTranscriptionById(
+    transcriptionId: number,
+    attributes?: string,
+  ): Promise<Transcription | null> {
+    try {
+      const { data } = await this.supabase
+        .from(Tables.Transcriptions)
+        .select(attributes as '*')
+        .eq('id', transcriptionId)
+        .maybeSingle();
+
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch transcription by id');
+    }
+  }
+
+  async fetchTranscriptionByImageId(
+    imageId: number,
+    attributes?: string,
+  ): Promise<Transcription | null> {
+    try {
+      const { data } = await this.supabase
+        .from(Tables.Transcriptions)
+        .select(attributes as '*')
+        .eq('image_id', imageId)
+        .maybeSingle();
+
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch transcription by id');
+    }
+  }
+
+  async updateTranscription(
+    transcriptionId: number,
+    updateTranscription: UpdateTranscriptionDto,
+  ): Promise<Transcription> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Transcriptions)
+        .update(updateTranscription)
+        .eq('id', transcriptionId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to update transcription}');
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to update transcription');
+    }
+  }
+}

@@ -1,0 +1,132 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  HttpException,
+  HttpStatus,
+  Post,
+  Put,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ImageService } from '@/src/image/image.service';
+import { CreateImageDto } from '@/src/image/dto/create-image.dto';
+import { DeleteImageDto } from '@/src/image/dto/delete-image.dto';
+import { User } from '@/src/comon/decorators/user.decorator';
+import { User as UserType } from '@clerk/clerk-sdk-node';
+import {
+  UpdateImageDto,
+  UpdateImageOrderDto,
+} from '@/src/image/dto/update-image.dto';
+import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
+
+@Controller('image')
+export class ImageController {
+  constructor(private readonly imageService: ImageService) {}
+
+  @Post()
+  @UseInterceptors(FilesInterceptor('files', MAX_IMAGE_ALLOWED))
+  async create(
+    @User() user: UserType,
+    @Body() createImage: CreateImageDto,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    try {
+      const images = await this.imageService.create(
+        createImage,
+        files,
+        user.id,
+      );
+
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Image attached successfully',
+        data: images,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message:
+            error.message ??
+            'An error occurred while creating the images record',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put()
+  async update(@Body() updateImage: UpdateImageDto) {
+    try {
+      const image = await this.imageService.update(updateImage);
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Image updated successfully',
+        image,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message:
+            error.message ??
+            'An error occurred while updating the images record',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put('update-order')
+  async updateOrder(
+    @Body() { oldIndex, newIndex, documentId }: UpdateImageOrderDto,
+  ) {
+    try {
+      const data = await this.imageService.updateOrder(
+        oldIndex,
+        newIndex,
+        documentId,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Image order updated successfully',
+        data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message:
+            error.message ?? 'An error occurred while updating the image order',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete()
+  async delete(@Body() deleteImage: DeleteImageDto) {
+    try {
+      const images = await this.imageService.delete(deleteImage);
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Image deleted successfully',
+        data: images,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message:
+            error.message ??
+            'An error occurred while deleting the images record',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+}
