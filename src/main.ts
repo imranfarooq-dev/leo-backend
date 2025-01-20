@@ -13,7 +13,6 @@ async function bootstrap() {
 
   const corsOptions: CorsOptions = {
     origin: [
-      'https://leoapp.ssghq.tech',
       'https://leo-app-develop.vercel.app',
       'http://localhost:3000',
       'https://www.tryleo.ai',
