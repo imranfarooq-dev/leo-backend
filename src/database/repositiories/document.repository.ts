@@ -12,7 +12,7 @@ export class DocumentRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createDocument(
     userId: string,
@@ -39,7 +39,7 @@ export class DocumentRepository {
   }
 
   async fetchDocumentById(
-    documentId: number,
+    documentId: string,
     attributes?: keyof Document,
   ): Promise<Document | null> {
     try {
@@ -79,7 +79,7 @@ export class DocumentRepository {
   }
 
   async fetchDocumentsByIds(
-    documentIds: Array<string | number>,
+    documentIds: Array<string>,
     includeImageTranscriptionAndNotes: boolean = false,
     attributes?: keyof Image,
   ) {
@@ -89,8 +89,7 @@ export class DocumentRepository {
         .select(
           `
         *,
-        ${
-          includeImageTranscriptionAndNotes
+        ${includeImageTranscriptionAndNotes
             ? `
         images (
           *,
@@ -113,7 +112,7 @@ export class DocumentRepository {
         )
         `
             : ''
-        }`,
+          }`,
         )
         .in('id', documentIds);
 
@@ -123,8 +122,7 @@ export class DocumentRepository {
           .select(
             `
           ${attributes},
-          ${
-            includeImageTranscriptionAndNotes
+          ${includeImageTranscriptionAndNotes
               ? `
           images (
             *,
@@ -147,7 +145,7 @@ export class DocumentRepository {
           )
           `
               : ''
-          }`,
+            }`,
           )
           .in('id', documentIds);
       }
@@ -166,7 +164,7 @@ export class DocumentRepository {
   }
 
   async updateDocument(
-    documentId: number,
+    documentId: string,
     updateDocument: UpdateDocumentDto,
   ): Promise<Document> {
     try {
@@ -187,7 +185,7 @@ export class DocumentRepository {
     }
   }
 
-  async deleteDocument(documentId: number): Promise<Document | null> {
+  async deleteDocument(documentId: string): Promise<Document | null> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Documents)

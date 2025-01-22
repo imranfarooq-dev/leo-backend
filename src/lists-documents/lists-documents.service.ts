@@ -14,7 +14,7 @@ export class ListsDocumentsService {
     private readonly imageRepository: ImageRepository,
     private readonly listsDocumentsRepository: ListsDocumentsRepository,
     private readonly documentRepository: DocumentRepository,
-  ) {}
+  ) { }
 
   async update(updateListDocumentDto: UpdateListDocumentDto) {
     try {
@@ -133,7 +133,7 @@ export class ListsDocumentsService {
     }
   }
 
-  async fetchDocumentLists(document_id: number) {
+  async fetchDocumentLists(document_id: string) {
     try {
       const documentExist =
         await this.documentRepository.fetchDocumentById(document_id);

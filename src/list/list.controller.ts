@@ -19,7 +19,7 @@ import { UpdateOrderListDto } from '@/src/list/dto/update-order-list.dto';
 
 @Controller('list')
 export class ListController {
-  constructor(private readonly listService: ListService) {}
+  constructor(private readonly listService: ListService) { }
 
   @Post()
   async create(@Body() createListDto: CreateListDto, @User() user: UserType) {
@@ -98,7 +98,7 @@ export class ListController {
 
   @Put(':id')
   async update(
-    @Param() params: { id: number },
+    @Param() params: { id: string },
     @Body() updateListDto: UpdateListDto,
     @User() user: UserType,
   ) {
@@ -130,7 +130,7 @@ export class ListController {
   async delete(@Param() params: { id: string }, @User() user: UserType) {
     try {
       const list: List = await this.listService.delete(
-        parseInt(params.id),
+        params.id,
         user.id,
       );
 

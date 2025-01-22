@@ -10,12 +10,12 @@ export class ListRespository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createList(
     user_id: string,
     list_name: string,
-    parent_list_id?: number,
+    parent_list_id?: string,
   ): Promise<List> {
     try {
       const { data, error } = await this.supabase
@@ -35,7 +35,7 @@ export class ListRespository {
   }
 
   async fetchListById(
-    listId: number,
+    listId: string,
     attributes?: keyof List,
   ): Promise<List | null> {
     try {
@@ -69,7 +69,7 @@ export class ListRespository {
 
   async fetchLastListInCurrentLevel(
     user_id: string,
-    parent_list_id: number | null,
+    parent_list_id: string | null,
   ): Promise<List | null> {
     try {
       const query = this.supabase
@@ -92,7 +92,7 @@ export class ListRespository {
 
   async fetchListsByParentId(
     user_id: string,
-    parent_list_id: number | null,
+    parent_list_id: string | null,
   ): Promise<List[] | null> {
     try {
       const query = this.supabase
@@ -113,7 +113,7 @@ export class ListRespository {
   }
 
   async updateList(
-    listId: number,
+    listId: string,
     updateListDto: UpdateListDto,
   ): Promise<List> {
     try {
@@ -153,7 +153,7 @@ export class ListRespository {
     }
   }
 
-  async deleteList(listId: number): Promise<List> {
+  async deleteList(listId: string): Promise<List> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Lists)

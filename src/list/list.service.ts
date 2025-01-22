@@ -7,7 +7,7 @@ import { constructListTree, sortListsByNextId } from '@/src/utils';
 
 @Injectable()
 export class ListService {
-  constructor(private readonly listRepository: ListRespository) {}
+  constructor(private readonly listRepository: ListRespository) { }
 
   async create(createListDto: CreateListDto, user_id: string): Promise<List> {
     try {
@@ -71,7 +71,7 @@ export class ListService {
   async update(
     updateListDto: UpdateListDto,
     user_id: string,
-    list_id: number,
+    list_id: string,
   ): Promise<List> {
     try {
       const listExist = await this.listRepository.fetchListById(list_id);
@@ -101,7 +101,7 @@ export class ListService {
   }
 
   async updateListOrder(
-    list_id: number | null,
+    list_id: string | null,
     new_index: number,
     old_index: number,
     user_id: string,
@@ -163,7 +163,7 @@ export class ListService {
     }
   }
 
-  async delete(list_id: number, userId: string) {
+  async delete(list_id: string, userId: string) {
     try {
       const listToDelete = await this.listRepository.fetchListById(list_id);
 

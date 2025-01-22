@@ -1,9 +1,7 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class FetchDocumentListDto {
-  @IsInt()
+  @IsString()
   @IsNotEmpty()
-  @Type(() => Number)
-  document_id: number;
+  document_id: string;
 }

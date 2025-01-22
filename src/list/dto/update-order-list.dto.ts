@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
 
 export class UpdateOrderListDto {
   @IsNotEmpty()
-  @IsNumber()
-  list_id: number;
+  @IsString()
+  list_id: string;
 
   @IsNotEmpty()
   @IsNumber()

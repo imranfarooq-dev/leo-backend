@@ -1,9 +1,7 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class DeleteDocumentDto {
   @IsNotEmpty()
-  @IsInt()
-  @Type(() => Number)
-  id: number;
+  @IsString()
+  id: string;
 }

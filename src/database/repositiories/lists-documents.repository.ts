@@ -8,9 +8,9 @@ export class ListsDocumentsRepository {
   private readonly logger: Logger = new Logger(ListsDocumentsRepository.name);
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
-  async createListDocument(list_id: number, document_id: number) {
+  async createListDocument(list_id: string, document_id: string) {
     try {
       const { data, error } = await this.supabase
         .from(Tables.ListsDocuments)
@@ -33,8 +33,8 @@ export class ListsDocumentsRepository {
   }
 
   async fetchListDocumentById(
-    list_id: number,
-    document_id: number,
+    list_id: string,
+    document_id: string,
   ): Promise<ListDocument | null> {
     try {
       const { data } = await this.supabase
@@ -52,7 +52,7 @@ export class ListsDocumentsRepository {
     }
   }
 
-  async fetchListChild(list_id: number) {
+  async fetchListChild(list_id: string) {
     try {
       const { data, error } = await this.supabase.rpc(
         DBFunctions.getListWithChildren,
@@ -70,7 +70,7 @@ export class ListsDocumentsRepository {
   }
 
   async fetchDocumentsForLists(
-    lists_ids: number[],
+    lists_ids: string[],
     pagination: { from: number; to: number },
   ): Promise<{ documents: Document[]; count: number }> {
     try {
@@ -92,7 +92,7 @@ export class ListsDocumentsRepository {
     }
   }
 
-  async fetchListsByDocumentId(document_id: number) {
+  async fetchListsByDocumentId(document_id: string) {
     try {
       const { data } = await this.supabase
         .from(Tables.ListsDocuments)
@@ -105,7 +105,7 @@ export class ListsDocumentsRepository {
     }
   }
 
-  async deleteListDocument(list_id: number, document_id: number) {
+  async deleteListDocument(list_id: string, document_id: string) {
     try {
       const { data } = await this.supabase
         .from(Tables.ListsDocuments)

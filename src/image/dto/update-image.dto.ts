@@ -2,8 +2,8 @@ import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class UpdateImageDto {
   @IsNotEmpty()
-  @IsNumber()
-  image_id: number;
+  @IsString()
+  image_id: string;
 
   @IsNotEmpty()
   @IsString()
@@ -20,6 +20,6 @@ export class UpdateImageOrderDto {
   newIndex: number;
 
   @IsNotEmpty()
-  @IsNumber()
-  documentId: number;
+  @IsString()
+  documentId: string;
 }

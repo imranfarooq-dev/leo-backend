@@ -24,13 +24,13 @@ export class TranscriptionService {
     private readonly creditsRepository: CreditsRepository,
     private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseService,
-  ) {}
+  ) { }
 
-  async aiTranscribe(clerkUser: ClerkUser, imageIds: number[]) {
+  async aiTranscribe(clerkUser: ClerkUser, imageIds: string[]) {
     try {
       const BATCH_SIZE = 10;
       const results = [];
-      const processedDocuments = new Set<number>();
+      const processedDocuments = new Set<string>();
 
       const transcriptionCost = imageIds.length * TRANSCRIBE_COST;
 
@@ -206,8 +206,8 @@ export class TranscriptionService {
 
   private async transcribeSingleImage(image: Image): Promise<{
     status: APITranscriptionStatus;
-    imageId: number;
-    documentId?: number;
+    imageId: string;
+    documentId?: string;
     error?: string;
   }> {
     try {

@@ -25,7 +25,7 @@ import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
 
 @Controller('document')
 export class DocumentController {
-  constructor(private readonly documentService: DocumentService) {}
+  constructor(private readonly documentService: DocumentService) { }
 
   @Get()
   async fetch(@User() user: UserType, @Query() query: FetchUserDocumentDto) {
@@ -133,7 +133,7 @@ export class DocumentController {
 
   @Put(':id')
   async update(
-    @Param() params: { id: number },
+    @Param() params: { id: string },
     @Body() updateDocument: UpdateDocumentDto,
   ) {
     try {

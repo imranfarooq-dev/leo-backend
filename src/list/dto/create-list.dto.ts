@@ -1,11 +1,11 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateListDto {
   @IsString()
   @IsNotEmpty()
   list_name: string;
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  parent_list_id?: number;
+  parent_list_id?: string;
 }

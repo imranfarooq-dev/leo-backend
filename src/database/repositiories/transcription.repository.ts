@@ -11,7 +11,7 @@ export class TranscriptRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createTranscription(
     createTranscription: CreateTranscriptionDto,
@@ -34,7 +34,7 @@ export class TranscriptRepository {
   }
 
   async fetchTranscriptionById(
-    transcriptionId: number,
+    transcriptionId: string,
     attributes?: string,
   ): Promise<Transcription | null> {
     try {
@@ -51,7 +51,7 @@ export class TranscriptRepository {
   }
 
   async fetchTranscriptionByImageId(
-    imageId: number,
+    imageId: string,
     attributes?: string,
   ): Promise<Transcription | null> {
     try {
@@ -68,7 +68,7 @@ export class TranscriptRepository {
   }
 
   async updateTranscription(
-    transcriptionId: number,
+    transcriptionId: string,
     updateTranscription: UpdateTranscriptionDto,
   ): Promise<Transcription> {
     try {

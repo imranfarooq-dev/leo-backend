@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsInt,
+  IsString,
   IsNotEmpty,
   IsOptional,
   Validate,
@@ -22,19 +23,19 @@ class AtLeastOneArrayValidator implements ValidatorConstraintInterface {
 }
 
 export class UpdateListDocumentDto {
-  @IsInt()
+  @IsString()
   @IsNotEmpty()
-  document_id: number;
+  document_id: string;
 
   @IsOptional()
   @IsArray()
-  @IsInt({ each: true })
-  add_list_ids?: number[];
+  @IsString({ each: true })
+  add_list_ids?: string[];
 
   @IsOptional()
   @IsArray()
-  @IsInt({ each: true })
-  remove_list_ids?: number[];
+  @IsString({ each: true })
+  remove_list_ids?: string[];
 
   @Validate(AtLeastOneArrayValidator)
   atLeastOneArray?: boolean;

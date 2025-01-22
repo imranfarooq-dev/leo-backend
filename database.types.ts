@@ -37,7 +37,7 @@ export type Database = {
       credits: {
         Row: {
           created_at: string | null;
-          id: number;
+          id: string;
           image_limits: number | null;
           lifetime_credits: number | null;
           monthly_credits: number | null;
@@ -46,7 +46,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string | null;
-          id?: number;
+          id?: string;
           image_limits?: number | null;
           lifetime_credits?: number | null;
           monthly_credits?: number | null;
@@ -55,7 +55,7 @@ export type Database = {
         };
         Update: {
           created_at?: string | null;
-          id?: number;
+          id?: string;
           image_limits?: number | null;
           lifetime_credits?: number | null;
           monthly_credits?: number | null;
@@ -82,7 +82,7 @@ export type Database = {
           date: string | null;
           document_name: string;
           folder: string | null;
-          id: number;
+          id: string;
           identifier: string | null;
           rights: string | null;
           type: string | null;
@@ -98,7 +98,7 @@ export type Database = {
           date?: string | null;
           document_name: string;
           folder?: string | null;
-          id?: number;
+          id?: string;
           identifier?: string | null;
           rights?: string | null;
           type?: string | null;
@@ -114,7 +114,7 @@ export type Database = {
           date?: string | null;
           document_name?: string;
           folder?: string | null;
-          id?: number;
+          id?: string;
           identifier?: string | null;
           rights?: string | null;
           type?: string | null;
@@ -134,32 +134,32 @@ export type Database = {
       images: {
         Row: {
           created_at: string | null;
-          document_id: number;
-          id: number;
+          document_id: string;
+          id: string;
           image_name: string | null;
           image_path: string;
           image_url: string;
-          next_image_id: number | null;
+          next_image_id: string | null;
           updated_at: string | null;
         };
         Insert: {
           created_at?: string | null;
-          document_id: number;
-          id?: number;
+          document_id: string;
+          id?: string;
           image_name?: string | null;
           image_path: string;
           image_url: string;
-          next_image_id?: number | null;
+          next_image_id?: string | null;
           updated_at?: string | null;
         };
         Update: {
           created_at?: string | null;
-          document_id?: number;
-          id?: number;
+          document_id?: string;
+          id?: string;
           image_name?: string | null;
           image_path?: string;
           image_url?: string;
-          next_image_id?: number | null;
+          next_image_id?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -175,28 +175,28 @@ export type Database = {
       lists: {
         Row: {
           created_at: string | null;
-          id: number;
+          id: string;
           list_name: string;
-          next_list_id: number | null;
-          parent_list_id: number | null;
+          next_list_id: string | null;
+          parent_list_id: string | null;
           updated_at: string | null;
           user_id: string;
         };
         Insert: {
           created_at?: string | null;
-          id?: number;
+          id?: string;
           list_name: string;
-          next_list_id?: number | null;
-          parent_list_id?: number | null;
+          next_list_id?: string | null;
+          parent_list_id?: string | null;
           updated_at?: string | null;
           user_id: string;
         };
         Update: {
           created_at?: string | null;
-          id?: number;
+          id?: string;
           list_name?: string;
-          next_list_id?: number | null;
-          parent_list_id?: number | null;
+          next_list_id?: string | null;
+          parent_list_id?: string | null;
           updated_at?: string | null;
           user_id?: string;
         };
@@ -220,20 +220,20 @@ export type Database = {
       lists_documents: {
         Row: {
           created_at: string | null;
-          document_id: number;
-          list_id: number;
+          document_id: string;
+          list_id: string;
           updated_at: string | null;
         };
         Insert: {
           created_at?: string | null;
-          document_id: number;
-          list_id: number;
+          document_id: string;
+          list_id: string;
           updated_at?: string | null;
         };
         Update: {
           created_at?: string | null;
-          document_id?: number;
-          list_id?: number;
+          document_id?: string;
+          list_id?: string;
           updated_at?: string | null;
         };
         Relationships: [
@@ -256,22 +256,22 @@ export type Database = {
       notes: {
         Row: {
           created_at: string | null;
-          id: number;
-          image_id: number | null;
+          id: string;
+          image_id: string | null;
           notes_text: string | null;
           updated_at: string | null;
         };
         Insert: {
           created_at?: string | null;
-          id?: number;
-          image_id?: number | null;
+          id?: string;
+          image_id?: string | null;
           notes_text?: string | null;
           updated_at?: string | null;
         };
         Update: {
           created_at?: string | null;
-          id?: number;
-          image_id?: number | null;
+          id?: string;
+          image_id?: string | null;
           notes_text?: string | null;
           updated_at?: string | null;
         };
@@ -291,7 +291,7 @@ export type Database = {
           current_period_end: string | null;
           current_period_start: string | null;
           free_plan_status: Database['public']['Enums']['plan_status'];
-          id: number;
+          id: string;
           lifetime_tokens_awarded: boolean;
           price: string | null;
           status: Database['public']['Enums']['subscription_status'] | null;
@@ -306,7 +306,7 @@ export type Database = {
           current_period_end?: string | null;
           current_period_start?: string | null;
           free_plan_status?: Database['public']['Enums']['plan_status'];
-          id?: number;
+          id?: string;
           lifetime_tokens_awarded?: boolean;
           price?: string | null;
           status?: Database['public']['Enums']['subscription_status'] | null;
@@ -321,7 +321,7 @@ export type Database = {
           current_period_end?: string | null;
           current_period_start?: string | null;
           free_plan_status?: Database['public']['Enums']['plan_status'];
-          id?: number;
+          id?: string;
           lifetime_tokens_awarded?: boolean;
           price?: string | null;
           status?: Database['public']['Enums']['subscription_status'] | null;
@@ -346,33 +346,33 @@ export type Database = {
           ai_transcription_text: string | null;
           created_at: string | null;
           current_transcription_text: string | null;
-          id: number;
-          image_id: number;
+          id: string;
+          image_id: string;
           transcription_status:
-            | Database['public']['Enums']['transcription_status_enum']
-            | null;
+          | Database['public']['Enums']['transcription_status_enum']
+          | null;
           updated_at: string | null;
         };
         Insert: {
           ai_transcription_text?: string | null;
           created_at?: string | null;
           current_transcription_text?: string | null;
-          id?: number;
-          image_id: number;
+          id?: string;
+          image_id: string;
           transcription_status?:
-            | Database['public']['Enums']['transcription_status_enum']
-            | null;
+          | Database['public']['Enums']['transcription_status_enum']
+          | null;
           updated_at?: string | null;
         };
         Update: {
           ai_transcription_text?: string | null;
           created_at?: string | null;
           current_transcription_text?: string | null;
-          id?: number;
-          image_id?: number;
+          id?: string;
+          image_id?: string;
           transcription_status?:
-            | Database['public']['Enums']['transcription_status_enum']
-            | null;
+          | Database['public']['Enums']['transcription_status_enum']
+          | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -422,12 +422,12 @@ export type Database = {
     Functions: {
       fetch_documents_for_lists: {
         Args: {
-          list_ids: number[];
+          list_ids: string[];
           _from?: number;
           _to?: number;
         };
         Returns: {
-          id: number;
+          id: string;
           document_name: string;
           creator_name: string;
           date: string;
@@ -446,43 +446,43 @@ export type Database = {
       };
       get_list_with_children: {
         Args: {
-          _id: number;
+          _id: string;
         };
         Returns: {
-          id: number;
+          id: string;
         }[];
       };
       get_ordered_images_by_document_id: {
         Args: {
-          document_id_param: number;
+          document_id_param: string;
           include_relations?: boolean;
         };
         Returns: {
-          id: number;
-          document_id: number;
+          id: string;
+          document_id: string;
           image_name: string;
           image_url: string;
           image_path: string;
           created_at: string;
           updated_at: string;
-          next_image_id: number;
+          next_image_id: string;
           notes: Json;
           transcriptions: Json;
         }[];
       };
       get_ordered_images_by_document_ids: {
         Args: {
-          document_ids: number[];
+          document_ids: string[];
         };
         Returns: {
-          id: number;
-          document_id: number;
+          id: string;
+          document_id: string;
           image_name: string;
           image_url: string;
           image_path: string;
           created_at: string;
           updated_at: string;
-          next_image_id: number;
+          next_image_id: string;
         }[];
       };
       search_documents_and_lists: {
@@ -491,7 +491,7 @@ export type Database = {
           user_id_param: string;
         };
         Returns: {
-          id: number;
+          id: string;
           name: string;
           type: string;
         }[];
@@ -500,14 +500,14 @@ export type Database = {
     Enums: {
       plan_status: 'never_subscribed' | 'previously_subscribed' | 'subscribed';
       subscription_status:
-        | 'incomplete'
-        | 'incomplete_expired'
-        | 'trialing'
-        | 'active'
-        | 'past_due'
-        | 'canceled'
-        | 'unpaid'
-        | 'paused';
+      | 'incomplete'
+      | 'incomplete_expired'
+      | 'trialing'
+      | 'active'
+      | 'past_due'
+      | 'canceled'
+      | 'unpaid'
+      | 'paused';
       transcription_status_enum: 'draft' | 'transcribed' | 'finalised';
     };
     CompositeTypes: {
@@ -520,95 +520,95 @@ type PublicSchema = Database[Extract<keyof Database, 'public'>];
 
 export type Tables<
   PublicTableNameOrOptions extends
-    | keyof (PublicSchema['Tables'] & PublicSchema['Views'])
-    | { schema: keyof Database },
+  | keyof (PublicSchema['Tables'] & PublicSchema['Views'])
+  | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions['schema']]['Tables'] &
-        Database[PublicTableNameOrOptions['schema']]['Views'])
-    : never = never,
+  ? keyof (Database[PublicTableNameOrOptions['schema']]['Tables'] &
+    Database[PublicTableNameOrOptions['schema']]['Views'])
+  : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? (Database[PublicTableNameOrOptions['schema']]['Tables'] &
-      Database[PublicTableNameOrOptions['schema']]['Views'])[TableName] extends {
+    Database[PublicTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R;
     }
-    ? R
-    : never
+  ? R
+  : never
   : PublicTableNameOrOptions extends keyof (PublicSchema['Tables'] &
-        PublicSchema['Views'])
-    ? (PublicSchema['Tables'] &
-        PublicSchema['Views'])[PublicTableNameOrOptions] extends {
-        Row: infer R;
-      }
-      ? R
-      : never
-    : never;
+    PublicSchema['Views'])
+  ? (PublicSchema['Tables'] &
+    PublicSchema['Views'])[PublicTableNameOrOptions] extends {
+      Row: infer R;
+    }
+  ? R
+  : never
+  : never;
 
 export type TablesInsert<
   PublicTableNameOrOptions extends
-    | keyof PublicSchema['Tables']
-    | { schema: keyof Database },
+  | keyof PublicSchema['Tables']
+  | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
-    : never = never,
+  ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
+  : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
-      Insert: infer I;
-    }
-    ? I
-    : never
+    Insert: infer I;
+  }
+  ? I
+  : never
   : PublicTableNameOrOptions extends keyof PublicSchema['Tables']
-    ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
-        Insert: infer I;
-      }
-      ? I
-      : never
-    : never;
+  ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
+    Insert: infer I;
+  }
+  ? I
+  : never
+  : never;
 
 export type TablesUpdate<
   PublicTableNameOrOptions extends
-    | keyof PublicSchema['Tables']
-    | { schema: keyof Database },
+  | keyof PublicSchema['Tables']
+  | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
-    : never = never,
+  ? keyof Database[PublicTableNameOrOptions['schema']]['Tables']
+  : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? Database[PublicTableNameOrOptions['schema']]['Tables'][TableName] extends {
-      Update: infer U;
-    }
-    ? U
-    : never
+    Update: infer U;
+  }
+  ? U
+  : never
   : PublicTableNameOrOptions extends keyof PublicSchema['Tables']
-    ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
-        Update: infer U;
-      }
-      ? U
-      : never
-    : never;
+  ? PublicSchema['Tables'][PublicTableNameOrOptions] extends {
+    Update: infer U;
+  }
+  ? U
+  : never
+  : never;
 
 export type Enums<
   PublicEnumNameOrOptions extends
-    | keyof PublicSchema['Enums']
-    | { schema: keyof Database },
+  | keyof PublicSchema['Enums']
+  | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions['schema']]['Enums']
-    : never = never,
+  ? keyof Database[PublicEnumNameOrOptions['schema']]['Enums']
+  : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
   ? Database[PublicEnumNameOrOptions['schema']]['Enums'][EnumName]
   : PublicEnumNameOrOptions extends keyof PublicSchema['Enums']
-    ? PublicSchema['Enums'][PublicEnumNameOrOptions]
-    : never;
+  ? PublicSchema['Enums'][PublicEnumNameOrOptions]
+  : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema['CompositeTypes']
-    | { schema: keyof Database },
+  | keyof PublicSchema['CompositeTypes']
+  | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database;
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
-    : never = never,
+  ? keyof Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema['CompositeTypes']
-    ? PublicSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
-    : never;
+  ? PublicSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  : never;

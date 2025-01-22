@@ -1,7 +1,6 @@
 import {
   IsOptional,
   IsEnum,
-  IsNumber,
   IsString,
   IsNotEmpty,
 } from 'class-validator';
@@ -15,8 +14,8 @@ const VALID_TRANSCRIPTION_STATUSES: TranscriptionStatus[] = [
 
 export class CreateTranscriptionDto {
   @IsNotEmpty()
-  @IsNumber()
-  image_id: number;
+  @IsString()
+  image_id: string;
 
   @IsOptional()
   @IsEnum(VALID_TRANSCRIPTION_STATUSES)

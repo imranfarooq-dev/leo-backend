@@ -1,11 +1,11 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class DeleteImageDto {
   @IsNotEmpty()
-  @IsInt()
-  id: number;
+  @IsString()
+  id: string;
 
   @IsNotEmpty()
-  @IsInt()
-  document_id: number;
+  @IsString()
+  document_id: string;
 }

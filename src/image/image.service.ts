@@ -20,7 +20,7 @@ export class ImageService {
     private readonly imageRepository: ImageRepository,
     private readonly creditRepository: CreditsRepository,
     private readonly documentRepository: DocumentRepository,
-  ) {}
+  ) { }
 
   async create(
     { document_id }: CreateImageDto,
@@ -136,7 +136,7 @@ export class ImageService {
     }
   }
 
-  async updateOrder(oldIndex: number, newIndex: number, documentId: number) {
+  async updateOrder(oldIndex: number, newIndex: number, documentId: string) {
     try {
       const documentExist =
         await this.documentRepository.fetchDocumentById(documentId);
@@ -180,12 +180,12 @@ export class ImageService {
       // Create an array of updates where each image points to the next one
       // Create updates array preserving all existing fields
       const updates: {
-        id: number;
-        document_id: number;
+        id: string;
+        document_id: string;
         image_name: string;
         image_path: string;
         image_url: string;
-        next_image_id: number | null;
+        next_image_id: string | null;
       }[] = reorderedImages.map((image, index) => ({
         id: image.id,
         document_id: image.document_id,

@@ -22,7 +22,7 @@ export class DocumentService {
     private readonly documentRepository: DocumentRepository,
     private readonly listsDocumentsRepository: ListsDocumentsRepository,
     private readonly userRepository: UserRepository,
-  ) {}
+  ) { }
 
   async fetchDocumentsByUser(
     user: User,
@@ -132,7 +132,7 @@ export class DocumentService {
         const addDocumentListPromises = createDocument.list_ids.map(
           async (list_id) =>
             await this.listsDocumentsRepository.createListDocument(
-              parseInt(list_id),
+              list_id,
               documentData.id,
             ),
         );
@@ -200,7 +200,7 @@ export class DocumentService {
     }
   }
 
-  async update(document_id: number, updateDocument: UpdateDocumentDto) {
+  async update(document_id: string, updateDocument: UpdateDocumentDto) {
     try {
       const documentExist =
         await this.documentRepository.fetchDocumentById(document_id);
@@ -222,13 +222,13 @@ export class DocumentService {
       }
 
       throw new HttpException(
-        'An error occured while updateing the document',
+        'An error occured while updating the document',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  private async deleteImagesFromStorage(documentId: number) {
+  private async deleteImagesFromStorage(documentId: string) {
     const images: Image[] = await this.imageRepository.fetchImagesByDocumentId(
       documentId,
       false,

@@ -10,19 +10,19 @@ export type SearchDocumentAndList = {
 };
 
 export type SearchDocument = {
-  id: number;
+  id: string;
   document_name: string;
 };
 
 export type SearchImage = {
-  id: number;
+  id: string;
   image_name: string;
   image_url: string;
   document: SearchDocument;
 };
 
 export type SearchTranscription = {
-  id: number;
+  id: string;
   current_transcription_text: string | null;
   ai_transcription_text: string;
   transcription_status: string;
@@ -30,7 +30,7 @@ export type SearchTranscription = {
 };
 
 export type SearchUserNote = {
-  id: number;
+  id: string;
   notes_text: string;
   image: SearchImage;
 };

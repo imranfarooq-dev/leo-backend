@@ -26,7 +26,7 @@ export class GotenbergService {
       // Fetch image data
       const image: ImageWithTranscriptionAndNote =
         (await this.imageRepository.fetchImageById(
-          parseInt(image_id),
+          image_id,
           true,
         )) as ImageWithTranscriptionAndNote;
 
@@ -93,7 +93,7 @@ export class GotenbergService {
     }
   }
 
-  async exportDocuments(documentIds: Array<string | number>): Promise<Buffer> {
+  async exportDocuments(documentIds: Array<string>): Promise<Buffer> {
     try {
       const documents: DocumentImageWithTranscriptionAndNote[] =
         (await this.documentRepository.fetchDocumentsByIds(

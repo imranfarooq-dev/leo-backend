@@ -14,7 +14,7 @@ export class ImageRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createImage(images: InsertImage[]): Promise<Image[]> {
     try {
@@ -58,7 +58,7 @@ export class ImageRepository {
   }
 
   async fetchImageById(
-    imageId: number,
+    imageId: string,
     includeTranscriptionAndNotes: boolean = false,
     attributes?: keyof Image,
   ): Promise<ImageWithTranscriptionAndNote | Image | null> {
@@ -97,7 +97,7 @@ export class ImageRepository {
     }
   }
 
-  async fetchImagesByDocumentIds(documentIds: number[]) {
+  async fetchImagesByDocumentIds(documentIds: string[]) {
     try {
       const { data, error } = await this.supabase.rpc(
         DBFunctions.getOrderedImagesByDocumentIds,
@@ -116,7 +116,7 @@ export class ImageRepository {
   }
 
   async fetchImagesByDocumentId(
-    documentId: number,
+    documentId: string,
     includeTranscriptionAndNotes: boolean = false,
   ): Promise<ImageWithTranscriptionAndNote[] | Image[] | null> {
     try {
@@ -141,7 +141,7 @@ export class ImageRepository {
     }
   }
 
-  async fetchLastDocumentImage(documentId: number): Promise<Image | null> {
+  async fetchLastDocumentImage(documentId: string): Promise<Image | null> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
@@ -164,7 +164,7 @@ export class ImageRepository {
     }
   }
 
-  async fetchImagesByIds(imageIds: number[]) {
+  async fetchImagesByIds(imageIds: string[]) {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
@@ -204,12 +204,12 @@ export class ImageRepository {
 
   async updateImageOrder(
     imageOrder: {
-      id: number;
-      document_id: number;
+      id: string;
+      document_id: string;
       image_name: string;
       image_path: string;
       image_url: string;
-      next_image_id: number | null;
+      next_image_id: string | null;
     }[],
   ): Promise<Image[]> {
     try {
@@ -232,7 +232,7 @@ export class ImageRepository {
     }
   }
 
-  async updateImageNextId(imageId: number, nextImageId: number): Promise<void> {
+  async updateImageNextId(imageId: string, nextImageId: string): Promise<void> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
@@ -252,7 +252,7 @@ export class ImageRepository {
     }
   }
 
-  async deleteImage(imageId: number): Promise<Image> {
+  async deleteImage(imageId: string): Promise<Image> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)

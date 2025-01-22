@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateNoteDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  image_id: number;
+  image_id: string;
 
   @IsNotEmpty()
   @IsString()

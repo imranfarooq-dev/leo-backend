@@ -10,7 +10,7 @@ export class NoteRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createNote(createNote: CreateNoteDto): Promise<Note> {
     try {
@@ -30,7 +30,7 @@ export class NoteRepository {
     }
   }
 
-  async fetchNoteById(noteId: number): Promise<Note | null> {
+  async fetchNoteById(noteId: string): Promise<Note | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Notes)
@@ -44,7 +44,7 @@ export class NoteRepository {
     }
   }
 
-  async fetchNoteByImageId(imageId: number): Promise<Note | null> {
+  async fetchNoteByImageId(imageId: string): Promise<Note | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Notes)
