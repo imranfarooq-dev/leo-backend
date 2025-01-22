@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS credits_backup;
+DROP TABLE IF EXISTS documents_backup;
+DROP TABLE IF EXISTS images_backup;
+DROP TABLE IF EXISTS lists_backup;
+DROP TABLE IF EXISTS notes_backup;
+DROP TABLE IF EXISTS subscriptions_backup;
+DROP TABLE IF EXISTS transcriptions_backup;
+DROP TABLE IF EXISTS lists_documents_backup;
+DROP TABLE IF EXISTS users_backup;
