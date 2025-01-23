@@ -212,7 +212,7 @@ export class TranscriptionService {
   }> {
     try {
       // 1. Create FormData for single image
-      const { buffer, fileType, error } =
+      const { buffer, error } =
         await this.supabaseService.downloadFileBufferFromSupabase(
           image.image_path,
           image.image_name,
@@ -226,7 +226,7 @@ export class TranscriptionService {
         };
       }
 
-      const apiUrl = this.configService.get<string>('AI_URL');
+      const apiUrl = this.configService.get<string>('AI_URL') + '/runsync';
       const apiToken = this.configService.get<string>('AI_AUTH_TOKEN');
 
       if (!apiUrl || !apiToken) {
@@ -236,10 +236,20 @@ export class TranscriptionService {
         );
       }
 
+      // Convert buffer to base64
+      const base64Image = buffer.toString('base64');
+
+      // Create the required JSON payload
+      const payload = {
+        input: {
+          image: base64Image
+        }
+      };
+
       // Make API call for single image
-      const response = await this.axiosWithRetry(apiUrl, buffer, {
+      const response = await this.axiosWithRetry(apiUrl, payload, {
         headers: {
-          'Content-Type': fileType,
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${apiToken}`,
           Accept: 'application/json',
         },
