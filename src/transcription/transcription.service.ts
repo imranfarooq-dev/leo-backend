@@ -212,7 +212,7 @@ export class TranscriptionService {
   }> {
     try {
       // 1. Create FormData for single image
-      const { buffer, fileType, error } =
+      const { buffer, error } =
         await this.supabaseService.downloadFileBufferFromSupabase(
           image.image_path,
           image.image_name,
@@ -236,25 +236,72 @@ export class TranscriptionService {
         );
       }
 
-      // Make API call for single image
-      const response = await this.axiosWithRetry(apiUrl, buffer, {
+      // Convert buffer to base64
+      const base64Image = buffer.toString('base64');
+
+      // Create the required JSON payload
+      const payload = {
+        input: {
+          image: base64Image
+        }
+      };
+
+      // Start the async job
+      const runResponse = await this.axiosWithRetry(`${apiUrl}/run`, payload, {
         headers: {
-          'Content-Type': fileType,
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${apiToken}`,
           Accept: 'application/json',
         },
         maxBodyLength: Infinity,
       });
 
-      if (response.status === HttpStatus.OK) {
-        // Update transcription in database
-        await this.createOrUpdate({
-          image_id: image.id,
-          transcription_status: 'transcribed',
-          ai_transcription_text: response.data.transcript,
-          current_transcription_text: null,
-        });
+      const jobId = runResponse.data.id;
+
+      // Poll for completion
+      let completed = false;
+      let attempts = 0;
+      const maxAttempts = 600; // 50 minutes with 5-second intervals
+      let result;
+
+      while (!completed && attempts < maxAttempts) {
+        const statusResponse = await this.axiosWithRetry(
+          `${apiUrl}/status/${jobId}`,
+          null,
+          {
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+              Accept: 'application/json',
+            },
+            method: 'GET',
+          }
+        );
+
+        const status = statusResponse.data.status;
+
+        if (status === 'COMPLETED') {
+          completed = true;
+          result = statusResponse.data.output;
+        } else if (status === 'FAILED') {
+          throw new Error('Job failed: ' + statusResponse.data.error);
+        } else {
+          // Wait 5 seconds before next attempt
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          attempts++;
+        }
       }
+
+      if (!completed) {
+        throw new Error('Timeout waiting for job completion');
+      }
+
+      // Update transcription in database
+      await this.createOrUpdate({
+        image_id: image.id,
+        transcription_status: 'transcribed',
+        ai_transcription_text: result.transcript,
+        current_transcription_text: null,
+      });
 
       return {
         imageId: image.id,
