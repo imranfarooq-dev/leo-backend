@@ -226,7 +226,7 @@ export class TranscriptionService {
         };
       }
 
-      const apiUrl = this.configService.get<string>('AI_URL') + '/runsync';
+      const apiUrl = this.configService.get<string>('AI_URL');
       const apiToken = this.configService.get<string>('AI_AUTH_TOKEN');
 
       if (!apiUrl || !apiToken) {
@@ -246,8 +246,8 @@ export class TranscriptionService {
         }
       };
 
-      // Make API call for single image
-      const response = await this.axiosWithRetry(apiUrl, payload, {
+      // Start the async job
+      const runResponse = await this.axiosWithRetry(`${apiUrl}/run`, payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiToken}`,
@@ -256,15 +256,52 @@ export class TranscriptionService {
         maxBodyLength: Infinity,
       });
 
-      if (response.status === HttpStatus.OK) {
-        // Update transcription in database
-        await this.createOrUpdate({
-          image_id: image.id,
-          transcription_status: 'transcribed',
-          ai_transcription_text: response.data.output.transcript,
-          current_transcription_text: null,
-        });
+      const jobId = runResponse.data.id;
+
+      // Poll for completion
+      let completed = false;
+      let attempts = 0;
+      const maxAttempts = 600; // 50 minutes with 5-second intervals
+      let result;
+
+      while (!completed && attempts < maxAttempts) {
+        const statusResponse = await this.axiosWithRetry(
+          `${apiUrl}/status/${jobId}`,
+          null,
+          {
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+              Accept: 'application/json',
+            },
+            method: 'GET',
+          }
+        );
+
+        const status = statusResponse.data.status;
+
+        if (status === 'COMPLETED') {
+          completed = true;
+          result = statusResponse.data.output;
+        } else if (status === 'FAILED') {
+          throw new Error('Job failed: ' + statusResponse.data.error);
+        } else {
+          // Wait 5 seconds before next attempt
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          attempts++;
+        }
       }
+
+      if (!completed) {
+        throw new Error('Timeout waiting for job completion');
+      }
+
+      // Update transcription in database
+      await this.createOrUpdate({
+        image_id: image.id,
+        transcription_status: 'transcribed',
+        ai_transcription_text: result.transcript,
+        current_transcription_text: null,
+      });
 
       return {
         imageId: image.id,
