@@ -261,7 +261,7 @@ export class TranscriptionService {
         await this.createOrUpdate({
           image_id: image.id,
           transcription_status: 'transcribed',
-          ai_transcription_text: response.data.transcript,
+          ai_transcription_text: response.data.output.transcript,
           current_transcription_text: null,
         });
       }
