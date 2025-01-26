@@ -296,7 +296,7 @@ export class TranscriptionService {
       const jobId = runResponse.data.id;
 
       // Create initial transcription job record
-      await this.transcriptionJobRepository.createTranscriptionJob({
+      const { id: transcriptionJobId } = await this.transcriptionJobRepository.createTranscriptionJob({
         image_id: image.id,
         external_job_id: jobId,
         status: TranscriptionJobStatus.IN_PROGRESS,
@@ -328,13 +328,13 @@ export class TranscriptionService {
           result = statusResponse.data.output;
 
           // Update job status to completed
-          await this.transcriptionJobRepository.updateTranscriptionJob(jobId, {
+          await this.transcriptionJobRepository.updateTranscriptionJob(transcriptionJobId, {
             status: TranscriptionJobStatus.COMPLETED,
             transcript_text: result.transcript,
           });
         } else if (['FAILED', 'CANCELLED', 'TIME_OUT'].includes(status)) {
           // Update job status to failed
-          await this.transcriptionJobRepository.updateTranscriptionJob(jobId, {
+          await this.transcriptionJobRepository.updateTranscriptionJob(transcriptionJobId, {
             status: TranscriptionJobStatus.FAILED,
           });
           throw new Error('Job failed: ' + statusResponse.data.error);
