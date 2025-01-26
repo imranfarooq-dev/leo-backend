@@ -355,6 +355,44 @@ export type Database = {
           },
         ]
       }
+      transcription_jobs: {
+        Row: {
+          created_at: string | null
+          external_job_id: string
+          id: string
+          image_id: string | null
+          status: Database["public"]["Enums"]["transcription_job_status"]
+          transcript_text: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          external_job_id: string
+          id?: string
+          image_id?: string | null
+          status: Database["public"]["Enums"]["transcription_job_status"]
+          transcript_text?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          external_job_id?: string
+          id?: string
+          image_id?: string | null
+          status?: Database["public"]["Enums"]["transcription_job_status"]
+          transcript_text?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcription_jobs_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcriptions: {
         Row: {
           ai_transcription_text: string | null
@@ -458,6 +496,15 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_latest_transcription_job_status: {
+        Args: {
+          image_id: string
+        }
+        Returns: {
+          status: Database["public"]["Enums"]["transcription_job_status"]
+          transcript_text: string
+        }[]
+      }
       get_list_with_children: {
         Args: {
           _id: string
@@ -482,6 +529,7 @@ export type Database = {
           next_image_id: string
           notes: Json
           transcriptions: Json
+          latest_transcription_job_status: Database["public"]["Enums"]["transcription_job_status"]
         }[]
       }
       get_ordered_images_by_document_ids: {
@@ -497,6 +545,7 @@ export type Database = {
           created_at: string
           updated_at: string
           next_image_id: string
+          latest_transcription_job_status: Database["public"]["Enums"]["transcription_job_status"]
         }[]
       }
       search_documents_and_lists: {
@@ -522,6 +571,7 @@ export type Database = {
       | "canceled"
       | "unpaid"
       | "paused"
+      transcription_job_status: "IN_PROGRESS" | "COMPLETED" | "FAILED"
       transcription_status_enum: "draft" | "transcribed" | "finalised"
     }
     CompositeTypes: {
