@@ -8,4 +8,4 @@ import { DatabaseModule } from '@/src/database/database.module';
   controllers: [TranscriptionController],
   providers: [TranscriptionService],
 })
-export class TranscriptionModule {}
+export class TranscriptionModule { }

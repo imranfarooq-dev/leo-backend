@@ -11,8 +11,11 @@ import { CreditsRepository } from '@/src/database/repositiories/credits.reposito
 import { TRANSCRIBE_COST } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { APITranscriptionStatus } from '@/types/transcription';
+import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
+import { TranscriptionJob, TranscriptionJobStatus } from '@/types/transcription_job';
+import { FetchTranscriptionStatusDto } from '@/src/transcription/dto/fetch-transcription-status.dto';
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 1000;
 
 @Injectable()
@@ -24,7 +27,41 @@ export class TranscriptionService {
     private readonly creditsRepository: CreditsRepository,
     private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseService,
+    private readonly transcriptionJobRepository: TranscriptionJobRepository,
   ) { }
+
+  async fetchStatus(user: ClerkUser, fetchTranscriptionStatus: FetchTranscriptionStatusDto): Promise<TranscriptionJob> {
+    try {
+      // Check if user has access to the document
+      const image = await this.imageRepository.fetchImageById(fetchTranscriptionStatus.image_id);
+      if (!image) {
+        throw new HttpException('Image not found', HttpStatus.NOT_FOUND);
+      }
+
+      const document = await this.documentRepository.fetchDocumentById(image.document_id);
+      if (!document || document.user_id !== user.id) {
+        throw new HttpException('Unauthorized access', HttpStatus.FORBIDDEN);
+      }
+
+      // Find the latest job for this image
+      const transcriptionJob = await this.transcriptionJobRepository.fetchLatestByImageId(fetchTranscriptionStatus.image_id);
+
+      if (!transcriptionJob) {
+        throw new HttpException('Transcription job not found', HttpStatus.NOT_FOUND);
+      }
+
+      return transcriptionJob;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        'An error occurred while fetching transcription status',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   async aiTranscribe(clerkUser: ClerkUser, imageIds: string[]) {
     try {
@@ -258,10 +295,17 @@ export class TranscriptionService {
 
       const jobId = runResponse.data.id;
 
+      // Create initial transcription job record
+      const { id: transcriptionJobId } = await this.transcriptionJobRepository.createTranscriptionJob({
+        image_id: image.id,
+        external_job_id: jobId,
+        status: TranscriptionJobStatus.IN_PROGRESS,
+      });
+
       // Poll for completion
       let completed = false;
       let attempts = 0;
-      const maxAttempts = 600; // 50 minutes with 5-second intervals
+      const maxAttempts = 1800; // 60 minutes with 2-second intervals
       let result;
 
       while (!completed && attempts < maxAttempts) {
@@ -282,16 +326,30 @@ export class TranscriptionService {
         if (status === 'COMPLETED') {
           completed = true;
           result = statusResponse.data.output;
-        } else if (status === 'FAILED') {
+
+          // Update job status to completed
+          await this.transcriptionJobRepository.updateTranscriptionJob(transcriptionJobId, {
+            status: TranscriptionJobStatus.COMPLETED,
+            transcript_text: result.transcript,
+          });
+        } else if (['FAILED', 'CANCELLED', 'TIME_OUT'].includes(status)) {
+          // Update job status to failed
+          await this.transcriptionJobRepository.updateTranscriptionJob(transcriptionJobId, {
+            status: TranscriptionJobStatus.FAILED,
+          });
           throw new Error('Job failed: ' + statusResponse.data.error);
         } else {
-          // Wait 5 seconds before next attempt
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          // Wait 2 second before next attempt
+          await new Promise(resolve => setTimeout(resolve, 2000));
           attempts++;
         }
       }
 
       if (!completed) {
+        // Update job status to failed on timeout
+        await this.transcriptionJobRepository.updateTranscriptionJob(jobId, {
+          status: TranscriptionJobStatus.FAILED,
+        });
         throw new Error('Timeout waiting for job completion');
       }
 

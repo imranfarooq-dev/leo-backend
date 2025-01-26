@@ -27,6 +27,7 @@ export enum Tables {
   ListsDocuments = 'lists_documents',
   Subscriptions = 'subscriptions',
   Credits = 'credits',
+  TranscriptionJobs = 'transcription_jobs',
 }
 
 export enum DBFunctions {
