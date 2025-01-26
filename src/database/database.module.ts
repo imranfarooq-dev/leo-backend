@@ -9,6 +9,7 @@ import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-doc
 import { SearchRepository } from '@/src/database/repositiories/search.repository';
 import { SubscriptionRepository } from '@/src/database/repositiories/subscription.repository';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
+import { TranscriptionJobRepository } from './repositiories/transcription_job.repository';
 
 @Module({
   providers: [
@@ -22,6 +23,7 @@ import { CreditsRepository } from '@/src/database/repositiories/credits.reposito
     SearchRepository,
     SubscriptionRepository,
     CreditsRepository,
+    TranscriptionJobRepository,
   ],
   exports: [
     ImageRepository,
@@ -34,6 +36,7 @@ import { CreditsRepository } from '@/src/database/repositiories/credits.reposito
     SearchRepository,
     SubscriptionRepository,
     CreditsRepository,
+    TranscriptionJobRepository,
   ],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }
