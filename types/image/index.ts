@@ -1,6 +1,7 @@
 import { Database } from '@/database.types';
 import { Transcription } from '@/types/transcription';
 import { Note } from '@/types/notes';
+import { TranscriptionJobStatus } from '@/types/transcription_job';
 
 export type UploadedImage = {
   id: string;
@@ -22,6 +23,7 @@ export type Image = Database['public']['Tables']['images']['Row'];
 export type ImageWithTranscriptionAndNote = Image & {
   transcriptions: Transcription;
   notes: Note;
+  latest_transcription_job_status: TranscriptionJobStatus;
 };
 
 export type FileBufferDownloadResult = {
