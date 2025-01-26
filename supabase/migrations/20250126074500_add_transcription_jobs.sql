@@ -49,7 +49,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- get_ordered_images_by_document_id
-DROP FUNCTION IF EXISTS get_ordered_images_by_document_id(document_id_param INTEGER, include_relations boolean);
+DROP FUNCTION IF EXISTS get_ordered_images_by_document_id(document_id_param uuid, include_relations boolean);
 
 CREATE OR REPLACE FUNCTION get_ordered_images_by_document_id(
     document_id_param uuid,
@@ -188,7 +188,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- get_ordered_images_by_document_ids
-DROP FUNCTION IF EXISTS get_ordered_images_by_document_ids(document_ids INTEGER[]);
+DROP FUNCTION IF EXISTS get_ordered_images_by_document_ids(document_ids uuid[]);
 
 CREATE OR REPLACE FUNCTION get_ordered_images_by_document_ids(document_ids uuid[])
 RETURNS TABLE (
