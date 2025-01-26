@@ -23,7 +23,7 @@ export class ImageRepository {
         .from(Tables.Images)
         .select('id')
         .eq('document_id', images[0].document_id)
-        .is('next_img_id', null)
+        .is('next_image_id', null)
         .single();
 
       // Insert all new images
@@ -38,7 +38,7 @@ export class ImageRepository {
       for (let i = 0; i < newImages.length - 1; i++) {
         await this.supabase
           .from(Tables.Images)
-          .update({ next_img_id: newImages[i + 1].id })
+          .update({ next_image_id: newImages[i + 1].id })
           .eq('id', newImages[i].id);
       }
 
@@ -46,7 +46,7 @@ export class ImageRepository {
       if (lastImage) {
         await this.supabase
           .from(Tables.Images)
-          .update({ next_img_id: newImages[0].id })
+          .update({ next_image_id: newImages[0].id })
           .eq('id', lastImage.id);
       }
 
