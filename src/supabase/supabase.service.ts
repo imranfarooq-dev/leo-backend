@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  DocumentStoragePath,
+  ImageStoragePath,
   Provides,
   SupabaseStorageId,
 } from '@/src/shared/constant';
@@ -8,12 +8,27 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { FileBufferDownloadResult, UploadedImage } from '@/types/image';
 import { chunk } from 'lodash';
+import { createPresignedUrl } from '@supabase/storage-js';
+
 
 @Injectable()
 export class SupabaseService {
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
+
+  async getPresignedUrl(path: string): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.storage
+        .from(SupabaseStorageId)
+        .createSignedUrl(path, 3600); // 1 hour expiration
+
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (error) {
+      throw new Error(`Failed to generate presigned URL: ${error.message}`);
+    }
+  }
 
   async uploadFiles(
     files: Express.Multer.File[],
@@ -28,7 +43,8 @@ export class SupabaseService {
         const batch = batches[i];
 
         const uploadPromises = batch.map(async (file) => {
-          const filepath = `${DocumentStoragePath}/${userId}/${uuid()}-${file.originalname}`;
+          const fileExtension = file.originalname.split('.').pop() || '';
+          const filepath = `${ImageStoragePath}/${uuid()}.${fileExtension}`;
 
           const { data, error } = await this.supabase.storage
             .from(SupabaseStorageId)
@@ -40,15 +56,16 @@ export class SupabaseService {
             );
           }
 
-          const {
-            data: { publicUrl },
-          } = this.supabase.storage
-            .from(SupabaseStorageId)
-            .getPublicUrl(data.path);
+          const { data: signedUrlData, error: signedUrlError } =
+            await this.supabase.storage
+              .from(SupabaseStorageId)
+              .createSignedUrl(data.path, 3600);
+
+          if (signedUrlError) throw signedUrlError;
 
           return {
             id: data.id,
-            publicUrl,
+            publicUrl: signedUrlData.signedUrl,
             fileName: file.originalname,
             path: data.path,
             fullPath: data.fullPath,

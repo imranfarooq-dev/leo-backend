@@ -17,7 +17,6 @@ export type SearchDocument = {
 export type SearchImage = {
   id: string;
   image_name: string;
-  image_url: string;
   document: SearchDocument;
 };
 

@@ -208,7 +208,6 @@ export class ImageRepository {
       document_id: string;
       image_name: string;
       image_path: string;
-      image_url: string;
       next_image_id: string | null;
     }[],
   ): Promise<Image[]> {

@@ -14,7 +14,6 @@ export type UploadedImage = {
 export type InsertImage = {
   document_id: string;
   image_name: string;
-  image_url: string;
   image_path: string;
 };
 

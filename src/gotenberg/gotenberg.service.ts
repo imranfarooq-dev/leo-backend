@@ -8,6 +8,7 @@ import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { ImageWithTranscriptionAndNote } from '@/types/image';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { DocumentImageWithTranscriptionAndNote } from '@/types/document';
+import { SupabaseService } from '@/src/supabase/supabase.service';
 
 @Injectable()
 export class GotenbergService {
@@ -16,6 +17,7 @@ export class GotenbergService {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly imageRepository: ImageRepository,
+    private readonly supabaseService: SupabaseService,
     private configService: ConfigService,
   ) {
     this.gotenbergUrl = this.configService.get<string>('GOTENBERG_URL');
@@ -54,8 +56,8 @@ export class GotenbergService {
         );
 
         // Download and add original image
-        const imageBuffer = await this.downloadImage(image.image_url);
-        const imageExtension = image.image_url.split('.').pop() || 'jpg';
+        const imageBuffer = await this.downloadImage(image.image_path);
+        const imageExtension = image.image_path.split('.').pop() || 'jpg';
         archive.append(imageBuffer, {
           name: `{original-image}.${imageExtension}`,
         });
@@ -146,7 +148,8 @@ export class GotenbergService {
     }
   }
 
-  private async downloadImage(imageUrl: string): Promise<Buffer> {
+  private async downloadImage(imagePath: string): Promise<Buffer> {
+    const imageUrl = await this.supabaseService.getPresignedUrl(imagePath);
     const response = await axios.get(imageUrl, {
       responseType: 'arraybuffer',
     });
@@ -175,10 +178,10 @@ export class GotenbergService {
     basePath: string,
   ) {
     // Add original image
-    const imageBuffer = await this.downloadImage(image.image_url);
+    const imageBuffer = await this.downloadImage(image.image_path);
     const imageName =
       image.image_name.split('.').shift() || `image-${image.id}`;
-    const imageExtension = image.image_url.split('.').pop() || 'jpg';
+    const imageExtension = image.image_path.split('.').pop() || 'jpg';
     archive.append(imageBuffer, {
       name: `${basePath}/images/${imageName}.${imageExtension}`,
     });

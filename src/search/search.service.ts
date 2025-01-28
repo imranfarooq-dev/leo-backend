@@ -9,7 +9,7 @@ import { SearchMode } from '@/src/shared/constant';
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly searchRepository: SearchRepository) {}
+  constructor(private readonly searchRepository: SearchRepository) { }
 
   async searchDocumentAndList(
     search_mode: SearchMode,
@@ -89,7 +89,6 @@ export class SearchService {
         documentMap.get(documentId)?.images.push({
           id: item.image.id,
           image_name: item.image.image_name,
-          image_url: item.image.image_url,
           transcription: {
             id: item.id,
             current_transcription_text: item.current_transcription_text,
@@ -136,7 +135,6 @@ export class SearchService {
         documentMap.get(documentId)?.images.push({
           id: item.image.id,
           image_name: item.image.image_name,
-          image_url: item.image.image_url,
           note: {
             id: item.id,
             notes_text: item.notes_text,
