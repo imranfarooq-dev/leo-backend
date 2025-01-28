@@ -24,6 +24,7 @@ export class ImageRepository {
       images.map(async (image) => ({
         ...image,
         image_url: await this.supabaseService.getPresignedUrl(image.image_path),
+        thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image.image_path),
       })),
     );
     return imagesWithUrls;

@@ -27,6 +27,7 @@ export type ImageWithTranscriptionAndNote = Image & {
 
 export type ImageWithPresignedUrl = Image & {
   image_url: string;
+  thumbnail_url: string;
 };
 
 export type FileBufferDownloadResult = {

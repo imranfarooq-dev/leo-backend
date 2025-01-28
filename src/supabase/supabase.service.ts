@@ -29,6 +29,25 @@ export class SupabaseService {
     }
   }
 
+  async getPresignedThumbnailUrl(path: string): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.storage
+        .from(SupabaseStorageId)
+        .createSignedUrl(path, 3600, { // 1 hour expiration
+          transform: {
+            width: 96,
+            height: 96,
+            resize: 'cover'
+          }
+        });
+
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (error) {
+      throw new Error(`Failed to generate presigned URL: ${error.message}`);
+    }
+  }
+
   async uploadFiles(
     files: Express.Multer.File[],
     userId: string,
