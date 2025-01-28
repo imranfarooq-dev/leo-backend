@@ -3,6 +3,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Make backup of the images table
 CREATE TABLE images_backup AS SELECT * FROM images;
 
+ALTER TABLE images
+ADD COLUMN image_path_new VARCHAR;
 
 UPDATE images
 SET image_path_new = CONCAT(
