@@ -23,7 +23,7 @@ export class ImageRepository {
     const imagesWithUrls = await Promise.all(
       images.map(async (image) => ({
         ...image,
-        presigned_url: await this.supabaseService.getPresignedUrl(image.image_path),
+        image_url: await this.supabaseService.getPresignedUrl(image.image_path),
       })),
     );
     return imagesWithUrls;

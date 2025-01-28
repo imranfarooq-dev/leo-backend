@@ -26,7 +26,7 @@ export type ImageWithTranscriptionAndNote = Image & {
 };
 
 export type ImageWithPresignedUrl = Image & {
-  presigned_url: string;
+  image_url: string;
 };
 
 export type FileBufferDownloadResult = {
