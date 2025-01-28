@@ -8,7 +8,6 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { FileBufferDownloadResult, UploadedImage } from '@/types/image';
 import { chunk } from 'lodash';
-import { createPresignedUrl } from '@supabase/storage-js';
 
 
 @Injectable()
