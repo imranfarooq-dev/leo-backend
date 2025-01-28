@@ -25,6 +25,10 @@ export type ImageWithTranscriptionAndNote = Image & {
   latest_transcription_job_status: TranscriptionJobStatus;
 };
 
+export type ImageWithPresignedUrl = Image & {
+  presigned_url: string;
+};
+
 export type FileBufferDownloadResult = {
   buffer: Buffer | null;
   fileType: string | null;
