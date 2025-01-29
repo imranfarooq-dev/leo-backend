@@ -12,7 +12,8 @@ BEGIN
       x.image_name::text,
       x.image_path::text,
       x.order::int
-    FROM jsonb_to_recordset(image_updates) AS x(
+    FROM unnest(image_updates) AS arr(json_element)
+    CROSS JOIN LATERAL jsonb_to_recordset(json_element) AS x(
       id uuid,
       document_id uuid,
       image_name text,
