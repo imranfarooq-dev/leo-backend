@@ -6,13 +6,30 @@ BEGIN;
 ALTER TABLE images ADD COLUMN "order" INT;
 
 WITH RECURSIVE ordered_images AS (
-    SELECT id, document_id, 1 AS "order"
-    FROM images
-    WHERE id NOT IN (SELECT next_image_id FROM images WHERE next_image_id IS NOT NULL) -- Find the first image
-    UNION ALL
-    SELECT i.id, i.document_id, oi.order + 1
-    FROM images i
-    JOIN ordered_images oi ON oi.id = i.next_image_id -- Changed this line
+  SELECT 
+    i.id,
+    i.document_id,
+    i.image_name,
+    i.next_image_id,
+    1 as "order"
+  FROM images i
+  WHERE NOT EXISTS (
+    SELECT 1 
+    FROM images prev 
+    WHERE prev.next_image_id = i.id
+    AND prev.document_id = i.document_id
+  )
+  
+  UNION ALL
+ 
+  SELECT 
+    i.id,
+    i.document_id,
+    i.image_name,
+    i.next_image_id,
+    s.order + 1
+  FROM images i
+  JOIN ordered_images s ON i.id = s.next_image_id
 )
 UPDATE images
 SET "order" = (SELECT "order" FROM ordered_images WHERE ordered_images.id = images.id);
