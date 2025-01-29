@@ -138,7 +138,6 @@ export type Database = {
           id: string
           image_name: string | null
           image_path: string
-          image_url: string
           next_image_id: string | null
           updated_at: string | null
         }
@@ -148,7 +147,6 @@ export type Database = {
           id?: string
           image_name?: string | null
           image_path: string
-          image_url: string
           next_image_id?: string | null
           updated_at?: string | null
         }
@@ -158,7 +156,6 @@ export type Database = {
           id?: string
           image_name?: string | null
           image_path?: string
-          image_url?: string
           next_image_id?: string | null
           updated_at?: string | null
         }
@@ -522,7 +519,6 @@ export type Database = {
           id: string
           document_id: string
           image_name: string
-          image_url: string
           image_path: string
           created_at: string
           updated_at: string
@@ -540,7 +536,6 @@ export type Database = {
           id: string
           document_id: string
           image_name: string
-          image_url: string
           image_path: string
           created_at: string
           updated_at: string

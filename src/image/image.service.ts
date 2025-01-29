@@ -12,6 +12,7 @@ import { InsertImage } from '@/types/image';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
+import { Image } from '@/types/image';
 
 @Injectable()
 export class ImageService {
@@ -66,7 +67,6 @@ export class ImageService {
       const imagesData: InsertImage[] = uploadedImages.map((uploadedImage) => ({
         document_id: document_id,
         image_name: uploadedImage.fileName,
-        image_url: uploadedImage.publicUrl,
         image_path: uploadedImage.path,
       }));
 
@@ -82,7 +82,6 @@ export class ImageService {
         document_id: image.document_id,
         image_name: image.image_name,
         image_path: image.image_path,
-        image_url: image.image_url,
         next_image_id:
           index === newImages.length - 1 ? null : newImages[index + 1].id,
       }));
@@ -93,7 +92,6 @@ export class ImageService {
           document_id: lastImage.document_id,
           image_name: lastImage.image_name,
           image_path: lastImage.image_path,
-          image_url: lastImage.image_url,
           next_image_id: newImages[0].id,
         });
       }
@@ -184,14 +182,12 @@ export class ImageService {
         document_id: string;
         image_name: string;
         image_path: string;
-        image_url: string;
         next_image_id: string | null;
       }[] = reorderedImages.map((image, index) => ({
         id: image.id,
         document_id: image.document_id,
         image_name: image.image_name,
         image_path: image.image_path,
-        image_url: image.image_url,
         next_image_id:
           index === reorderedImages.length - 1
             ? null

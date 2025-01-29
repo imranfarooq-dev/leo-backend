@@ -10,7 +10,6 @@ import { UserRepository } from '@/src/database/repositiories/user.repository';
 import { User } from '@/types/user';
 import { UserJSON, User as ClerkUser } from '@clerk/clerk-sdk-node';
 import {
-  DocumentStoragePath,
   Provides,
   SubscriptionStatus,
 } from '@/src/shared/constant';
@@ -29,7 +28,7 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly subscriptionRepository: SubscriptionRepository,
     private readonly creditRepository: CreditsRepository,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
@@ -95,9 +94,9 @@ export class UserService {
 
   async delete(user: UserJSON): Promise<User> {
     try {
-      const userStoragePath: string = `${DocumentStoragePath}/${user.id}`;
-
-      await this.supabaseService.deleteFolder(userStoragePath);
+      // Note we will not by default delete users' images after they are deleted from the database
+      // const userStoragePath: string = `${DocumentStoragePath}/${user.id}`;
+      // await this.supabaseService.deleteFolder(userStoragePath);
       await this.cancelStripeSubscription(user.id);
 
       return await this.userRepository.deleteUser(user.id);

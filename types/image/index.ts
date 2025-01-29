@@ -14,7 +14,6 @@ export type UploadedImage = {
 export type InsertImage = {
   document_id: string;
   image_name: string;
-  image_url: string;
   image_path: string;
 };
 
@@ -24,6 +23,11 @@ export type ImageWithTranscriptionAndNote = Image & {
   transcriptions: Transcription;
   notes: Note;
   latest_transcription_job_status: TranscriptionJobStatus;
+};
+
+export type ImageWithPresignedUrl = Image & {
+  image_url: string;
+  thumbnail_url: string;
 };
 
 export type FileBufferDownloadResult = {

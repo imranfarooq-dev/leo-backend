@@ -7,7 +7,7 @@ export class SearchRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async searchListAndDocument(searchKeyword: string, userId: string) {
     try {
@@ -39,7 +39,6 @@ export class SearchRepository {
           image: images!inner (
             id,
             image_name,
-            image_url,
             document: documents!inner (
               id,
               document_name
@@ -49,7 +48,7 @@ export class SearchRepository {
         )
         .or(
           `and(current_transcription_text.neq.null,current_transcription_text.ilike.%${searchKeyword}%),` +
-            `and(current_transcription_text.is.null,ai_transcription_text.ilike.%${searchKeyword}%)`,
+          `and(current_transcription_text.is.null,ai_transcription_text.ilike.%${searchKeyword}%)`,
         )
         .eq('images.documents.user_id', userId);
 
@@ -74,7 +73,6 @@ export class SearchRepository {
           image: images!inner (
             id,
             image_name,
-            image_url,
             document: documents!inner (
               id,
               document_name

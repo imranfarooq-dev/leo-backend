@@ -3,10 +3,12 @@ import { DBFunctions, Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
   Image,
+  ImageWithPresignedUrl,
   ImageWithTranscriptionAndNote,
   InsertImage,
 } from '@/types/image';
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
+import { SupabaseService } from '@/src/supabase/supabase.service';
 
 @Injectable()
 export class ImageRepository {
@@ -14,9 +16,21 @@ export class ImageRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
+    private readonly supabaseService: SupabaseService,
   ) { }
 
-  async createImage(images: InsertImage[]): Promise<Image[]> {
+  private async addPresignedUrlsToImages(images: Image[]): Promise<ImageWithPresignedUrl[]> {
+    const imagesWithUrls = await Promise.all(
+      images.map(async (image) => ({
+        ...image,
+        image_url: await this.supabaseService.getPresignedUrl(image.image_path),
+        thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image.image_path),
+      })),
+    );
+    return imagesWithUrls;
+  }
+
+  async createImage(images: InsertImage[]): Promise<ImageWithPresignedUrl[]> {
     try {
       // Find last image of the document if exists
       const { data: lastImage } = await this.supabase
@@ -50,7 +64,8 @@ export class ImageRepository {
           .eq('id', lastImage.id);
       }
 
-      return newImages;
+      const imagesWithUrls = await this.addPresignedUrlsToImages(newImages);
+      return imagesWithUrls;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create image record');
       throw error;
@@ -61,7 +76,7 @@ export class ImageRepository {
     imageId: string,
     includeTranscriptionAndNotes: boolean = false,
     attributes?: keyof Image,
-  ): Promise<ImageWithTranscriptionAndNote | Image | null> {
+  ): Promise<ImageWithTranscriptionAndNote | ImageWithPresignedUrl | null> {
     try {
       let selectQuery = `${attributes ?? '*'}`;
 
@@ -91,7 +106,12 @@ export class ImageRepository {
         .eq('id', imageId)
         .maybeSingle();
 
-      return data;
+      if (data) {
+        const imagesWithUrls = await this.addPresignedUrlsToImages([data]);
+        return imagesWithUrls[0];
+      }
+
+      return null;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch image by id');
     }
@@ -118,7 +138,7 @@ export class ImageRepository {
   async fetchImagesByDocumentId(
     documentId: string,
     includeTranscriptionAndNotes: boolean = false,
-  ): Promise<ImageWithTranscriptionAndNote[] | Image[] | null> {
+  ): Promise<ImageWithTranscriptionAndNote[] | ImageWithPresignedUrl[] | null> {
     try {
       const { data, error } = await this.supabase.rpc(
         DBFunctions.getOrderedImagesByDocumentId,
@@ -132,7 +152,12 @@ export class ImageRepository {
         throw new Error('Failed to fetch images associated with document');
       }
 
-      return data;
+      if (data) {
+        const imagesWithUrls = await this.addPresignedUrlsToImages(data);
+        return imagesWithUrls;
+      }
+
+      return null;
     } catch (error) {
       this.logger.error(
         error.message ?? 'Failed to fetch images associated with document',
@@ -141,7 +166,7 @@ export class ImageRepository {
     }
   }
 
-  async fetchLastDocumentImage(documentId: string): Promise<Image | null> {
+  async fetchLastDocumentImage(documentId: string): Promise<ImageWithPresignedUrl | null> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
@@ -157,7 +182,12 @@ export class ImageRepository {
         throw error;
       }
 
-      return data;
+      if (data) {
+        const imagesWithUrls = await this.addPresignedUrlsToImages([data]);
+        return imagesWithUrls[0];
+      }
+
+      return null;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch last document image');
       throw error;
@@ -175,7 +205,12 @@ export class ImageRepository {
         throw new Error(error.message ?? 'Failed to fetch images by ids');
       }
 
-      return data;
+      if (data) {
+        const imagesWithUrls = await this.addPresignedUrlsToImages(data);
+        return imagesWithUrls;
+      }
+
+      return null;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch images by ids');
       throw error;
@@ -208,7 +243,6 @@ export class ImageRepository {
       document_id: string;
       image_name: string;
       image_path: string;
-      image_url: string;
       next_image_id: string | null;
     }[],
   ): Promise<Image[]> {
