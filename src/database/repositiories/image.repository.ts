@@ -32,6 +32,7 @@ export class ImageRepository {
 
   async createImage(images: InsertImage[]): Promise<ImageWithPresignedUrl[]> {
     try {
+      // Insert all new images
       const { data: newImages, error } = await this.supabase
         .from(Tables.Images)
         .insert(images)
@@ -89,6 +90,23 @@ export class ImageRepository {
       return null;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch image by id');
+    }
+  }
+
+  async fetchImagesByDocumentIds(documentIds: string[]) {
+    try {
+      const { data, error } = await this.supabase.rpc(
+        DBFunctions.getOrderedImagesByDocumentIds,
+        { document_ids: documentIds },
+      );
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch images by document');
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch images by document');
       throw error;
     }
   }
@@ -151,6 +169,29 @@ export class ImageRepository {
     }
   }
 
+  async fetchImagesByIds(imageIds: string[]) {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Images)
+        .select()
+        .in('id', imageIds);
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch images by ids');
+      }
+
+      if (data) {
+        const imagesWithUrls = await this.addPresignedUrlsToImages(data);
+        return imagesWithUrls;
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch images by ids');
+      throw error;
+    }
+  }
+
   async updateImage(updateImage: UpdateImageDto) {
     try {
       const { data, error } = await this.supabase
@@ -161,7 +202,7 @@ export class ImageRepository {
         .maybeSingle();
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to update image record');
+        throw new Error(error.message ?? 'Failed to update image record}');
       }
 
       return data;
@@ -190,7 +231,7 @@ export class ImageRepository {
         .select('*');
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to update image order');
+        throw new Error(error.message ?? 'Failed to update image order}');
       }
 
       return data;

@@ -1,10 +1,10 @@
 -- Migrate to integer order
 -- ========================
 
-ALTER TABLE images ADD COLUMN order INT;
+ALTER TABLE images ADD COLUMN "order" INT;
 
 WITH RECURSIVE ordered_images AS (
-    SELECT id, document_id, 1 AS order
+    SELECT id, document_id, 1 AS "order"
     FROM images
     WHERE id NOT IN (SELECT next_image_id FROM images WHERE next_image_id IS NOT NULL) -- Find the first image
     UNION ALL
@@ -13,11 +13,11 @@ WITH RECURSIVE ordered_images AS (
     JOIN ordered_images oi ON i.id = oi.next_image_id
 )
 UPDATE images
-SET order = (SELECT order FROM ordered_images WHERE ordered_images.id = images.id);
+SET "order" = (SELECT "order" FROM ordered_images WHERE ordered_images.id = images.id);
 
-CREATE INDEX idx_images_order ON images (document_id, order);
-ALTER TABLE images ALTER COLUMN order SET NOT NULL;
-ALTER TABLE images ADD CONSTRAINT unique_document_order UNIQUE (document_id, order);
+CREATE INDEX idx_images_order ON images (document_id, "order");
+ALTER TABLE images ALTER COLUMN "order" SET NOT NULL;
+ALTER TABLE images ADD CONSTRAINT unique_document_order UNIQUE (document_id, "order");
 
 -- Drop the next_image_id column
 ALTER TABLE images DROP CONSTRAINT IF EXISTS fk_images_next_image_id;
@@ -42,7 +42,7 @@ RETURNS TABLE (
     image_path character varying,
     created_at timestamp without time zone,
     updated_at timestamp without time zone,
-    order int,
+    "order" int,
     notes json,
     transcriptions json,
     latest_transcription_job_status transcription_job_status
@@ -105,7 +105,7 @@ RETURNS TABLE (
   image_path character varying,
   created_at timestamp without time zone,
   updated_at timestamp without time zone,
-  order int,
+  "order" int,
   latest_transcription_job_status transcription_job_status
 ) AS $$
 BEGIN
