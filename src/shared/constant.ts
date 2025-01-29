@@ -3,7 +3,7 @@ export const TRANSCRIBE_COST: number = 1;
 
 export const IsPublic = 'isPublic';
 export const SupabaseStorageId = 'leo';
-export const ImageStoragePath = 'public/images/full';
+export const ImageStoragePath = 'images/full';
 
 export const FreePlan = {
   monthly_credits: 0,
