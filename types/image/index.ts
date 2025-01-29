@@ -15,6 +15,7 @@ export type InsertImage = {
   document_id: string;
   image_name: string;
   image_path: string;
+  order: number;
 };
 
 export type Image = Database['public']['Tables']['images']['Row'];

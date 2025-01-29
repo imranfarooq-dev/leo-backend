@@ -32,14 +32,6 @@ export class ImageRepository {
 
   async createImage(images: InsertImage[]): Promise<ImageWithPresignedUrl[]> {
     try {
-      // Find last image of the document if exists
-      const { data: lastImage } = await this.supabase
-        .from(Tables.Images)
-        .select('id')
-        .eq('document_id', images[0].document_id)
-        .is('next_image_id', null)
-        .single();
-
       // Insert all new images
       const { data: newImages, error } = await this.supabase
         .from(Tables.Images)
@@ -47,22 +39,6 @@ export class ImageRepository {
         .select();
 
       if (error) throw error;
-
-      // Update the links between new images
-      for (let i = 0; i < newImages.length - 1; i++) {
-        await this.supabase
-          .from(Tables.Images)
-          .update({ next_image_id: newImages[i + 1].id })
-          .eq('id', newImages[i].id);
-      }
-
-      // If there was an existing last image, point it to the first new image
-      if (lastImage) {
-        await this.supabase
-          .from(Tables.Images)
-          .update({ next_image_id: newImages[0].id })
-          .eq('id', lastImage.id);
-      }
 
       const imagesWithUrls = await this.addPresignedUrlsToImages(newImages);
       return imagesWithUrls;
@@ -172,8 +148,7 @@ export class ImageRepository {
         .from(Tables.Images)
         .select()
         .eq('document_id', documentId)
-        .is('next_image_id', null)
-        .order('created_at', { ascending: false })
+        .order('order', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -243,17 +218,14 @@ export class ImageRepository {
       document_id: string;
       image_name: string;
       image_path: string;
-      next_image_id: string | null;
+      order: number;
     }[],
   ): Promise<Image[]> {
     try {
       const { data, error } = await this.supabase
-        .from(Tables.Images)
-        .upsert(imageOrder, {
-          onConflict: 'id', // Specify which column determines if we update or insert
-          ignoreDuplicates: false, // We want to update existing records
-        })
-        .select('*');
+        .rpc('update_image_orders', {
+          image_updates: imageOrder
+        });
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update image order}');
@@ -262,26 +234,6 @@ export class ImageRepository {
       return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update image order');
-      throw error;
-    }
-  }
-
-  async updateImageNextId(imageId: string, nextImageId: string): Promise<void> {
-    try {
-      const { data, error } = await this.supabase
-        .from(Tables.Images)
-        .update({ next_image_id: nextImageId })
-        .eq('id', imageId);
-
-      if (error) {
-        throw new Error(`Failed to update image chain: ${error.message}`);
-      }
-
-      return data;
-    } catch (error) {
-      this.logger.error(
-        error.message ?? 'Failed to Update image next_image_id record',
-      );
       throw error;
     }
   }
