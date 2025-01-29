@@ -223,12 +223,9 @@ export class ImageRepository {
   ): Promise<Image[]> {
     try {
       const { data, error } = await this.supabase
-        .from(Tables.Images)
-        .upsert(imageOrder, {
-          onConflict: 'id',
-          ignoreDuplicates: false,
-        })
-        .select('*');
+        .rpc('update_image_orders', {
+          image_updates: imageOrder
+        });
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update image order}');
