@@ -138,7 +138,7 @@ export type Database = {
           id: string
           image_name: string | null
           image_path: string
-          next_image_id: string | null
+          order: number | null
           updated_at: string | null
         }
         Insert: {
@@ -147,7 +147,7 @@ export type Database = {
           id?: string
           image_name?: string | null
           image_path: string
-          next_image_id?: string | null
+          order?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -156,7 +156,7 @@ export type Database = {
           id?: string
           image_name?: string | null
           image_path?: string
-          next_image_id?: string | null
+          order?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -165,13 +165,6 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_images_next_image_uuid"
-            columns: ["next_image_id"]
-            isOneToOne: false
-            referencedRelation: "images"
             referencedColumns: ["id"]
           },
         ]
@@ -522,7 +515,7 @@ export type Database = {
           image_path: string
           created_at: string
           updated_at: string
-          next_image_id: string
+          order: number
           notes: Json
           transcriptions: Json
           latest_transcription_job_status: Database["public"]["Enums"]["transcription_job_status"]
@@ -539,7 +532,7 @@ export type Database = {
           image_path: string
           created_at: string
           updated_at: string
-          next_image_id: string
+          order: number
           latest_transcription_job_status: Database["public"]["Enums"]["transcription_job_status"]
         }[]
       }
