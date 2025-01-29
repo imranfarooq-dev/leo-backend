@@ -1,3 +1,5 @@
+BEGIN;
+
 -- Migrate to integer order
 -- ========================
 
@@ -10,7 +12,7 @@ WITH RECURSIVE ordered_images AS (
     UNION ALL
     SELECT i.id, i.document_id, oi.order + 1
     FROM images i
-    JOIN ordered_images oi ON i.id = oi.next_image_id
+    JOIN ordered_images oi ON oi.id = i.next_image_id -- Changed this line
 )
 UPDATE images
 SET "order" = (SELECT "order" FROM ordered_images WHERE ordered_images.id = images.id);
@@ -129,3 +131,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+COMMIT;
