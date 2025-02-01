@@ -84,6 +84,7 @@ export class TranscriptionService {
       }
 
       // Process images in batches
+      // FIXME: Check this batching logic
       for (let i = 0; i < imageIds.length; i += BATCH_SIZE) {
         const batchImageIds = imageIds.slice(i, i + BATCH_SIZE);
 
@@ -120,18 +121,29 @@ export class TranscriptionService {
         true,
       );
 
+      const documentsWithImages = await Promise.all(
+        documents.map(async (document) => {
+          const images = await this.imageRepository.fetchImagesByDocumentId(
+            document.id,
+            true,
+          );
+          return { ...document, images };
+        }),
+      );
+
       const transcribedImages = results.filter(
         (result) => result.status === APITranscriptionStatus.Success,
       );
 
       // Return the credit update promise
+      // FIXME: Deduct credits before transcribing, and then readd them if issues
       await this.creditsRepository.deductCredits(
         clerkUser.id,
         TRANSCRIBE_COST * transcribedImages.length,
       );
 
       return {
-        documents,
+        documents: documentsWithImages,
         transcribedImageCount: transcribedImages.length,
         totalImages: imageIds.length,
       };

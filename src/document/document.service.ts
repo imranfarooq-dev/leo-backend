@@ -176,6 +176,7 @@ export class DocumentService {
         );
       }
 
+      // FIXME: Images are not deleted from dbs (we should soft delete anyway).
       const deletedImages = await this.deleteImagesFromStorage(
         deleteDocument.id,
       );
