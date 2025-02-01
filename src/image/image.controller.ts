@@ -23,10 +23,29 @@ import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
 
 @Controller('image')
 export class ImageController {
-  constructor(private readonly imageService: ImageService) {}
+  constructor(private readonly imageService: ImageService) { }
 
   @Post()
-  @UseInterceptors(FilesInterceptor('files', MAX_IMAGE_ALLOWED))
+  @UseInterceptors(FilesInterceptor('files', MAX_IMAGE_ALLOWED, {
+    fileFilter: (req, file, callback) => {
+      // FIXME TODO Update this type list
+      const allowedMimeTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/pdf'
+      ];
+
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        callback(new HttpException(
+          'File type not supported. Please upload images (JPG, PNG, GIF, WebP) or PDF files.',
+          HttpStatus.BAD_REQUEST
+        ), false);
+      }
+      callback(null, true);
+    }
+  }))
   async create(
     @User() user: UserType,
     @Body() createImage: CreateImageDto,

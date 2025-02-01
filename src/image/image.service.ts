@@ -13,6 +13,8 @@ import { DocumentRepository } from '@/src/database/repositiories/document.reposi
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
 import { Image } from '@/types/image';
+import { PdfService } from '@/src/pdf/pdf.service';
+import { Readable } from 'stream';
 
 @Injectable()
 export class ImageService {
@@ -21,6 +23,7 @@ export class ImageService {
     private readonly imageRepository: ImageRepository,
     private readonly creditRepository: CreditsRepository,
     private readonly documentRepository: DocumentRepository,
+    private readonly pdfService: PdfService,
   ) { }
 
   async create(
@@ -29,6 +32,42 @@ export class ImageService {
     userId: string,
   ) {
     try {
+      // Process files, separating PDFs and images
+      const processedFiles: Express.Multer.File[] = [];
+
+      for (const file of files) {
+        if (file.mimetype === 'application/pdf') {
+          // Extract images from PDF
+          const pdfImages = await this.pdfService.extractImagesFromPdf(file.buffer);
+
+          // Convert extracted images to proper Multer File objects
+          const pdfImageFiles = pdfImages.map((buffer, index) => {
+            const stream = new Readable();
+            stream.push(buffer);
+            stream.push(null);
+
+            const multerFile: Express.Multer.File = {
+              buffer,
+              originalname: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.jpg`,
+              mimetype: 'image/jpeg',
+              fieldname: file.fieldname,
+              encoding: '7bit',
+              size: buffer.length,
+              stream: stream,
+              destination: file.destination,
+              filename: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.jpg`,
+              path: file.path
+            };
+
+            return multerFile;
+          });
+
+          processedFiles.push(...pdfImageFiles);
+        } else {
+          processedFiles.push(file);
+        }
+      }
+
       const document =
         await this.documentRepository.fetchDocumentById(document_id);
 
@@ -39,7 +78,7 @@ export class ImageService {
         );
       }
 
-      if (!files.length) {
+      if (!processedFiles.length) {
         throw new HttpException(
           'There are no images available to attach to the document.',
           HttpStatus.BAD_REQUEST,
@@ -60,7 +99,7 @@ export class ImageService {
       }
 
       const uploadedImages = await this.supabaseService.uploadFiles(
-        files,
+        processedFiles,
         userId,
       );
 
