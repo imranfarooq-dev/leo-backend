@@ -5,6 +5,7 @@ import { Document } from '@/types/document';
 import { CreateDocumentDto } from '@/src/document/dto/create-document.dto';
 import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
 import { Image } from '@/types/image';
+import { ImageRepository } from './image.repository';
 
 @Injectable()
 export class DocumentRepository {
@@ -12,6 +13,7 @@ export class DocumentRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
+    private readonly imageRepository: ImageRepository,
   ) { }
 
   async createDocument(
@@ -155,6 +157,12 @@ export class DocumentRepository {
       if (error) {
         this.logger.error('Failed to fetch documents', { error });
         throw new Error('Failed to fetch documents');
+      }
+
+      if (includeImageTranscriptionAndNotes) {
+        // Add image URLs to images.
+        const imagesWithUrls = await this.imageRepository.addPresignedUrlsToImages(data.images);
+        return { ...data, images: imagesWithUrls };
       }
 
       return data;

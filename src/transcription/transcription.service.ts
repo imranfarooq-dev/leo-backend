@@ -121,22 +121,6 @@ export class TranscriptionService {
         true,
       );
 
-      const documentsWithImages = await Promise.all(
-        documents.map(async (document) => {
-          if (document instanceof Document) {
-            const images = await this.imageRepository.fetchImagesByDocumentId(
-              document.id,
-              true,
-            );
-            return { ...document, images };
-          }
-          throw new HttpException(
-            'Invalid document format encountered',
-            HttpStatus.INTERNAL_SERVER_ERROR
-          );
-        }),
-      );
-
       const transcribedImages = results.filter(
         (result) => result.status === APITranscriptionStatus.Success,
       );
@@ -149,7 +133,7 @@ export class TranscriptionService {
       );
 
       return {
-        documents: documentsWithImages,
+        documents,
         transcribedImageCount: transcribedImages.length,
         totalImages: imageIds.length,
       };

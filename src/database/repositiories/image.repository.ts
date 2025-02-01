@@ -19,7 +19,7 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) { }
 
-  private async addPresignedUrlsToImages(images: Image[]): Promise<ImageWithPresignedUrl[]> {
+  async addPresignedUrlsToImages(images: Image[]): Promise<ImageWithPresignedUrl[]> {
     const imagesWithUrls = await Promise.all(
       images.map(async (image) => ({
         ...image,
