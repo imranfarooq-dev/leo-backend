@@ -82,7 +82,7 @@ export class DocumentRepository {
     documentIds: Array<string>,
     includeImageTranscriptionAndNotes: boolean = false,
     attributes?: keyof Image,
-  ) {
+  ): Promise<Document[] | undefined> {
     try {
       let query = this.supabase
         .from(Tables.Documents)
