@@ -159,10 +159,16 @@ export class DocumentRepository {
         throw new Error('Failed to fetch documents');
       }
 
-      if (includeImageTranscriptionAndNotes) {
-        // Add image URLs to images.
-        const imagesWithUrls = await this.imageRepository.addPresignedUrlsToImages(data.images);
-        return { ...data, images: imagesWithUrls };
+      if (includeImageTranscriptionAndNotes && data) {
+        // Type assertion since we know the structure when includeImageTranscriptionAndNotes is true
+        const documentsWithImages = data as (Document & { images: Image[] })[];
+        const documentsWithUrlImages = await Promise.all(
+          documentsWithImages.map(async (doc) => {
+            const imagesWithUrls = await this.imageRepository.addPresignedUrlsToImages(doc.images);
+            return { ...doc, images: imagesWithUrls };
+          })
+        );
+        return documentsWithUrlImages;
       }
 
       return data;
