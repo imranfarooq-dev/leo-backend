@@ -159,9 +159,9 @@ export class DocumentRepository {
         throw new Error('Failed to fetch documents');
       }
 
-      if (includeImageTranscriptionAndNotes && data) {
+      if (includeImageTranscriptionAndNotes) {
         // Type assertion since we know the structure when includeImageTranscriptionAndNotes is true
-        const documentsWithImages = data as (Document & { images: Image[] })[];
+        const documentsWithImages = (data as unknown) as (Document & { images: Image[] })[];
         const documentsWithUrlImages = await Promise.all(
           documentsWithImages.map(async (doc) => {
             const imagesWithUrls = await this.imageRepository.addPresignedUrlsToImages(doc.images);
@@ -171,7 +171,7 @@ export class DocumentRepository {
         return documentsWithUrlImages;
       }
 
-      return data;
+      return (data as unknown) as Document[];
     } catch (error) {
       this.logger.error('Failed to fetch document by id');
     }
