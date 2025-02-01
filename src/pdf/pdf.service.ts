@@ -33,9 +33,18 @@ export class PdfService {
         for (const imgId of imgIds) {
           try {
             const img = await page.objs.get(imgId);
-            if (img?.data) {
-              images.push(Buffer.from(img.data.buffer));
-            }
+            if (img?.data) // Handle different image formats
+              if (img.bitmap) {
+                // Handle RGB/RGBA bitmap data
+                const imageData = new Uint8ClampedArray(img.bitmap);
+                images.push(Buffer.from(imageData));
+              } else {
+                // Handle JPEG/PNG/other formats
+                const imageData = img.data instanceof Uint8Array
+                  ? img.data
+                  : new Uint8Array(img.data.buffer);
+                images.push(Buffer.from(imageData));
+              }
           } catch (error) {
             this.logger.warn(`Failed to extract image ${imgId} from page ${pageNum}`);
           }
