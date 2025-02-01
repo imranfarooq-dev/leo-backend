@@ -46,19 +46,37 @@ export class PdfService {
               }
             }
 
-            // For non-JPEG images or raw bitmap data, we need to create a canvas and convert
+            // Handle non-JPEG images
             const canvas = createCanvas(img.width, img.height);
             const ctx = canvas.getContext('2d');
 
             if (!ctx) continue;
 
-            // Create ImageData from the raw bitmap
-            const imageData = new ImageData(
-              new Uint8ClampedArray(img.data),
-              img.width,
-              img.height
-            );
+            // Create correct pixel data based on color space
+            let pixels;
+            if (img.kind === 'RGB') {
+              pixels = new Uint8ClampedArray(img.width * img.height * 4);
+              for (let i = 0, j = 0; i < img.data.length; i += 3, j += 4) {
+                pixels[j] = img.data[i];     // R
+                pixels[j + 1] = img.data[i + 1]; // G
+                pixels[j + 2] = img.data[i + 2]; // B
+                pixels[j + 3] = 255;         // A
+              }
+            } else if (img.kind === 'GRAYSCALE') {
+              pixels = new Uint8ClampedArray(img.width * img.height * 4);
+              for (let i = 0, j = 0; i < img.data.length; i++, j += 4) {
+                pixels[j] = img.data[i];     // R
+                pixels[j + 1] = img.data[i]; // G
+                pixels[j + 2] = img.data[i]; // B
+                pixels[j + 3] = 255;         // A
+              }
+            } else {
+              // For other formats, try direct conversion
+              pixels = new Uint8ClampedArray(img.data);
+            }
 
+            // Create ImageData and draw to canvas
+            const imageData = new ImageData(pixels, img.width, img.height);
             ctx.putImageData(imageData, 0, 0);
 
             // Convert to PNG format
