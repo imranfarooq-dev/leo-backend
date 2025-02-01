@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as pdfjsLib from 'pdfjs-dist';
 import { Buffer } from 'buffer';
 
 @Injectable()
@@ -8,6 +7,8 @@ export class PdfService {
 
   async extractImagesFromPdf(pdfBuffer: Buffer): Promise<Buffer[]> {
     try {
+      const pdfjsLib = await import('pdfjs-dist');
+
       // Load the PDF document
       const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
       const numPages = pdf.numPages;
