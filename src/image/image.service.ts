@@ -42,20 +42,25 @@ export class ImageService {
 
           // Convert extracted images to proper Multer File objects
           const pdfImageFiles = pdfImages.map((buffer, index) => {
+            // Detect if the buffer is a JPEG by checking its magic numbers
+            const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+            const extension = isJpeg ? 'jpg' : 'png';
+            const mimeType = isJpeg ? 'image/jpeg' : 'image/png';
+
             const stream = new Readable();
             stream.push(buffer);
             stream.push(null);
 
             const multerFile: Express.Multer.File = {
               buffer,
-              originalname: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.jpg`,
-              mimetype: 'image/jpeg',
+              originalname: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
+              mimetype: mimeType,
               fieldname: file.fieldname,
               encoding: '7bit',
               size: buffer.length,
               stream: stream,
               destination: file.destination,
-              filename: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.jpg`,
+              filename: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
               path: file.path
             };
 

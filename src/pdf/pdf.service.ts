@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Buffer } from 'buffer';
-import { getResolvedPDFJS } from 'unpdf'
+import { getResolvedPDFJS } from 'unpdf';
+import { createCanvas, ImageData } from 'canvas';
 
 @Injectable()
 export class PdfService {
@@ -8,7 +9,7 @@ export class PdfService {
 
   async extractImagesFromPdf(pdfBuffer: Buffer): Promise<Buffer[]> {
     try {
-      const { getDocument, OPS } = await getResolvedPDFJS()
+      const { getDocument, OPS } = await getResolvedPDFJS();
 
       // Load the PDF document
       const pdf = await getDocument({ data: new Uint8Array(pdfBuffer) }).promise;
@@ -33,20 +34,39 @@ export class PdfService {
         for (const imgId of imgIds) {
           try {
             const img = await page.objs.get(imgId);
-            if (img?.data) // Handle different image formats
-              if (img.bitmap) {
-                // Handle RGB/RGBA bitmap data
-                const imageData = new Uint8ClampedArray(img.bitmap);
-                images.push(Buffer.from(imageData));
-              } else {
-                // Handle JPEG/PNG/other formats
-                const imageData = img.data instanceof Uint8Array
-                  ? img.data
-                  : new Uint8Array(img.data.buffer);
-                images.push(Buffer.from(imageData));
+
+            if (!img) continue;
+
+            // Handle JPEG images (they can be used directly)
+            if (img.data instanceof Uint8Array && img.width && img.height) {
+              if (img.colorSpace === 'DeviceRGB' || img.colorSpace === 'DeviceGray') {
+                images.push(Buffer.from(img.data));
+                continue;
               }
+            }
+
+            // For non-JPEG images or raw bitmap data, we need to create a canvas and convert
+            const canvas = createCanvas(img.width, img.height);
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) continue;
+
+            // Create ImageData from the raw bitmap
+            const imageData = new ImageData(
+              new Uint8ClampedArray(img.data),
+              img.width,
+              img.height
+            );
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // Convert to PNG format
+            const blob = await canvas.convertToBlob({ type: 'image/png' });
+            const arrayBuffer = await blob.arrayBuffer();
+            images.push(Buffer.from(arrayBuffer));
+
           } catch (error) {
-            this.logger.warn(`Failed to extract image ${imgId} from page ${pageNum}`);
+            this.logger.warn(`Failed to extract image ${imgId} from page ${pageNum}: ${error.message}`);
           }
         }
       }
