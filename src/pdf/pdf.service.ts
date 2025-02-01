@@ -11,7 +11,7 @@ export class PdfService {
       const { getDocument, OPS } = await getResolvedPDFJS()
 
       // Load the PDF document
-      const pdf = await getDocument({ data: pdfBuffer }).promise;
+      const pdf = await getDocument({ data: new Uint8Array(pdfBuffer) }).promise;
       const numPages = pdf.numPages;
       const images: Buffer[] = [];
 
@@ -34,7 +34,7 @@ export class PdfService {
           try {
             const img = await page.objs.get(imgId);
             if (img?.data) {
-              images.push(Buffer.from(img.data));
+              images.push(Buffer.from(img.data.buffer));
             }
           } catch (error) {
             this.logger.warn(`Failed to extract image ${imgId} from page ${pageNum}`);
