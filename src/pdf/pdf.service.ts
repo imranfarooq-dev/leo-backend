@@ -61,9 +61,8 @@ export class PdfService {
             ctx.putImageData(imageData, 0, 0);
 
             // Convert to PNG format
-            const blob = await canvas.convertToBlob({ type: 'image/png' });
-            const arrayBuffer = await blob.arrayBuffer();
-            images.push(Buffer.from(arrayBuffer));
+            const buffer = await canvas.toBuffer('image/png');
+            images.push(buffer);
 
           } catch (error) {
             this.logger.warn(`Failed to extract image ${imgId} from page ${pageNum}: ${error.message}`);
