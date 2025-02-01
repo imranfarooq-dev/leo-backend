@@ -54,7 +54,7 @@ export class PdfService {
 
             // Create correct pixel data based on color space
             let pixels;
-            if (img.kind === 'RGB') {
+            if (img.kind === 2) {
               pixels = new Uint8ClampedArray(img.width * img.height * 4);
               for (let i = 0, j = 0; i < img.data.length; i += 3, j += 4) {
                 pixels[j] = img.data[i];     // R
@@ -62,7 +62,7 @@ export class PdfService {
                 pixels[j + 2] = img.data[i + 2]; // B
                 pixels[j + 3] = 255;         // A
               }
-            } else if (img.kind === 'GRAYSCALE') {
+            } else if (img.kind === 1) {
               pixels = new Uint8ClampedArray(img.width * img.height * 4);
               for (let i = 0, j = 0; i < img.data.length; i++, j += 4) {
                 pixels[j] = img.data[i];     // R
@@ -70,7 +70,7 @@ export class PdfService {
                 pixels[j + 2] = img.data[i]; // B
                 pixels[j + 3] = 255;         // A
               }
-            } else if (img.kind === 'RGBA') {
+            } else if (img.kind === 3) {
               pixels = new Uint8ClampedArray(img.data);
             } else {
               // Skip unknown formats
