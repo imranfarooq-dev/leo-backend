@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Buffer } from 'buffer';
+import { getResolvedPDFJS } from 'unpdf'
 
 @Injectable()
 export class PdfService {
@@ -7,11 +8,10 @@ export class PdfService {
 
   async extractImagesFromPdf(pdfBuffer: Buffer): Promise<Buffer[]> {
     try {
-      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+      const { getDocument, OPS } = await getResolvedPDFJS()
 
       // Load the PDF document
-      const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+      const pdf = await getDocument({ data: pdfBuffer }).promise;
       const numPages = pdf.numPages;
       const images: Buffer[] = [];
 
@@ -23,7 +23,7 @@ export class PdfService {
 
         // Find all image IDs in the page
         for (let i = 0; i < ops.fnArray.length; i++) {
-          if (ops.fnArray[i] === pdfjsLib.OPS.paintImageXObject) {
+          if (ops.fnArray[i] === OPS.paintImageXObject) {
             const imgId = ops.argsArray[i][0];
             imgIds.add(imgId);
           }
