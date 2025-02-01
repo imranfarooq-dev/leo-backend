@@ -7,7 +7,7 @@ export class PdfService {
 
   async extractImagesFromPdf(pdfBuffer: Buffer): Promise<Buffer[]> {
     try {
-      const pdfjsLib = await import('pdfjs-dist');
+      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
       // Load the PDF document
       const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
