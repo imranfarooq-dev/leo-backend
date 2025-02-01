@@ -123,11 +123,18 @@ export class TranscriptionService {
 
       const documentsWithImages = await Promise.all(
         documents.map(async (document) => {
-          const images = await this.imageRepository.fetchImagesByDocumentId(
-            document.id,
-            true,
+          if ('id' in document) { // Type guard to ensure document has an id
+            const images = await this.imageRepository.fetchImagesByDocumentId(
+              document.id,
+              true,
+            );
+            return { ...document, images };
+          }
+          // Handle invalid document case
+          throw new HttpException(
+            'Invalid document format encountered',
+            HttpStatus.INTERNAL_SERVER_ERROR
           );
-          return { ...document, images };
         }),
       );
 
