@@ -37,9 +37,10 @@ export class PdfService {
 
             if (!img) continue;
 
-            // Handle JPEG images (they can be used directly)
-            if (img.data instanceof Uint8Array && img.width && img.height) {
-              if (img.colorSpace === 'DeviceRGB' || img.colorSpace === 'DeviceGray') {
+            // If image has JPEG data, use it directly
+            if (img.data instanceof Uint8Array) {
+              // Check for JPEG signature
+              if (img.data[0] === 0xFF && img.data[1] === 0xD8 && img.data[2] === 0xFF) {
                 images.push(Buffer.from(img.data));
                 continue;
               }
