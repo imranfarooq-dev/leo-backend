@@ -70,9 +70,19 @@ export class PdfService {
                 pixels[j + 2] = img.data[i]; // B
                 pixels[j + 3] = 255;         // A
               }
-            } else {
-              // For other formats, try direct conversion
+            } else if (img.kind === 'RGBA') {
               pixels = new Uint8ClampedArray(img.data);
+            } else {
+              // Skip unknown formats
+              this.logger.warn(`Skipping image with unknown format: ${img.kind}`);
+              continue;
+            }
+
+            // Verify pixel data length matches expected dimensions
+            const expectedLength = img.width * img.height * 4;
+            if (pixels.length !== expectedLength) {
+              this.logger.warn(`Invalid pixel data length: ${pixels.length}, expected: ${expectedLength}`);
+              continue;
             }
 
             // Create ImageData and draw to canvas
