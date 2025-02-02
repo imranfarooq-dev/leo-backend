@@ -20,6 +20,7 @@ import {
   UpdateImageOrderDto,
 } from '@/src/image/dto/update-image.dto';
 import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
+import { ImageOrder } from '@/types/image';
 
 @Controller('image')
 export class ImageController {
@@ -129,12 +130,12 @@ export class ImageController {
   @Delete()
   async delete(@Body() deleteImage: DeleteImageDto) {
     try {
-      const images = await this.imageService.delete(deleteImage);
+      const siblingImageOrders: ImageOrder[] = await this.imageService.delete(deleteImage);
 
       return {
         statusCode: HttpStatus.OK,
         message: 'Image deleted successfully',
-        data: images,
+        data: siblingImageOrders,
       };
     } catch (error) {
       throw new HttpException(

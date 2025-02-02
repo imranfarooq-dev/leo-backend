@@ -8,7 +8,7 @@ import { CreateImageDto } from '@/src/image/dto/create-image.dto';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { DeleteImageDto } from '@/src/image/dto/delete-image.dto';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { InsertImage } from '@/types/image';
+import { ImageOrder, InsertImage } from '@/types/image';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
@@ -110,7 +110,7 @@ export class ImageService {
 
       // Get highest order number for the document
       const lastImage = await this.imageRepository.fetchLastDocumentImage(document_id);
-      const startOrder = lastImage ? lastImage.order + 1 : 0;
+      const startOrder = lastImage ? lastImage.order + 1 : 1;
 
       const imagesData: InsertImage[] = uploadedImages.map((uploadedImage, index) => ({
         document_id: document_id,
@@ -199,7 +199,7 @@ export class ImageService {
         document_id: image.document_id,
         image_name: image.image_name,
         image_path: image.image_path,
-        order: index,
+        order: index + 1,
       }));
 
       return await this.imageRepository.updateImageOrder(updates);
@@ -215,7 +215,7 @@ export class ImageService {
     }
   }
 
-  async delete(deleteImage: DeleteImageDto) {
+  async delete(deleteImage: DeleteImageDto): Promise<ImageOrder[]> {
     try {
       const image = await this.imageRepository.fetchImageById(deleteImage.id);
 
@@ -238,27 +238,13 @@ export class ImageService {
       }
 
       // Delete the image
-      const deletedImages = await this.imageRepository.deleteImage(
+      const siblingImageOrders = await this.imageRepository.deleteImage(
         deleteImage.id,
       );
 
-      // Reorder remaining images to ensure sequential order
-      const remainingImages = documentImages.filter(img => img.id !== deleteImage.id);
-      const updates = remainingImages.map((image, index) => ({
-        id: image.id,
-        document_id: image.document_id,
-        image_name: image.image_name,
-        image_path: image.image_path,
-        order: index,
-      }));
-
-      if (updates.length > 0) {
-        await this.imageRepository.updateImageOrder(updates);
-      }
-
       await this.supabaseService.deleteFiles([image.image_path]);
 
-      return deletedImages;
+      return siblingImageOrders;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

@@ -57,7 +57,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the pricing and plans',
+        'An error occurred while fetching the pricing and plans',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -93,7 +93,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the subscription status and credits',
+        'An error occurred while fetching the subscription status and credits',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -119,7 +119,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the subscription status and credits',
+        'An error occurred while fetching the subscription status and credits',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -154,7 +154,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the subscription status and credits',
+        'An error occurred while fetching the subscription status and credits',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -225,7 +225,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the stripe checkout session token',
+        'An error occurred while fetching the stripe checkout session token',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -336,7 +336,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the stripe checkout session token',
+        'An error occurred while fetching the stripe checkout session token',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -391,7 +391,6 @@ export class SubscriptionService {
       }
 
       if (session.mode === StripeCheckoutMode.Payment) {
-        console.log(session.mode);
         const lineItems =
           await this.stripeService.checkout.sessions.listLineItems(session.id);
         const product = lineItems.data[0].price.product;
@@ -513,8 +512,8 @@ export class SubscriptionService {
       const subscription: Stripe.Subscription =
         typeof invoice.subscription === 'string'
           ? await this.stripeService.subscriptions.retrieve(
-              invoice.subscription,
-            )
+            invoice.subscription,
+          )
           : invoice.subscription;
 
       // Validate user metadata
@@ -547,7 +546,6 @@ export class SubscriptionService {
         image_limits: parseInt(metadata.storage_limit || '0'),
       };
 
-      console.log(updatedCredits);
       // Prepare subscription update data
       const updatedSubscription: Partial<Subscription> = {
         status: subscription.status,
@@ -600,7 +598,7 @@ export class SubscriptionService {
     } catch (error) {
       throw new HttpException(
         error.message ??
-          'An error occurred while fetching the user and subscription info',
+        'An error occurred while fetching the user and subscription info',
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

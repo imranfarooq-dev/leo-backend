@@ -20,6 +20,11 @@ export type InsertImage = {
 
 export type Image = Database['public']['Tables']['images']['Row'];
 
+export type ImageOrder = {
+  id: string;
+  order: number;
+};
+
 export type ImageWithTranscriptionAndNote = Image & {
   transcriptions: Transcription;
   notes: Note;

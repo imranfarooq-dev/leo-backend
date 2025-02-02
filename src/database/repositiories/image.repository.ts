@@ -3,6 +3,7 @@ import { DBFunctions, Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
   Image,
+  ImageOrder,
   ImageWithPresignedUrl,
   ImageWithTranscriptionAndNote,
   InsertImage,
@@ -241,17 +242,14 @@ export class ImageRepository {
     }
   }
 
-  async deleteImage(imageId: string): Promise<Image> {
+  async deleteImage(imageId: string): Promise<ImageOrder[]> {
     try {
       const { data, error } = await this.supabase
-        .from(Tables.Images)
-        .delete()
-        .eq('id', imageId)
+        .rpc('delete_image_and_reorder', { p_image_id: imageId })
         .select()
-        .single();
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to delete image record');
+        throw new Error(error.message ?? 'Failed to delete the list');
       }
 
       return data;
