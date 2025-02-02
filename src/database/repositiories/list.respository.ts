@@ -135,8 +135,7 @@ export class ListRespository {
   async updateListOrder(updates: { id: string; order: number }[]): Promise<void> {
     try {
       const { error } = await this.supabase
-        .from(Tables.Lists)
-        .upsert(updates)
+        .rpc('update_list_orders', { updates })
 
       if (error) throw new Error(error.message);
     } catch (error) {
