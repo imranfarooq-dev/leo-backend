@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateListDto } from '@/src/list/dto/create-list.dto';
 import { ListRespository } from '@/src/database/repositiories/list.respository';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
-import { List, ListTree } from '@/types/list';
+import { List, ListOrder, ListTree } from '@/types/list';
 import { constructListTree, sortListsByOrder } from '@/src/utils';
 
 @Injectable()
@@ -151,7 +151,7 @@ export class ListService {
     }
   }
 
-  async delete(list_id: string, userId: string) {
+  async delete(list_id: string, userId: string): Promise<ListOrder[]> {
     try {
       const listToDelete = await this.listRepository.fetchListById(list_id);
 

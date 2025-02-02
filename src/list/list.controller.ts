@@ -14,7 +14,7 @@ import { CreateListDto } from '@/src/list/dto/create-list.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/clerk-sdk-node';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
-import { List, ListTree } from '@/types/list';
+import { List, ListOrder, ListTree } from '@/types/list';
 import { UpdateOrderListDto } from '@/src/list/dto/update-order-list.dto';
 
 @Controller('list')
@@ -129,7 +129,7 @@ export class ListController {
   @Delete(':id')
   async delete(@Param() params: { id: string }, @User() user: UserType) {
     try {
-      const list: List = await this.listService.delete(
+      const list: ListOrder[] = await this.listService.delete(
         params.id,
         user.id,
       );

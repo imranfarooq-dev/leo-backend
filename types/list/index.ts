@@ -7,3 +7,8 @@ export type ListTree = {
   title: string;
   children: ListTree[];
 };
+
+export type ListOrder = {
+  id: string;
+  order: number;
+};

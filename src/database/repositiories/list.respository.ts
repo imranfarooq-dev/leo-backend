@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { List } from '@/types/list';
+import { List, ListOrder } from '@/types/list';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
 
 @Injectable()
@@ -155,7 +155,7 @@ export class ListRespository {
     }
   }
 
-  async deleteList(listId: string): Promise<List> {
+  async deleteList(listId: string): Promise<ListOrder[]> {
     try {
       const { data, error } = await this.supabase
         .rpc('delete_list_and_reorder', { p_list_id: listId })
