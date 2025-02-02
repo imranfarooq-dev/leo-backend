@@ -3,7 +3,7 @@ import { CreateListDto } from '@/src/list/dto/create-list.dto';
 import { ListRespository } from '@/src/database/repositiories/list.respository';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
 import { List, ListTree } from '@/types/list';
-import { constructListTree, sortListsByNextId } from '@/src/utils';
+import { constructListTree, sortListsByOrder } from '@/src/utils';
 
 @Injectable()
 export class ListService {
@@ -13,29 +13,21 @@ export class ListService {
     try {
       const { list_name, parent_list_id } = createListDto;
 
-      // First, find the last list in the current level to set next_list_id
       const lastListChild =
         await this.listRepository.fetchLastListInCurrentLevel(
           user_id,
           parent_list_id,
         );
 
+      const newOrder = lastListChild ? lastListChild.order + 1 : 1;
+
       // Create new list
       const newList = await this.listRepository.createList(
         user_id,
         list_name,
+        newOrder,
         parent_list_id,
       );
-
-      // If there was a previous last list, update its next_list_id
-      if (lastListChild) {
-        await this.listRepository.updateListOrder([
-          {
-            ...lastListChild,
-            next_list_id: newList.id,
-          },
-        ]);
-      }
 
       return newList;
     } catch (error) {
@@ -125,8 +117,6 @@ export class ListService {
         );
       }
 
-      const sortedLists = sortListsByNextId(lists);
-
       // Return early if indices are invalid or no change is needed
       if (
         old_index === new_index ||
@@ -135,19 +125,17 @@ export class ListService {
         old_index >= lists.length ||
         new_index >= lists.length
       ) {
-        return sortedLists;
+        return lists;
       }
 
+      const sortedLists = sortListsByOrder(lists);
       const reorderedLists = [...sortedLists];
       const [movedItem] = reorderedLists.splice(old_index, 1);
       reorderedLists.splice(new_index, 0, movedItem);
 
       const updates = reorderedLists.map((list, index) => ({
         ...list,
-        next_list_id:
-          index === reorderedLists.length - 1
-            ? null
-            : reorderedLists[index + 1].id,
+        order: index + 1,
       }));
 
       return await this.listRepository.updateListOrder(updates);
@@ -176,24 +164,6 @@ export class ListService {
           'You do not have permission to delete this list.',
           HttpStatus.FORBIDDEN,
         );
-      }
-
-      // Fetch sibling lists to update next_list_id if needed
-      const lists = await this.listRepository.fetchListsByParentId(
-        userId,
-        listToDelete.parent_list_id,
-      );
-
-      // Find the previous sibling
-      const previousSibling = lists.find(
-        (sibling) => sibling.next_list_id === list_id,
-      );
-
-      if (previousSibling) {
-        // Update previous sibling's next_list_id to skip the deleted list
-        await this.listRepository.updateListOrder([
-          { ...previousSibling, next_list_id: listToDelete.next_list_id },
-        ]);
       }
 
       return await this.listRepository.deleteList(list_id);

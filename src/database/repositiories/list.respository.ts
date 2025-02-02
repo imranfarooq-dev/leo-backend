@@ -15,12 +15,13 @@ export class ListRespository {
   async createList(
     user_id: string,
     list_name: string,
+    order: number,
     parent_list_id?: string,
   ): Promise<List> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Lists)
-        .insert({ user_id, list_name, parent_list_id })
+        .insert({ user_id, list_name, parent_list_id, order })
         .select()
         .single();
 
@@ -76,7 +77,8 @@ export class ListRespository {
         .from(Tables.Lists)
         .select('*')
         .eq('user_id', user_id)
-        .is('next_list_id', null);
+        .order('order', { ascending: false })
+        .limit(1);
 
       !!parent_list_id
         ? query.eq('parent_list_id', parent_list_id)
@@ -156,9 +158,7 @@ export class ListRespository {
   async deleteList(listId: string): Promise<List> {
     try {
       const { data, error } = await this.supabase
-        .from(Tables.Lists)
-        .delete()
-        .eq('id', listId)
+        .rpc('delete_list_and_reorder', { p_list_id: listId })
         .select()
         .maybeSingle();
 

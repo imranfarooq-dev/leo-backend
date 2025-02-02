@@ -5,8 +5,7 @@ export const constructListTree = (list: List[]): ListTree[] => {
     return [];
   }
 
-  // Sort the list based on `next_list_id`
-  const sortedLists = sortListsByNextId(list);
+  const sortedLists = sortListsByOrder(list);
 
   // Create a map of nodes for quick access
   const map = new Map(
@@ -36,26 +35,8 @@ export const constructListTree = (list: List[]): ListTree[] => {
   return root;
 };
 
-export const sortListsByNextId = (list: List[]): List[] => {
-  // Map to hold list items by their IDs
-  const map = new Map(list.map((item) => [item.id, item]));
-
-  // Find the starting points (items not referenced as `next_list_id`)
-  const startItems = list.filter(
-    (item) => !list.some((l) => l.next_list_id === item.id),
-  );
-
-  // For each start item, follow the chain and sort
-  const sorted: List[] = [];
-  startItems.forEach((start) => {
-    let current = start;
-    while (current) {
-      sorted.push(current);
-      current = current.next_list_id ? map.get(current.next_list_id) : null;
-    }
-  });
-
-  return sorted;
+export const sortListsByOrder = (list: List[]): List[] => {
+  return [...list].sort((a, b) => a.order - b.order);
 };
 
 export const calculateUpdatedCredits = (

@@ -174,37 +174,30 @@ export type Database = {
           created_at: string | null
           id: string
           list_name: string
-          next_list_id: string | null
           parent_list_id: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string,
+          order: number
         }
         Insert: {
           created_at?: string | null
           id?: string
           list_name: string
-          next_list_id?: string | null
           parent_list_id?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id: string,
+          order: number
         }
         Update: {
           created_at?: string | null
           id?: string
           list_name?: string
-          next_list_id?: string | null
           parent_list_id?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string,
+          order?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_lists_next_list_uuid"
-            columns: ["next_list_id"]
-            isOneToOne: false
-            referencedRelation: "lists"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_lists_parent_list_uuid"
             columns: ["parent_list_id"]
