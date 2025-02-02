@@ -45,14 +45,12 @@ export class ListController {
 
   @Put('update-order')
   async updateListOrder(
-    @Body() { list_id, new_index, old_index }: UpdateOrderListDto,
+    @Body() { updates }: UpdateOrderListDto,
     @User() user: UserType,
   ) {
     try {
       const lists = await this.listService.updateListOrder(
-        list_id,
-        new_index,
-        old_index,
+        updates,
         user.id,
       );
 

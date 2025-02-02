@@ -1,15 +1,19 @@
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import { Type as TransformType } from 'class-transformer';
 
-export class UpdateOrderListDto {
+class OrderItem {
   @IsNotEmpty()
   @IsString()
-  list_id: string;
+  id: string;
 
   @IsNotEmpty()
   @IsNumber()
-  old_index: number;
+  order: number;
+}
 
-  @IsNotEmpty()
-  @IsNumber()
-  new_index: number;
+export class UpdateOrderListDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @TransformType(() => OrderItem)
+  updates: OrderItem[];
 }
