@@ -29,7 +29,7 @@ export class ListController {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'List created successfully',
-        list,
+        id: list.id,
       };
     } catch (error) {
       throw new HttpException(
