@@ -43,15 +43,17 @@ export class ListController {
     }
   }
 
-  @Put('update-order')
+  @Put('update-order/:parent_list_id')
   async updateListOrder(
     @Body() { updates }: UpdateOrderListDto,
     @User() user: UserType,
+    @Param() params: { parent_list_id: string },
   ) {
     try {
       const lists = await this.listService.updateListOrder(
         updates,
         user.id,
+        params.parent_list_id,
       );
 
       return {
