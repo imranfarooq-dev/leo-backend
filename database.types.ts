@@ -64,7 +64,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_credits_user_uuid"
+            foreignKeyName: "fk_credits_user_id"
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "users"
@@ -123,7 +123,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_documents_user_uuid"
+            foreignKeyName: "fk_documents_user_id"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -138,7 +138,7 @@ export type Database = {
           id: string
           image_name: string | null
           image_path: string
-          order: number | null
+          order: number
           updated_at: string | null
         }
         Insert: {
@@ -147,7 +147,7 @@ export type Database = {
           id?: string
           image_name?: string | null
           image_path: string
-          order?: number | null
+          order: number
           updated_at?: string | null
         }
         Update: {
@@ -156,12 +156,12 @@ export type Database = {
           id?: string
           image_name?: string | null
           image_path?: string
-          order?: number | null
+          order?: number
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_images_document_uuid"
+            foreignKeyName: "fk_images_document_id"
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
@@ -174,39 +174,39 @@ export type Database = {
           created_at: string | null
           id: string
           list_name: string
+          order: number
           parent_list_id: string | null
           updated_at: string | null
-          user_id: string,
-          order: number
+          user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           list_name: string
+          order: number
           parent_list_id?: string | null
           updated_at?: string | null
-          user_id: string,
-          order: number
+          user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           list_name?: string
+          order?: number
           parent_list_id?: string | null
           updated_at?: string | null
-          user_id?: string,
-          order?: number
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_lists_parent_list_uuid"
+            foreignKeyName: "fk_lists_parent_list_id"
             columns: ["parent_list_id"]
             isOneToOne: false
             referencedRelation: "lists"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_lists_user_uuid"
+            foreignKeyName: "fk_lists_user_id"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -235,14 +235,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_lists_documents_document_uuid"
+            foreignKeyName: "fk_lists_documents_document_id"
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_lists_documents_list_uuid"
+            foreignKeyName: "fk_lists_documents_list_id"
             columns: ["list_id"]
             isOneToOne: false
             referencedRelation: "lists"
@@ -274,7 +274,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_notes_image_uuid"
+            foreignKeyName: "fk_notes_image_id"
             columns: ["image_id"]
             isOneToOne: true
             referencedRelation: "images"
@@ -330,7 +330,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_subscriptions_user_uuid"
+            foreignKeyName: "fk_subscriptions_user_id"
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "users"
@@ -412,7 +412,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_transcriptions_image_uuid"
+            foreignKeyName: "fk_transcriptions_image_id"
             columns: ["image_id"]
             isOneToOne: true
             referencedRelation: "images"
@@ -452,6 +452,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_image_and_reorder: {
+        Args: {
+          p_image_id: string
+        }
+        Returns: {
+          id: string
+          order: number
+        }[]
+      }
+      delete_list_and_reorder: {
+        Args: {
+          p_list_id: string
+        }
+        Returns: {
+          id: string
+          order: number
+        }[]
+      }
       fetch_documents_for_lists: {
         Args: {
           list_ids: string[]
