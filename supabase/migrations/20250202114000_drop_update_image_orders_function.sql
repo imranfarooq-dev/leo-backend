@@ -1,0 +1,3 @@
+BEGIN;
+DROP FUNCTION IF EXISTS update_image_orders;
+COMMIT;
