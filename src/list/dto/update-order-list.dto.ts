@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, IsNumber, IsArray, ValidateNested } from 'class-validator';
-import { Type as TransformType } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 class OrderItem {
   @IsNotEmpty()
@@ -14,6 +14,6 @@ class OrderItem {
 export class UpdateOrderListDto {
   @IsArray()
   @ValidateNested({ each: true })
-  @TransformType(() => OrderItem)
+  @Type(() => OrderItem)
   updates: OrderItem[];
 }

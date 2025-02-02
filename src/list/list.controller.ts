@@ -14,7 +14,7 @@ import { CreateListDto } from '@/src/list/dto/create-list.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/clerk-sdk-node';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
-import { List, ListOrder, ListTree } from '@/types/list';
+import { ListOrder, ListTree } from '@/types/list';
 import { UpdateOrderListDto } from '@/src/list/dto/update-order-list.dto';
 
 @Controller('list')
