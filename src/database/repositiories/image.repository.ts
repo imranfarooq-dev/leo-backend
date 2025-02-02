@@ -215,7 +215,7 @@ export class ImageRepository {
   async updateImageOrder(
     imageOrder: {
       id: string;
-      document_id: string;
+      document_id: string;  // TODO: Remove all this unnecesary fields from here and elsewhere
       image_name: string;
       image_path: string;
       order: number;
@@ -223,9 +223,12 @@ export class ImageRepository {
   ): Promise<Image[]> {
     try {
       const { data, error } = await this.supabase
-        .rpc('update_image_orders', {
-          image_updates: imageOrder
-        });
+        .from(Tables.Images)
+        .upsert(imageOrder, {  // TODO: This should probably be an update? Check here and elsewhere
+          onConflict: 'id',
+          ignoreDuplicates: false,
+        })
+        .select('*');
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update image order}');
