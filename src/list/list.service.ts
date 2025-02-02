@@ -95,16 +95,21 @@ export class ListService {
   async updateListOrder(
     updates: { id: string; order: number }[],
     user_id: string,
-    parent_list_id: string,
   ) {
     try {
       if (!updates.length) {
         throw new HttpException('No lists found to update order.', HttpStatus.BAD_REQUEST);
       }
 
+      const list = await this.listRepository.fetchListById(updates[0].id);
+
+      if (!list) {
+        throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
+      }
+
       const lists = await this.listRepository.fetchListsByParentId(
         user_id,
-        parent_list_id,
+        list.parent_list_id,
       );
 
       if (!lists.length) {
