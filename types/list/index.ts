@@ -4,7 +4,7 @@ export type List = Database['public']['Tables']['lists']['Row'];
 
 export type ListTree = {
   id: string;
-  title: string;
+  list_name: string;
   children: ListTree[];
 };
 

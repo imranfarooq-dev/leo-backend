@@ -11,7 +11,7 @@ export const constructListTree = (list: List[]): ListTree[] => {
   const map = new Map(
     sortedLists.map((item) => [
       item.id,
-      { id: item.id, title: item.list_name, children: [] },
+      { id: item.id, list_name: item.list_name, children: [] },
     ]),
   );
 
