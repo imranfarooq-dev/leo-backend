@@ -24,12 +24,12 @@ export class ListController {
   @Post()
   async create(@Body() createListDto: CreateListDto, @User() user: UserType) {
     try {
-      const list: List = await this.listService.create(createListDto, user.id);
+      const newListId: string = await this.listService.create(createListDto, user.id);
 
       return {
         statusCode: HttpStatus.CREATED,
         message: 'List created successfully',
-        id: list.id,
+        id: newListId,
       };
     } catch (error) {
       throw new HttpException(
@@ -103,7 +103,7 @@ export class ListController {
     @User() user: UserType,
   ) {
     try {
-      const list: List = await this.listService.update(
+      await this.listService.update(
         updateListDto,
         user.id,
         params.id,
@@ -112,7 +112,6 @@ export class ListController {
       return {
         statusCode: HttpStatus.OK,
         message: 'List updated successfully',
-        list,
       };
     } catch (error) {
       throw new HttpException(
@@ -129,7 +128,7 @@ export class ListController {
   @Delete(':id')
   async delete(@Param() params: { id: string }, @User() user: UserType) {
     try {
-      const list: ListOrder[] = await this.listService.delete(
+      const siblingListOrders: ListOrder[] = await this.listService.delete(
         params.id,
         user.id,
       );
@@ -137,7 +136,7 @@ export class ListController {
       return {
         statusCode: HttpStatus.OK,
         message: 'List deleted successfully',
-        list,
+        siblingListOrders,
       };
     } catch (error) {
       throw new HttpException(

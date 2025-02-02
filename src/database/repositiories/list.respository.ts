@@ -17,19 +17,19 @@ export class ListRespository {
     list_name: string,
     order: number,
     parent_list_id?: string,
-  ): Promise<List> {
+  ): Promise<string> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Lists)
         .insert({ user_id, list_name, parent_list_id, order })
-        .select()
+        .select("id")
         .single();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to create list');
       }
 
-      return data;
+      return data.id;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create list');
     }
@@ -37,7 +37,7 @@ export class ListRespository {
 
   async fetchListById(
     listId: string,
-    attributes?: keyof List,
+    attributes?: (keyof List)[] | '*',
   ): Promise<List | null> {
     try {
       const { data } = await this.supabase
@@ -117,38 +117,31 @@ export class ListRespository {
   async updateList(
     listId: string,
     updateListDto: UpdateListDto,
-  ): Promise<List> {
+  ): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.Lists)
         .update(updateListDto)
         .eq('id', listId)
-        .select()
-        .maybeSingle();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update list');
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update list');
     }
   }
 
-  async updateListOrder(updates: Partial<List>[]): Promise<List[]> {
+  async updateListOrder(updates: { id: string; order: number }[]): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.Lists)
         .upsert(updates, {
-          onConflict: 'id', // Specify which column determines if we update or insert
-          ignoreDuplicates: false, // We want to update existing records
+          onConflict: 'id',
+          ignoreDuplicates: false,
         })
-        .select();
 
       if (error) throw new Error(error.message);
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update list order');
       throw error;
