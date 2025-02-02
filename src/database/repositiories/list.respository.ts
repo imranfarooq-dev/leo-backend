@@ -160,7 +160,6 @@ export class ListRespository {
       const { data, error } = await this.supabase
         .rpc('delete_list_and_reorder', { p_list_id: listId })
         .select()
-        .maybeSingle();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to delete the list');
