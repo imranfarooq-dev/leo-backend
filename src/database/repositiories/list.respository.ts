@@ -136,10 +136,7 @@ export class ListRespository {
     try {
       const { error } = await this.supabase
         .from(Tables.Lists)
-        .upsert(updates, {
-          onConflict: 'id',
-          ignoreDuplicates: false,
-        })
+        .upsert(updates)
 
       if (error) throw new Error(error.message);
     } catch (error) {
