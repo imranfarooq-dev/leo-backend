@@ -8,7 +8,7 @@ import {
 import { CreateUserDto } from '@/src/user/dto/create-user.dto';
 import { UserRepository } from '@/src/database/repositiories/user.repository';
 import { User } from '@/types/user';
-import { UserJSON, User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { UserJSON } from '@clerk/clerk-sdk-node';
 import {
   Provides,
   SubscriptionStatus,
@@ -49,17 +49,6 @@ export class UserService {
     } catch (error) {
       throw new HttpException(
         'An error occurred while deleting the document record',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async fetchUser(user: ClerkUser): Promise<User> {
-    try {
-      return await this.userRepository.getUser(user.id);
-    } catch (error) {
-      throw new HttpException(
-        error.message ?? 'An error occurred while deleting the document record',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

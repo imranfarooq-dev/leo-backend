@@ -146,11 +146,6 @@ export class DocumentService {
         user.id,
       );
 
-      // Update user should_fetch_document to true after creating a document for the user
-      await this.userRepository.updateUser(user.id, {
-        should_fetch_document: true,
-      });
-
       return {
         document: documentData,
         images: imageData,
