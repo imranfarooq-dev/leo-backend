@@ -30,6 +30,7 @@ export enum Tables {
   TranscriptionJobs = 'transcription_jobs',
 }
 
+// TODO: Update this.
 export enum DBFunctions {
   getListWithChildren = 'get_list_with_children',
   fetchDocumentsForLists = 'fetch_documents_for_lists',

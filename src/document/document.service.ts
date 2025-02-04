@@ -11,7 +11,7 @@ import { ImageService } from '@/src/image/image.service';
 import { User } from '@clerk/clerk-sdk-node';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
 import { Image } from '@/types/image';
-import { UserRepository } from '@/src/database/repositiories/user.repository';
+import { DocumentSummary, Document } from '@/types/document';
 
 @Injectable()
 export class DocumentService {
@@ -21,25 +21,23 @@ export class DocumentService {
     private readonly imageRepository: ImageRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly listsDocumentsRepository: ListsDocumentsRepository,
-    private readonly userRepository: UserRepository,
   ) { }
 
   async fetchDocumentsByUser(
     user: User,
     { page, limit }: FetchUserDocumentDto,
-  ) {
+  ): Promise<{ documents: DocumentSummary[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
       const offset: number = page * limit;
       const size: number = offset + limit - 1;
 
-      const userDocuments = await this.documentRepository.fetchDocumentByUserId(
+      const userDocuments: { documents: DocumentSummary[]; count: number } = await this.documentRepository.fetchDocumentsByUserId(
         user.id,
         {
           from: offset,
           to: size,
         },
       );
-
       const totalPages: number = Math.ceil(userDocuments.count / limit);
 
       if (!userDocuments.documents) {
@@ -51,18 +49,8 @@ export class DocumentService {
         };
       }
 
-      const documents = await Promise.all(
-        userDocuments.documents.map(async (document) => {
-          const images = await this.imageRepository.fetchImagesByDocumentId(
-            document.id,
-            true,
-          );
-          return { ...document, images };
-        }),
-      );
-
       return {
-        documents,
+        documents: userDocuments.documents,
         currentPage: page,
         totalPages,
         totalDocuments: userDocuments.count,
@@ -79,9 +67,9 @@ export class DocumentService {
     }
   }
 
-  async fetchById(user: User, fetchDocument: FetchDocumentDto) {
+  async fetchById(user: User, fetchDocument: FetchDocumentDto): Promise<Document> {
     try {
-      const document = await this.documentRepository.fetchDocumentById(
+      const document: Document | null = await this.documentRepository.fetchDocumentById(
         fetchDocument.id,
       );
 
@@ -99,12 +87,7 @@ export class DocumentService {
         );
       }
 
-      const images = await this.imageRepository.fetchImagesByDocumentId(
-        document.id,
-        true,
-      );
-
-      return { ...document, images };
+      return document;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -121,9 +104,9 @@ export class DocumentService {
     user: User,
     createDocument: CreateDocumentDto,
     files: Array<Express.Multer.File>,
-  ) {
+  ): Promise<DocumentSummary> {
     try {
-      const documentData = await this.documentRepository.createDocument(
+      const document: DocumentSummary = await this.documentRepository.createDocument(
         user.id,
         { ...createDocument },
       );
@@ -133,23 +116,14 @@ export class DocumentService {
           async (list_id) =>
             await this.listsDocumentsRepository.createListDocument(
               list_id,
-              documentData.id,
+              document.id,
             ),
         );
 
         await Promise.all(addDocumentListPromises);
       }
 
-      const imageData = await this.imageService.create(
-        { document_id: documentData.id },
-        files,
-        user.id,
-      );
-
-      return {
-        document: documentData,
-        images: imageData,
-      };
+      return document;
     } catch (error) {
       throw new HttpException(
         'An error occurred while creating the document record',
@@ -158,32 +132,29 @@ export class DocumentService {
     }
   }
 
-  async delete(deleteDocument: DeleteDocumentDto) {
+  async delete(user: User, deleteDocument: DeleteDocumentDto): Promise<void> {  // TODO: User IDs
     try {
-      const documentExist = await this.documentRepository.fetchDocumentById(
+      const document = await this.documentRepository.fetchDocumentById(
         deleteDocument.id,
       );
 
-      if (!documentExist) {
+      if (!document) {
         throw new HttpException(
           'Document does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
+      if (document.user_id !== user.id) {
+        throw new HttpException(
+          'You are not authorized to delete this document',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       // FIXME: Images are not deleted from dbs (we should soft delete anyway).
-      const deletedImages = await this.deleteImagesFromStorage(
-        deleteDocument.id,
-      );
-
-      const deletedDocument = await this.documentRepository.deleteDocument(
-        deleteDocument.id,
-      );
-
-      return {
-        document: deletedDocument,
-        images: deletedImages,
-      };
+      await this.deleteImagesFromStorage(deleteDocument.id);
+      await this.documentRepository.deleteDocument(deleteDocument.id);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -196,19 +167,26 @@ export class DocumentService {
     }
   }
 
-  async update(document_id: string, updateDocument: UpdateDocumentDto) {
+  async update(user: User, document_id: string, updateDocument: UpdateDocumentDto): Promise<void> {
     try {
-      const documentExist =
+      const document: DocumentSummary =
         await this.documentRepository.fetchDocumentById(document_id);
 
-      if (!documentExist) {
+      if (!document) {
         throw new HttpException(
           'Document does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
-      return await this.documentRepository.updateDocument(
+      if (document.user_id !== user.id) {
+        throw new HttpException(
+          'You are not authorized to update this document',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      await this.documentRepository.updateDocument(
         document_id,
         updateDocument,
       );
@@ -224,16 +202,13 @@ export class DocumentService {
     }
   }
 
-  private async deleteImagesFromStorage(documentId: string) {
-    const images: Image[] = await this.imageRepository.fetchImagesByDocumentId(
+  private async deleteImagesFromStorage(documentId: string): Promise<void> {
+    const imagePaths: string[] = await this.imageRepository.fetchImagePathsByDocumentId(
       documentId,
-      false,
     );
 
-    const imagePaths: string[] = images.map((image: Image) => image.image_path);
-
-    return imagePaths.length
-      ? await this.supabaseService.deleteFiles(imagePaths)
-      : null;
+    if (imagePaths.length) {
+      await this.supabaseService.deleteFiles(imagePaths);
+    }
   }
 }

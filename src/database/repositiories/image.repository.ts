@@ -3,9 +3,9 @@ import { DBFunctions, Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
   Image,
+  ImageDB,
+  ImageSummary,
   ImageOrder,
-  ImageWithPresignedUrl,
-  ImageWithTranscriptionAndNote,
   InsertImage,
 } from '@/types/image';
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
@@ -20,18 +20,7 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) { }
 
-  async addPresignedUrlsToImages(images: Image[]): Promise<ImageWithPresignedUrl[]> {
-    const imagesWithUrls = await Promise.all(
-      images.map(async (image) => ({
-        ...image,
-        image_url: await this.supabaseService.getPresignedUrl(image.image_path),
-        thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image.image_path),
-      })),
-    );
-    return imagesWithUrls;
-  }
-
-  async createImage(images: InsertImage[]): Promise<ImageWithPresignedUrl[]> {
+  async createImage(images: InsertImage[]): Promise<Image[]> {
     try {
       // Insert all new images
       const { data: newImages, error } = await this.supabase
@@ -41,7 +30,11 @@ export class ImageRepository {
 
       if (error) throw error;
 
-      const imagesWithUrls = await this.addPresignedUrlsToImages(newImages);
+      const imagesWithUrls = await Promise.all(newImages.map(async (image) => ({
+        ...image,
+        thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image.image_path),
+      })));
+
       return imagesWithUrls;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create image record');
@@ -51,44 +44,19 @@ export class ImageRepository {
 
   async fetchImageById(
     imageId: string,
-    includeTranscriptionAndNotes: boolean = false,
-    attributes?: keyof Image,
-  ): Promise<ImageWithTranscriptionAndNote | ImageWithPresignedUrl | null> {
+  ): Promise<Image | null> {
     try {
-      let selectQuery = `${attributes ?? '*'}`;
+      const data = this.supabase.rpc("get_image_by_id", { image_id: imageId }) as any;
 
-      if (includeTranscriptionAndNotes) {
-        selectQuery += `,
-        notes (
-          id,
-          notes_text,
-          image_id,
-          created_at,
-          updated_at
-        ),
-        transcriptions (
-          id,
-          current_transcription_text,
-          ai_transcription_text,
-          transcription_status,
-          image_id,
-          created_at,
-          updated_at
-        )`;
+      if (!data) {
+        return null;
       }
 
-      const { data } = await this.supabase
-        .from(Tables.Images)
-        .select(selectQuery as '*')
-        .eq('id', imageId)
-        .maybeSingle();
+      const image_url = await this.supabaseService.getPresignedUrl(data.image_path);
+      const thumbnail_url = await this.supabaseService.getPresignedThumbnailUrl(data.image_path);
 
-      if (data) {
-        const imagesWithUrls = await this.addPresignedUrlsToImages([data]);
-        return imagesWithUrls[0];
-      }
-
-      return null;
+      const { image_path, ...dataWithoutPath } = data;
+      return { ...dataWithoutPath, image_url, thumbnail_url };
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch image by id');
     }
@@ -108,6 +76,85 @@ export class ImageRepository {
       return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch images by document');
+      throw error;
+    }
+  }
+
+  async fetchImagesByDocumentId2(
+    documentId: string,
+  ): Promise<ImageDB[] | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Images)
+        .select('*')
+        .eq('document_id', documentId);
+
+      if (error) {
+        throw new Error('Failed to fetch images associated with document');
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error(
+        error.message ?? 'Failed to fetch images associated with document',
+      );
+      throw error;
+    }
+  }
+
+  async fetchImageSummariesByDocumentId(
+    documentId: string,
+  ): Promise<ImageSummary[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Images)
+        .select('id, document_id, image_name, order, image_path')
+        .eq('document_id', documentId);
+
+      if (error) {
+        throw new Error('Failed to fetch images associated with document');
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      const imageSummaries: ImageSummary[] = await Promise.all(data.map(async (image) => {
+        const { image_path, ...rest } = image;
+        return { ...rest, thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path) };
+      }));
+
+      return imageSummaries;
+    } catch (error) {
+      this.logger.error(
+        error.message ?? 'Failed to fetch images associated with document',
+      );
+      throw error;
+    }
+  }
+
+  async fetchImagePathsByDocumentId(
+    documentId: string,
+  ): Promise<string[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Images)
+        .select('image_path')
+        .eq('document_id', documentId);
+
+      if (error) {
+        throw new Error('Failed to fetch image paths associated with document');
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      return data.map((image) => image.image_path);
+    } catch (error) {
+      this.logger.error(
+        error.message ?? 'Failed to fetch image paths associated with document',
+      );
       throw error;
     }
   }

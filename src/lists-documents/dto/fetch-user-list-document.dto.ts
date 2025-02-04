@@ -8,10 +8,6 @@ export class FetchUserListDocumentDto {
   page: number;
 
   @IsNotEmpty()
-  @IsString()
-  list_id: string;
-
-  @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
   @Min(1)

@@ -92,7 +92,7 @@ export class ImageService {
 
       const credits = await this.creditRepository.fetchUserCredits(userId);
       const userDocuments =
-        await this.documentRepository.fetchDocumentByUserId(userId);
+        await this.documentRepository.fetchDocumentsByUserId(userId);
       const images = await this.imageRepository.fetchImagesByDocumentIds(
         userDocuments.documents.map((document) => document.id),
       );

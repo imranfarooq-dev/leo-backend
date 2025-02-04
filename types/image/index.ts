@@ -1,7 +1,7 @@
 import { Database } from '@/database.types';
-import { Transcription } from '@/types/transcription';
+import { Transcription, TranscriptionStatus } from '@/types/transcription';
 import { Note } from '@/types/notes';
-import { TranscriptionJobStatus } from '@/types/transcription_job';
+import { TranscriptionJobStatus } from '@/src/transcription_job/dto/create-transcription_job.dto';
 
 export type UploadedImage = {
   id: string;
@@ -18,23 +18,33 @@ export type InsertImage = {
   order: number;
 };
 
-export type Image = Database['public']['Tables']['images']['Row'];
+export type ImageDB = Database['public']['Tables']['images']['Row'];
+
+export type ImageSummary = {
+  id: string;
+  document_id: string;
+  image_name: string | null;
+  order: number;
+  thumbnail_url: string | null;
+}
+
+export type ImageDetails = {
+  image_url: string;
+  transcription_id: string | null;
+  ai_transcription_text: string | null;
+  current_transcription_text: string | null;
+  transcription_status: TranscriptionStatus | null;
+  transcription_job_status: TranscriptionJobStatus | null;
+  note_id: string | null;
+  notes_text: string | null;
+}
 
 export type ImageOrder = {
   id: string;
   order: number;
 };
 
-export type ImageWithTranscriptionAndNote = Image & {
-  transcriptions: Transcription;
-  notes: Note;
-  latest_transcription_job_status: TranscriptionJobStatus;
-};
-
-export type ImageWithPresignedUrl = Image & {
-  image_url: string;
-  thumbnail_url: string;
-};
+export type Image = ImageSummary & ImageDetails;
 
 export type FileBufferDownloadResult = {
   buffer: Buffer | null;

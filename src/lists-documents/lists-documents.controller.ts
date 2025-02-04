@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Put,
   Query,
 } from '@nestjs/common';
@@ -11,10 +12,13 @@ import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.ser
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
 import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
 import { FetchDocumentListDto } from '@/src/lists-documents/dto/fetch-document-lists.dto';
+import { DocumentSummary } from '@/types/document';
+import { User as UserType } from '@clerk/clerk-sdk-node';
+import { User } from '@/src/comon/decorators/user.decorator';
 
 @Controller('lists-documents')
 export class ListsDocumentsController {
-  constructor(private listsDocumentsService: ListsDocumentsService) {}
+  constructor(private listsDocumentsService: ListsDocumentsService) { }
 
   @Put()
   async update(@Body() updateListDocumentDto: UpdateListDocumentDto) {
@@ -41,11 +45,15 @@ export class ListsDocumentsController {
     }
   }
 
-  @Get()
-  async fetchDocumentsByListID(@Query() query: FetchUserListDocumentDto) {
+  @Get(':list_id')
+  async fetchDocumentsByListID(
+    @User() user: UserType,
+    @Param('list_id') listId: string,
+    @Query() query: FetchUserListDocumentDto,
+  ) {
     try {
-      const documents =
-        await this.listsDocumentsService.fetchUserDocumentsByList(query);
+      const documents: { documents: DocumentSummary[]; currentPage: number; totalPages: number; totalDocuments: number } =
+        await this.listsDocumentsService.fetchUserDocumentsByList(listId, user, query);
 
       return {
         statusCode: HttpStatus.OK,

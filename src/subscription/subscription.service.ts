@@ -73,7 +73,7 @@ export class SubscriptionService {
         clerkUser.id,
       );
 
-      const userDocuments = await this.documentRepository.fetchDocumentByUserId(
+      const userDocuments = await this.documentRepository.fetchDocumentsByUserId(
         clerkUser.id,
       );
 

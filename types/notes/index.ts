@@ -1,3 +1,8 @@
 import { Database } from '@/database.types';
 
-export type Note = Database['public']['Tables']['notes']['Row'];
+export type NoteDB = Database['public']['Tables']['notes']['Row'];
+
+export type Note = {
+    id: string;
+    notes_text: string;
+};

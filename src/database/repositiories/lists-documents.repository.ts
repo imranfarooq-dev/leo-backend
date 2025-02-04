@@ -92,6 +92,32 @@ export class ListsDocumentsRepository {
     }
   }
 
+  async fetchDocumentsForList(
+    list_id: string,
+    pagination?: { from: number; to: number },
+  ): Promise<{ documents: Document[]; count: number }> {
+    try {
+      let query = this.supabase.rpc('get_documents_by_list_id', { list_id });
+
+      if (pagination) {
+        query = query.range(pagination.from, pagination.to);
+      }
+
+      const { data: documents } = await query;
+
+      const totalCount = documents.length > 0 ? documents[0].total_count : 0;
+
+      const withoutTotalCount = documents.map((document) => {
+        delete document.total_count;
+        return document;
+      });
+
+      return { documents: withoutTotalCount, count: totalCount };
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch documents for lists');
+    }
+  }
+
   async fetchListsByDocumentId(document_id: string) {
     try {
       const { data } = await this.supabase

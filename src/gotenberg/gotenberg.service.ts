@@ -5,9 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import * as archiver from 'archiver';
 import { ArchiverError } from 'archiver';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { ImageWithTranscriptionAndNote } from '@/types/image';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
-import { DocumentImageWithTranscriptionAndNote } from '@/types/document';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 
 @Injectable()
@@ -25,64 +23,66 @@ export class GotenbergService {
 
   async exportImage(image_id: string): Promise<Buffer> {
     try {
-      // Fetch image data
-      const image: ImageWithTranscriptionAndNote =
-        (await this.imageRepository.fetchImageById(
-          image_id,
-          true,
-        )) as ImageWithTranscriptionAndNote;
+      throw new Error('Method not implemented.');
 
-      if (!image) {
-        throw new HttpException('Image not found', HttpStatus.NOT_FOUND);
-      }
+      // // Fetch image data
+      // const image =
+      //   (await this.imageRepository.fetchImageById(
+      //     image_id,
+      //     true,
+      //   ));
 
-      return new Promise(async (resolve, reject) => {
-        const archive = archiver('zip', {
-          zlib: { level: 6 },
-        });
+      // if (!image) {
+      //   throw new HttpException('Image not found', HttpStatus.NOT_FOUND);
+      // }
 
-        const chunks: Buffer[] = [];
+      // return new Promise(async (resolve, reject) => {
+      //   const archive = archiver('zip', {
+      //     zlib: { level: 6 },
+      //   });
 
-        // Handle archive data
-        archive.on('data', (chunk) => chunks.push(chunk));
-        archive.on('end', () => resolve(Buffer.concat(chunks)));
-        archive.on('error', (error: ArchiverError) =>
-          reject(
-            new HttpException(
-              error.message ?? 'An error occurred while creating the zip file',
-              HttpStatus.INTERNAL_SERVER_ERROR,
-            ),
-          ),
-        );
+      //   const chunks: Buffer[] = [];
 
-        // Download and add original image
-        const imageBuffer = await this.downloadImage(image.image_path);
-        const imageExtension = image.image_path.split('.').pop() || 'jpg';
-        archive.append(imageBuffer, {
-          name: `{original-image}.${imageExtension}`,
-        });
+      //   // Handle archive data
+      //   archive.on('data', (chunk) => chunks.push(chunk));
+      //   archive.on('end', () => resolve(Buffer.concat(chunks)));
+      //   archive.on('error', (error: ArchiverError) =>
+      //     reject(
+      //       new HttpException(
+      //         error.message ?? 'An error occurred while creating the zip file',
+      //         HttpStatus.INTERNAL_SERVER_ERROR,
+      //       ),
+      //     ),
+      //   );
 
-        // Convert and add transcription PDF
-        if (image.transcriptions) {
-          const transcriptionContent: string | null =
-            image.transcriptions.current_transcription_text ??
-            image.transcriptions.ai_transcription_text;
-          if (!transcriptionContent) return;
+      //   // Download and add original image
+      //   const imageBuffer = await this.downloadImage(image.image_path);
+      //   const imageExtension = image.image_path.split('.').pop() || 'jpg';
+      //   archive.append(imageBuffer, {
+      //     name: `{original-image}.${imageExtension}`,
+      //   });
 
-          const transcriptionPdf =
-            await this.convertHtmlToPdf(transcriptionContent);
-          archive.append(transcriptionPdf, { name: 'transcription.pdf' });
-        }
+      //   // Convert and add transcription PDF
+      //   if (image.transcriptions) {
+      //     const transcriptionContent: string | null =
+      //       image.transcriptions.current_transcription_text ??
+      //       image.transcriptions.ai_transcription_text;
+      //     if (!transcriptionContent) return;
 
-        // Convert and add notes PDF
-        if (image?.notes?.notes_text) {
-          const notesPdf = await this.convertHtmlToPdf(image.notes.notes_text);
-          archive.append(notesPdf, { name: 'notes.pdf' });
-        }
+      //     const transcriptionPdf =
+      //       await this.convertHtmlToPdf(transcriptionContent);
+      //     archive.append(transcriptionPdf, { name: 'transcription.pdf' });
+      //   }
 
-        // Finalize the archive
-        archive.finalize();
-      });
+      //   // Convert and add notes PDF
+      //   if (image?.notes?.notes_text) {
+      //     const notesPdf = await this.convertHtmlToPdf(image.notes.notes_text);
+      //     archive.append(notesPdf, { name: 'notes.pdf' });
+      //   }
+
+      //   // Finalize the archive
+      //   archive.finalize();
+      // });
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -97,44 +97,45 @@ export class GotenbergService {
 
   async exportDocuments(documentIds: Array<string>): Promise<Buffer> {
     try {
-      const documents: DocumentImageWithTranscriptionAndNote[] =
-        (await this.documentRepository.fetchDocumentsByIds(
-          documentIds,
-          true,
-        )) as unknown as DocumentImageWithTranscriptionAndNote[];
+      throw new Error('Method not implemented.');
+      // const documents =
+      //   (await this.documentRepository.fetchDocumentsByIds(
+      //     documentIds,
+      //     true,
+      //   ));
 
-      if (!documents) {
-        throw new HttpException('Documents not found', HttpStatus.NOT_FOUND);
-      }
+      // if (!documents) {
+      //   throw new HttpException('Documents not found', HttpStatus.NOT_FOUND);
+      // }
 
-      return new Promise(async (resolve, reject) => {
-        const archive = archiver('zip', {
-          zlib: { level: 6 },
-        });
+      // return new Promise(async (resolve, reject) => {
+      //   const archive = archiver('zip', {
+      //     zlib: { level: 6 },
+      //   });
 
-        const chunks: Buffer[] = [];
+      //   const chunks: Buffer[] = [];
 
-        archive.on('data', (chunk) => chunks.push(chunk));
-        archive.on('end', () => resolve(Buffer.concat(chunks)));
-        archive.on('error', (error: ArchiverError) =>
-          reject(
-            new HttpException(
-              error.message ?? 'An error occurred while creating the zip file',
-              HttpStatus.INTERNAL_SERVER_ERROR,
-            ),
-          ),
-        );
+      //   archive.on('data', (chunk) => chunks.push(chunk));
+      //   archive.on('end', () => resolve(Buffer.concat(chunks)));
+      //   archive.on('error', (error: ArchiverError) =>
+      //     reject(
+      //       new HttpException(
+      //         error.message ?? 'An error occurred while creating the zip file',
+      //         HttpStatus.INTERNAL_SERVER_ERROR,
+      //       ),
+      //     ),
+      //   );
 
-        // Process each document
-        for (const document of documents) {
-          // Process each image in the document
-          for (const image of document.images) {
-            await this.processImage(image, archive, document.document_name);
-          }
-        }
+      //   // Process each document
+      //   for (const document of documents) {
+      //     // Process each image in the document
+      //     for (const image of document.images) {
+      //       await this.processImage(image, archive, document.document_name);
+      //     }
+      //   }
 
-        archive.finalize();
-      });
+      //   archive.finalize();
+      // });
     } catch (error) {
       console.error(error);
       if (error instanceof HttpException) {
@@ -173,7 +174,7 @@ export class GotenbergService {
   }
 
   private async processImage(
-    image: ImageWithTranscriptionAndNote,
+    image,
     archive: archiver.Archiver,
     basePath: string,
   ) {

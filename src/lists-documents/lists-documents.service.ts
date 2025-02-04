@@ -5,7 +5,10 @@ import { DocumentRepository } from '@/src/database/repositiories/document.reposi
 import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
 import { ListRespository } from '@/src/database/repositiories/list.respository';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { Document } from '@/types/document';
+import { Document, DocumentSummary } from '@/types/document';
+import { ListDB } from '@/types/list';
+import { User } from '@clerk/clerk-sdk-node';
+
 
 @Injectable()
 export class ListsDocumentsService {
@@ -69,25 +72,31 @@ export class ListsDocumentsService {
     }
   }
 
-  async fetchUserDocumentsByList({
-    page,
-    limit,
-    list_id,
-  }: FetchUserListDocumentDto) {
+  async fetchUserDocumentsByList(
+    list_id: string,
+    user: User,
+    {
+      page,
+      limit,
+    }: FetchUserListDocumentDto,
+  ): Promise<{ documents: DocumentSummary[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
       const offset: number = page * limit;
       const size: number = offset + limit - 1;
 
-      // Check if list exist
-      const listExist = await this.listRepository.fetchListById(list_id);
+      const list: ListDB | null = await this.listRepository.fetchListById(list_id);
 
-      if (!listExist) {
+      if (!list) {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      if (list.user_id !== user.id) {
+        throw new HttpException('List does not belong to user', HttpStatus.FORBIDDEN);
       }
 
       // Fetch list documents
       const listDocuments =
-        await this.listsDocumentsRepository.fetchDocumentsForLists([list_id], {
+        await this.listsDocumentsRepository.fetchDocumentsForList(list_id, {
           from: offset,
           to: size,
         });

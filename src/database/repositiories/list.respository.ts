@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { List, ListOrder } from '@/types/list';
+import { ListDB, ListOrder } from '@/types/list';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
 
 @Injectable()
@@ -37,12 +37,11 @@ export class ListRespository {
 
   async fetchListById(
     listId: string,
-    attributes?: (keyof List)[] | '*',
-  ): Promise<List | null> {
+  ): Promise<ListDB | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Lists)
-        .select(attributes as '*')
+        .select('*')
         .eq('id', listId)
         .maybeSingle();
 
