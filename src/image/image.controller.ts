@@ -14,7 +14,6 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ImageService } from '@/src/image/image.service';
 import { CreateImageDto } from '@/src/image/dto/create-image.dto';
-import { DeleteImageDto } from '@/src/image/dto/delete-image.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/clerk-sdk-node';
 import {
