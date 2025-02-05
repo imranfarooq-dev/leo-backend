@@ -3,6 +3,7 @@ import { Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ListDB, ListOrder } from '@/types/list';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
+import { List } from 'lodash';
 
 @Injectable()
 export class ListRespository {
@@ -53,12 +54,11 @@ export class ListRespository {
 
   async fetchListByUserId(
     userId: string,
-    attributes?: keyof List,
-  ): Promise<List[] | null> {
+  ): Promise<ListDB[] | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Lists)
-        .select(attributes as '*')
+        .select('*')
         .eq('user_id', userId);
 
       return data;
@@ -70,7 +70,7 @@ export class ListRespository {
   async fetchLastListInCurrentLevel(
     user_id: string,
     parent_list_id: string | null,
-  ): Promise<List | null> {
+  ): Promise<ListDB | null> {
     try {
       const query = this.supabase
         .from(Tables.Lists)
@@ -94,7 +94,7 @@ export class ListRespository {
   async fetchListsByParentId(
     user_id: string,
     parent_list_id: string | null,
-  ): Promise<List[] | null> {
+  ): Promise<ListDB[] | null> {
     try {
       const query = this.supabase
         .from(Tables.Lists)

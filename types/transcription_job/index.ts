@@ -4,3 +4,9 @@ export type TranscriptionJobDB = Database['public']['Tables']['transcription_job
 
 export type TranscriptionJobStatus =
   Database['public']['Enums']['transcription_job_status'];
+
+export enum APITranscriptionJobStatus {
+  InProgress = 'IN_PROGRESS',
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+}

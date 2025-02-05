@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { TranscriptionJob } from '@/types/transcription_job';
 import { CreateTranscriptionJobDto } from '@/src/transcription_job/dto/create-transcription_job.dto';
 import { UpdateTranscriptionJobDto } from '@/src/transcription_job/dto/update-transcription_job.dto';
+import { TranscriptionJobDB } from '@/types/transcription_job';
 
 @Injectable()
 export class TranscriptionJobRepository {
@@ -13,30 +13,9 @@ export class TranscriptionJobRepository {
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) { }
 
-  async fetchLatestByImageId(imageId: string): Promise<TranscriptionJob | null> {
-    try {
-      const { data: transcriptionJob, error } = await this.supabase
-        .from(Tables.TranscriptionJobs)
-        .select('*')
-        .eq('image_id', imageId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        throw new Error(error.message ?? 'Failed to fetch transcription job');
-      }
-
-      return transcriptionJob;
-    } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch transcription job');
-      throw error;
-    }
-  }
-
   async createTranscriptionJob(
     createTranscriptionJobDto: CreateTranscriptionJobDto,
-  ): Promise<TranscriptionJob> {
+  ): Promise<TranscriptionJobDB> {
     try {
       const { data: job, error } = await this.supabase
         .from(Tables.TranscriptionJobs)
@@ -58,7 +37,7 @@ export class TranscriptionJobRepository {
   async updateTranscriptionJob(
     transcriptionJobId: string,
     updateTranscriptionJobDto: UpdateTranscriptionJobDto
-  ): Promise<TranscriptionJob> {
+  ): Promise<TranscriptionJobDB> {
     try {
       const { data: job, error } = await this.supabase
         .from(Tables.TranscriptionJobs)

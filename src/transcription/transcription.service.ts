@@ -3,7 +3,7 @@ import { CreateUpdateTranscriptionDto } from '@/src/transcription/dto/create-upd
 import { TranscriptRepository } from '@/src/database/repositiories/transcription.repository';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
-import { Image } from '@/types/image';
+import { Image, ImageDB } from '@/types/image';
 import axios, { AxiosResponse } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
@@ -12,7 +12,7 @@ import { TRANSCRIBE_COST } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { APITranscriptionStatus } from '@/types/transcription';
 import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
-import { TranscriptionJob, TranscriptionJobStatus } from '@/types/transcription_job';
+import { APITranscriptionJobStatus, TranscriptionJobDB } from '@/types/transcription_job';
 import { FetchTranscriptionStatusDto } from '@/src/transcription/dto/fetch-transcription-status.dto';
 
 const MAX_RETRIES = 5;
@@ -29,39 +29,6 @@ export class TranscriptionService {
     private readonly supabaseService: SupabaseService,
     private readonly transcriptionJobRepository: TranscriptionJobRepository,
   ) { }
-
-  async fetchStatus(user: ClerkUser, fetchTranscriptionStatus: FetchTranscriptionStatusDto): Promise<TranscriptionJob> {
-    try {
-      // Check if user has access to the document
-      const image = await this.imageRepository.fetchImageById(fetchTranscriptionStatus.image_id);
-      if (!image) {
-        throw new HttpException('Image not found', HttpStatus.NOT_FOUND);
-      }
-
-      const document = await this.documentRepository.fetchDocumentById(image.document_id);
-      if (!document || document.user_id !== user.id) {
-        throw new HttpException('Unauthorized access', HttpStatus.FORBIDDEN);
-      }
-
-      // Find the latest job for this image
-      const transcriptionJob = await this.transcriptionJobRepository.fetchLatestByImageId(fetchTranscriptionStatus.image_id);
-
-      if (!transcriptionJob) {
-        throw new HttpException('Transcription job not found', HttpStatus.NOT_FOUND);
-      }
-
-      return transcriptionJob;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        'An error occurred while fetching transcription status',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
 
   async aiTranscribe(clerkUser: ClerkUser, imageIds: string[]) {
     try {
@@ -244,7 +211,7 @@ export class TranscriptionService {
     }
   }
 
-  private async transcribeSingleImage(image: Image): Promise<{
+  private async transcribeSingleImage(image: ImageDB): Promise<{
     status: APITranscriptionStatus;
     imageId: string;
     documentId?: string;
@@ -302,7 +269,7 @@ export class TranscriptionService {
       const { id: transcriptionJobId } = await this.transcriptionJobRepository.createTranscriptionJob({
         image_id: image.id,
         external_job_id: jobId,
-        status: TranscriptionJobStatus.IN_PROGRESS,
+        status: APITranscriptionJobStatus.InProgress,
       });
 
       // Poll for completion
@@ -332,13 +299,13 @@ export class TranscriptionService {
 
           // Update job status to completed
           await this.transcriptionJobRepository.updateTranscriptionJob(transcriptionJobId, {
-            status: TranscriptionJobStatus.COMPLETED,
+            status: APITranscriptionJobStatus.Completed,
             transcript_text: result.transcript,
           });
         } else if (['FAILED', 'CANCELLED', 'TIME_OUT'].includes(status)) {
           // Update job status to failed
           await this.transcriptionJobRepository.updateTranscriptionJob(transcriptionJobId, {
-            status: TranscriptionJobStatus.FAILED,
+            status: APITranscriptionJobStatus.Failed,
           });
           throw new Error('Job failed: ' + statusResponse.data.error);
         } else {
@@ -351,7 +318,7 @@ export class TranscriptionService {
       if (!completed) {
         // Update job status to failed on timeout
         await this.transcriptionJobRepository.updateTranscriptionJob(jobId, {
-          status: TranscriptionJobStatus.FAILED,
+          status: APITranscriptionJobStatus.Failed,
         });
         throw new Error('Timeout waiting for job completion');
       }

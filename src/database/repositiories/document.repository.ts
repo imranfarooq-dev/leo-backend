@@ -108,7 +108,7 @@ export class DocumentRepository {
     pagination: { from: number; to: number },
   ): Promise<{ documents: DocumentSummary[]; count: number }> {
     try {
-      const { data: { count } } = await this.supabase.from(Tables.Documents).select('*', { count: 'exact' }).eq('user_id', userId);
+      const { count } = await this.supabase.from(Tables.Documents).select('*', { count: 'exact', head: true }).eq('user_id', userId);
 
       const { data, error } = await this.supabase.rpc('get_documents_by_user_id', { user_id: userId, page_size: pagination.to, page_number: pagination.from });
 

@@ -1,15 +1,11 @@
 import { IsOptional, IsEnum, IsString } from 'class-validator';
+import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
-export enum TranscriptionJobStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-}
 
 export class UpdateTranscriptionJobDto {
   @IsOptional()
-  @IsEnum(TranscriptionJobStatus)
-  status?: TranscriptionJobStatus;
+  @IsEnum(APITranscriptionJobStatus)
+  status?: APITranscriptionJobStatus;
 
   @IsOptional()
   @IsString()

@@ -1,6 +1,6 @@
-import { List, ListTree } from '@/types/list';
+import { ListDB, ListTree } from '@/types/list';
 
-export const constructListTree = (list: List[]): ListTree[] => {
+export const constructListTree = (list: ListDB[]): ListTree[] => {
   if (!list.length) {
     return [];
   }
@@ -35,7 +35,7 @@ export const constructListTree = (list: List[]): ListTree[] => {
   return root;
 };
 
-export const sortListsByOrder = (list: List[]): List[] => {
+export const sortListsByOrder = (list: ListDB[]): ListDB[] => {
   return [...list].sort((a, b) => a.order - b.order);
 };
 

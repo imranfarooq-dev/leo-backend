@@ -19,29 +19,6 @@ import { FetchTranscriptionStatusDto } from '@/src/transcription/dto/fetch-trans
 export class TranscriptionController {
   constructor(private transcriptionService: TranscriptionService) { }
 
-  @Get('/status/:image_id')
-  async fetchStatus(@User() user: ClerkUser, @Param() params: FetchTranscriptionStatusDto) {
-    try {
-      const transcriptionJob = await this.transcriptionService.fetchStatus(user, params);
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Transcription status fetched successfully',
-        data: transcriptionJob,
-      };
-    } catch (error) {
-      throw new HttpException(
-        {
-          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ??
-            'An error occurred while fetching the transcription status',
-        },
-        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   @Post('ai')
   async aiTranscribe(
     @User() clerkUser: ClerkUser,

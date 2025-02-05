@@ -1,7 +1,7 @@
 import { Database } from '@/database.types';
 import { Transcription, TranscriptionStatus } from '@/types/transcription';
 import { Note } from '@/types/notes';
-import { TranscriptionJobStatus } from '@/src/transcription_job/dto/create-transcription_job.dto';
+import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
 export type UploadedImage = {
   id: string;
@@ -34,7 +34,7 @@ export type ImageDetails = {
   ai_transcription_text: string | null;
   current_transcription_text: string | null;
   transcription_status: TranscriptionStatus | null;
-  transcription_job_status: TranscriptionJobStatus | null;
+  transcription_job_status: APITranscriptionJobStatus | null;
   note_id: string | null;
   notes_text: string | null;
 }

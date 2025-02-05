@@ -5,13 +5,7 @@ import {
   IsString,
   IsOptional,
 } from 'class-validator';
-
-// Define the status enum to match the database enum
-export enum TranscriptionJobStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-}
+import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
 export class CreateTranscriptionJobDto {
   @IsNotEmpty()
@@ -23,8 +17,8 @@ export class CreateTranscriptionJobDto {
   external_job_id: string;
 
   @IsNotEmpty()
-  @IsEnum(TranscriptionJobStatus)
-  status: TranscriptionJobStatus;
+  @IsEnum(APITranscriptionJobStatus)
+  status: APITranscriptionJobStatus;
 
   @IsOptional()
   @IsString()

@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateListDto } from '@/src/list/dto/create-list.dto';
 import { ListRespository } from '@/src/database/repositiories/list.respository';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
-import { List, ListOrder, ListTree } from '@/types/list';
+import { ListDB, ListOrder, ListTree } from '@/types/list';
 import { constructListTree } from '@/src/utils';
 
 @Injectable()
@@ -44,8 +44,7 @@ export class ListService {
 
   async fetch(user_id: string): Promise<ListTree[]> {
     try {
-      const lists: List[] =
-        await this.listRepository.fetchListByUserId(user_id);
+      const lists: ListDB[] = await this.listRepository.fetchListByUserId(user_id);
 
       return constructListTree(lists);
     } catch (error) {
