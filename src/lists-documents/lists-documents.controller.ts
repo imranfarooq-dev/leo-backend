@@ -74,9 +74,10 @@ export class ListsDocumentsController {
   }
 
   @Get('lists/:document_id')
-  async fetchDocumentLists(@Param('document_id') documentId: string) {
+  async fetchDocumentLists(@User() user: UserType, @Param('document_id') documentId: string) {
     try {
       const lists = await this.listsDocumentsService.fetchDocumentLists(
+        user,
         documentId,
       );
 
