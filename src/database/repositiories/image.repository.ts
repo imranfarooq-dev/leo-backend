@@ -20,24 +20,48 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) { }
 
-  async createImage(images: InsertImage[]): Promise<Image[]> {
+  async createImage(images: InsertImage[]): Promise<ImageSummary[]> {
     try {
-      // Insert all new images
       const { data: newImages, error } = await this.supabase
         .from(Tables.Images)
         .insert(images)
-        .select();
+        .select("id, document_id, image_name, image_path, order");
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message ?? 'Failed to create image record');
+      }
+      const imageSummaries: ImageSummary[] = await Promise.all(newImages.map(async (image) => {
+        const { image_path, ...rest } = image;
+        return {
+          ...rest,
+          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
+        };
+      }));
 
-      const imagesWithUrls = await Promise.all(newImages.map(async (image) => ({
-        ...image,
-        thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image.image_path),
-      })));
-
-      return imagesWithUrls;
+      return imageSummaries;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create image record');
+      throw error;
+    }
+  }
+
+  async fetchImageDB(
+    imageId: string,
+  ): Promise<ImageDB | null> {
+    try {
+      const { data, error } = await this.supabase.from(Tables.Images).select('*').eq('id', imageId).maybeSingle();
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch image by id');
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return data
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch image by id');
       throw error;
     }
   }
@@ -102,6 +126,29 @@ export class ImageRepository {
     }
   }
 
+  async userIdFromImageId(imageId: string): Promise<string | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Images)
+        .select('document:document_id (user_id)')
+        .eq('id', imageId)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error('Failed to fetch user id from image id');
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return data.document[0].user_id;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch user id from image id');
+      throw error;
+    }
+  }
+
   async fetchImageSummariesByDocumentId(
     documentId: string,
   ): Promise<ImageSummary[]> {
@@ -159,11 +206,11 @@ export class ImageRepository {
     }
   }
 
-  async fetchLastDocumentImage(documentId: string): Promise<ImageWithPresignedUrl | null> {
+  async getLastImageOrder(documentId: string): Promise<number | null> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
-        .select()
+        .select('order')
         .eq('document_id', documentId)
         .order('order', { ascending: false })
         .limit(1)
@@ -174,12 +221,7 @@ export class ImageRepository {
         throw error;
       }
 
-      if (data) {
-        const imagesWithUrls = await this.addPresignedUrlsToImages([data]);
-        return imagesWithUrls[0];
-      }
-
-      return null;
+      return data?.order ?? null;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch last document image');
       throw error;
@@ -209,20 +251,16 @@ export class ImageRepository {
     }
   }
 
-  async updateImage(updateImage: UpdateImageDto) {
+  async updateImage(imageId: string, imageName: string): Promise<void> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
-        .update({ image_name: updateImage.image_name })
-        .eq('id', updateImage.image_id)
-        .select()
-        .maybeSingle();
+        .update({ image_name: imageName })
+        .eq('id', imageId)
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update image record}');
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update image record');
       throw new Error(error.message ?? 'Failed to update image record');
@@ -230,28 +268,15 @@ export class ImageRepository {
   }
 
   async updateImageOrder(
-    imageOrder: {
-      id: string;
-      document_id: string;  // TODO: Remove all this unnecesary fields from here and elsewhere
-      image_name: string;
-      image_path: string;
-      order: number;
-    }[],
-  ): Promise<Image[]> {
+    updates: { id: string; order: number }[],
+  ): Promise<void> {
     try {
-      const { data, error } = await this.supabase
-        .from(Tables.Images)
-        .upsert(imageOrder, {  // TODO: This should probably be an update? Check here and elsewhere
-          onConflict: 'id',
-          ignoreDuplicates: false,
-        })
-        .select('*');
+      const { error } = await this.supabase
+        .rpc('update_image_orders', { updates })
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update image order}');
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update image order');
       throw error;

@@ -1,25 +1,25 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateImageDto {
-  @IsNotEmpty()
-  @IsString()
-  image_id: string;
-
   @IsNotEmpty()
   @IsString()
   image_name: string;
 }
 
-export class UpdateImageOrderDto {
-  @IsNotEmpty()
-  @IsNumber()
-  oldIndex: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  newIndex: number;
-
+class OrderItem {
   @IsNotEmpty()
   @IsString()
-  documentId: string;
+  id: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  order: number;
+}
+
+export class UpdateImageOrderDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItem)
+  updates: OrderItem[];
 }

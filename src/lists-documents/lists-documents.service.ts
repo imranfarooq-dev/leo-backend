@@ -123,13 +123,19 @@ export class ListsDocumentsService {
 
   async fetchDocumentLists(user: User, document_id: string): Promise<ListSummary[]> {
     try {
-      const documentExist =
-        await this.documentRepository.fetchDocumentById(document_id);
+      const documentSummary: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(document_id);
 
-      if (!documentExist) {
+      if (!documentSummary) {
         throw new HttpException(
           'Document does not exist',
           HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (documentSummary.user_id !== user.id) {
+        throw new HttpException(
+          'Document does not belong to user',
+          HttpStatus.FORBIDDEN,
         );
       }
 

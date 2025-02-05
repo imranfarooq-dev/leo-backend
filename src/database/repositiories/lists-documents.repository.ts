@@ -1,6 +1,7 @@
 import { Provides, Tables } from '@/src/shared/constant'
 import { SupabaseService } from '@/src/supabase/supabase.service'
 import { DocumentSummary } from '@/types/document'
+import { ListSummary } from '@/types/list'
 import { ListDocument } from '@/types/list-document'
 import { Inject, Logger } from '@nestjs/common'
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -94,14 +95,24 @@ export class ListsDocumentsRepository {
     }
   }
 
-  async fetchListsByDocumentId(document_id: string) {
+  async fetchListsByDocumentId(document_id: string): Promise<ListSummary[] | null> {
     try {
-      const { data } = await this.supabase
+      const { data, error } = await this.supabase
         .from(Tables.ListsDocuments)
-        .select('lists(*)')
+        .select('lists(id, user_id, list_name)')
         .eq('document_id', document_id);
 
-      return data.map(({ lists }) => lists);
+      console.log(data);
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch document lists');
+      }
+
+      return data.map(({ lists: [{ id, user_id, list_name }] }) => ({
+        id,
+        user_id,
+        list_name
+      }));
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch document lists');
     }

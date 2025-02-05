@@ -2,8 +2,10 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Put,
   UploadedFiles,
@@ -20,11 +22,36 @@ import {
   UpdateImageOrderDto,
 } from '@/src/image/dto/update-image.dto';
 import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
-import { ImageOrder } from '@/types/image';
+import { ImageOrder, ImageSummary } from '@/types/image';
 
 @Controller('image')
 export class ImageController {
   constructor(private readonly imageService: ImageService) { }
+
+  @Get(":image_id")
+  async getImage(@Param('image_id') imageId: string) {
+    try {
+      const image: ImageSummary | null = await this.imageService.getImage(imageId);
+
+      if (!image) {
+        throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Image fetched successfully',
+        data: image,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message ?? 'Failed to fetch image',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   @Post()
   @UseInterceptors(FilesInterceptor('files', MAX_IMAGE_ALLOWED, {
@@ -53,7 +80,7 @@ export class ImageController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
-      const images = await this.imageService.create(
+      const imageSummaries: ImageSummary[] = await this.imageService.create(
         createImage,
         files,
         user.id,
@@ -62,7 +89,7 @@ export class ImageController {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Image attached successfully',
-        data: images,
+        data: imageSummaries,
       };
     } catch (error) {
       throw new HttpException(
@@ -77,15 +104,18 @@ export class ImageController {
     }
   }
 
-  @Put()
-  async update(@Body() updateImage: UpdateImageDto) {
+  @Put(":image_id")
+  async update(
+    @User() user: UserType,
+    @Param('image_id') imageId: string,
+    @Body() updateImage: UpdateImageDto,
+  ) {
     try {
-      const image = await this.imageService.update(updateImage);
+      await this.imageService.update(user, imageId, updateImage);
 
       return {
         statusCode: HttpStatus.OK,
         message: 'Image updated successfully',
-        image,
       };
     } catch (error) {
       throw new HttpException(
@@ -102,18 +132,17 @@ export class ImageController {
 
   @Put('update-order')
   async updateOrder(
-    @Body() { oldIndex, newIndex, documentId }: UpdateImageOrderDto,
+    @User() user: UserType,
+    @Body() { updates }: UpdateImageOrderDto,
   ) {
     try {
-      const data = await this.imageService.updateOrder(
-        oldIndex,
-        newIndex,
-        documentId,
+      await this.imageService.updateOrder(
+        user,
+        updates,
       );
       return {
         statusCode: HttpStatus.OK,
         message: 'Image order updated successfully',
-        data,
       };
     } catch (error) {
       throw new HttpException(
@@ -127,10 +156,10 @@ export class ImageController {
     }
   }
 
-  @Delete()
-  async delete(@Body() deleteImage: DeleteImageDto) {
+  @Delete(':image_id')
+  async delete(@User() user: UserType, @Param('image_id') imageId: string) {
     try {
-      const siblingImageOrders: ImageOrder[] = await this.imageService.delete(deleteImage);
+      const siblingImageOrders: ImageOrder[] = await this.imageService.delete(user, imageId);
 
       return {
         statusCode: HttpStatus.OK,

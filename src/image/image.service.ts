@@ -2,11 +2,12 @@ import { CreditsRepository } from '@/src/database/repositiories/credits.reposito
 import { DocumentRepository } from '@/src/database/repositiories/document.repository'
 import { ImageRepository } from '@/src/database/repositiories/image.repository'
 import { CreateImageDto } from '@/src/image/dto/create-image.dto'
-import { DeleteImageDto } from '@/src/image/dto/delete-image.dto'
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
 import { PdfService } from '@/src/pdf/pdf.service'
 import { SupabaseService } from '@/src/supabase/supabase.service'
-import { ImageOrder, InsertImage } from '@/types/image'
+import { DocumentSummary } from '@/types/document'
+import { ImageDB, ImageOrder, ImageSummary, InsertImage, Image } from '@/types/image'
+import { User } from '@clerk/clerk-sdk-node'
 import {
   ForbiddenException,
   HttpException,
@@ -25,18 +26,50 @@ export class ImageService {
     private readonly pdfService: PdfService,
   ) { }
 
+  async getImage(imageId: string): Promise<Image | null> {
+    try {
+      const image: Image | null = await this.imageRepository.fetchImageById(imageId);
+
+      if (!image) {
+        throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      return image;
+    } catch (error) {
+      throw new HttpException(
+        'An error occurred while fetching the image',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async create(
     { document_id }: CreateImageDto,
     files: Array<Express.Multer.File>,
     userId: string,
-  ) {
+  ): Promise<ImageSummary[]> {
     try {
+      const documentSummary: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(document_id);
+
+      if (!documentSummary) {
+        throw new HttpException(
+          'Document does not exist',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (documentSummary.user_id !== userId) {
+        throw new HttpException(
+          'Document does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
       // Process files, separating PDFs and images
       const processedFiles: Express.Multer.File[] = [];
 
       for (const file of files) {
         if (file.mimetype === 'application/pdf') {
-          // Extract images from PDF
           const pdfImages = await this.pdfService.extractImagesFromPdf(file.buffer);
 
           // Convert extracted images to proper Multer File objects
@@ -72,16 +105,6 @@ export class ImageService {
         }
       }
 
-      const document =
-        await this.documentRepository.fetchDocumentById(document_id);
-
-      if (!document) {
-        throw new HttpException(
-          'Document does not exist',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
       if (!processedFiles.length) {
         throw new HttpException(
           'There are no images available to attach to the document.',
@@ -92,7 +115,7 @@ export class ImageService {
       const credits = await this.creditRepository.fetchUserCredits(userId);
       const numImages: number = await this.imageRepository.countImagesByUserId(userId);
 
-      if (numImages >= credits.image_limits) {
+      if (numImages + processedFiles.length > credits.image_limits) {
         throw new ForbiddenException(
           'You have reached the maximum limit of images you can upload',
         );
@@ -104,8 +127,8 @@ export class ImageService {
       );
 
       // Get highest order number for the document
-      const lastImage = await this.imageRepository.fetchLastDocumentImage(document_id);
-      const startOrder = lastImage ? lastImage.order + 1 : 1;
+      const lastImageOrder: number | null = await this.imageRepository.getLastImageOrder(document_id);
+      const startOrder = lastImageOrder ? lastImageOrder + 1 : 1;
 
       const imagesData: InsertImage[] = uploadedImages.map((uploadedImage, index) => ({
         document_id: document_id,
@@ -114,8 +137,7 @@ export class ImageService {
         order: startOrder + index,
       }));
 
-      const newImages = await this.imageRepository.createImage(imagesData);
-      return newImages;
+      return await this.imageRepository.createImage(imagesData);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -128,17 +150,19 @@ export class ImageService {
     }
   }
 
-  async update(updateImage: UpdateImageDto) {
+  async update(user: User, imageId: string, updateImage: UpdateImageDto): Promise<void> {
     try {
-      const imageExist = await this.imageRepository.fetchImageById(
-        updateImage.image_id,
-      );
+      const imageUserId: string | null = await this.imageRepository.userIdFromImageId(imageId);
 
-      if (!imageExist) {
+      if (!imageUserId) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      return await this.imageRepository.updateImage(updateImage);
+      if (imageUserId !== user.id) {
+        throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
+      }
+
+      await this.imageRepository.updateImage(imageId, updateImage.image_name);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -151,19 +175,28 @@ export class ImageService {
     }
   }
 
-  async updateOrder(oldIndex: number, newIndex: number, documentId: string) {
+  async updateOrder(user: User, updates: { id: string; order: number }[]): Promise<void> {
     try {
-      const documentExist =
-        await this.documentRepository.fetchDocumentById(documentId);
-
-      if (!documentExist) {
+      if (!updates.length) {
         throw new HttpException(
-          'Document does not exist',
-          HttpStatus.NOT_FOUND,
+          'No images found to update order',
+          HttpStatus.BAD_REQUEST,
         );
       }
 
-      const images = await this.imageRepository.fetchImagesByDocumentId(documentId);
+      const image: ImageDB | null = await this.imageRepository.fetchImageDB(updates[0].id);
+
+      if (!image) {
+        throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      const userId: string | null = await this.imageRepository.userIdFromImageId(image.id);
+
+      if (userId !== user.id) {
+        throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
+      }
+
+      const images: ImageSummary[] = await this.imageRepository.fetchImageSummariesByDocumentId(image.document_id);
 
       if (!images.length) {
         throw new HttpException(
@@ -172,32 +205,23 @@ export class ImageService {
         );
       }
 
-      // Return early if indices are invalid or no change needed
-      if (
-        oldIndex === newIndex ||
-        oldIndex < 0 ||
-        newIndex < 0 ||
-        oldIndex >= images.length ||
-        newIndex >= images.length
-      ) {
-        return images;
+      if (images.some(image => !updates.some(update => update.id === image.id))) {
+        throw new HttpException('Images do not have consistent parents', HttpStatus.BAD_REQUEST);
       }
 
-      // Reorder the array
-      const reorderedImages = [...images];
-      const [movedImage] = reorderedImages.splice(oldIndex, 1);
-      reorderedImages.splice(newIndex, 0, movedImage);
+      if (new Set(updates.map(update => update.id)).size !== updates.length) {
+        throw new HttpException('Image IDs must be unique', HttpStatus.BAD_REQUEST);
+      }
 
-      // Update order numbers for all affected images
-      const updates = reorderedImages.map((image, index) => ({
-        id: image.id,
-        document_id: image.document_id,
-        image_name: image.image_name,
-        image_path: image.image_path,
-        order: index + 1,
-      }));
+      // Validate order values
+      const sortedOrders = [...updates.map(update => update.order)].sort((a, b) => a - b);
+      const expectedSequence = Array.from({ length: updates.length }, (_, i) => i + 1);
 
-      return await this.imageRepository.updateImageOrder(updates);
+      if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
+        throw new HttpException('Order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
+      }
+
+      await this.imageRepository.updateImageOrder(updates);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -210,35 +234,26 @@ export class ImageService {
     }
   }
 
-  async delete(deleteImage: DeleteImageDto): Promise<ImageOrder[]> {
+  async delete(user: User, imageId: string): Promise<ImageOrder[]> {
     try {
-      const image = await this.imageRepository.fetchImageById(deleteImage.id);
+      const image: ImageDB | null = await this.imageRepository.fetchImageDB(imageId);
 
       if (!image) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (image.document_id !== deleteImage.document_id) {
-        throw new HttpException(
-          'Image is not associated with the document',
-          HttpStatus.CONFLICT,
-        );
-      }
+      const document: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(image.document_id);
 
-      const documentImages = await this.imageRepository.fetchImagesByDocumentId(
-        image.document_id,
-      );
-      if (!documentImages?.length) {
-        throw new Error('No images found for the document');
+      if (document.user_id != user.id) {
+        throw new HttpException('Document does not belong to user', HttpStatus.FORBIDDEN);
       }
 
       // Delete the image
-      const siblingImageOrders = await this.imageRepository.deleteImage(
-        deleteImage.id,
+      const siblingImageOrders: ImageOrder[] = await this.imageRepository.deleteImage(
+        imageId,
       );
 
       await this.supabaseService.deleteFiles([image.image_path]);
-
       return siblingImageOrders;
     } catch (error) {
       if (error instanceof HttpException) {

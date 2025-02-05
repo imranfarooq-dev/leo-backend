@@ -43,6 +43,40 @@ export class DocumentRepository {
     }
   }
 
+  async fetchDocumentSummaryById(
+    documentId: string,
+  ): Promise<DocumentSummary | null> {
+    try {
+      const { data } = await this.supabase
+        .rpc('get_document_by_id', { document_id: documentId })
+        .maybeSingle();
+
+      if (!data) {
+        return null;
+      }
+
+      const {
+        first_image_path,
+        archive,
+        box,
+        collection,
+        folder,
+        rights,
+        type,
+        ...rest
+      } = data as DocumentFromRPC;
+
+      const documentSummary: DocumentSummary = {
+        ...rest,
+        thumbnail_url: first_image_path ? await this.supabaseService.getPresignedThumbnailUrl(first_image_path) : null,
+      };
+      return documentSummary;
+
+    } catch (error) {
+      this.logger.error('Failed to fetch document by id');
+    }
+  }
+
   async fetchDocumentById(
     documentId: string,
   ): Promise<Document | null> {

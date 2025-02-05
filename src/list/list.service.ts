@@ -116,7 +116,7 @@ export class ListService {
         throw new HttpException('No lists found to update order.', HttpStatus.BAD_REQUEST);
       }
 
-      // Check that listss IDs and the list IDs are equivalent.
+      // Check that lists IDs and the list IDs are equivalent.
       if (lists.some(list => !updates.some(update => update.id === list.id))) {
         throw new HttpException('Lists do not have consistent parents', HttpStatus.BAD_REQUEST);
       }
@@ -137,7 +137,7 @@ export class ListService {
         );
       }
 
-      return await this.listRepository.updateListOrder(updates);
+      await this.listRepository.updateListOrder(updates);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

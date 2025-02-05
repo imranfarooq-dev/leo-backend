@@ -3,6 +3,7 @@ import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-l
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
 import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service'
 import { DocumentSummary } from '@/types/document'
+import { ListSummary } from '@/types/list'
 import { User as UserType } from '@clerk/clerk-sdk-node'
 import {
   Body,
@@ -76,7 +77,7 @@ export class ListsDocumentsController {
   @Get('lists/:document_id')
   async fetchDocumentLists(@User() user: UserType, @Param('document_id') documentId: string) {
     try {
-      const lists = await this.listsDocumentsService.fetchDocumentLists(
+      const lists: ListSummary[] = await this.listsDocumentsService.fetchDocumentLists(
         user,
         documentId,
       );
