@@ -1,3 +1,18 @@
+import { CreditsRepository } from '@/src/database/repositiories/credits.repository'
+import { DocumentRepository } from '@/src/database/repositiories/document.repository'
+import { ImageRepository } from '@/src/database/repositiories/image.repository'
+import { SubscriptionRepository } from '@/src/database/repositiories/subscription.repository'
+import { UserRepository } from '@/src/database/repositiories/user.repository'
+import {
+  FreePlan,
+  Provides,
+  StripeCheckoutMode,
+  SubscriptionStatus,
+} from '@/src/shared/constant'
+import { Credit } from '@/types/credit'
+import { FreePlanStatus, Subscription } from '@/types/subscription'
+import { User } from '@/types/user'
+import { User as ClerkUser } from '@clerk/clerk-sdk-node'
 import {
   BadRequestException,
   HttpException,
@@ -6,24 +21,9 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import {
-  FreePlan,
-  Provides,
-  StripeCheckoutMode,
-  SubscriptionStatus,
-} from '@/src/shared/constant';
-import Stripe from 'stripe';
-import { User as ClerkUser } from '@clerk/clerk-sdk-node';
-import { UserRepository } from '@/src/database/repositiories/user.repository';
-import { User } from '@/types/user';
-import { SubscriptionRepository } from '@/src/database/repositiories/subscription.repository';
-import { FreePlanStatus, Subscription } from '@/types/subscription';
-import { ConfigService } from '@nestjs/config';
-import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
-import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { DocumentRepository } from '@/src/database/repositiories/document.repository';
-import { Credit } from '@/types/credit';
+} from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import Stripe from 'stripe'
 
 @Injectable()
 export class SubscriptionService {
@@ -73,18 +73,12 @@ export class SubscriptionService {
         clerkUser.id,
       );
 
-      const userDocuments = await this.documentRepository.fetchDocumentsByUserId(
-        clerkUser.id,
-      );
-
-      const userDocumentsIds = userDocuments.documents.map((doc) => doc.id);
-      const images =
-        await this.imageRepository.fetchImagesByDocumentIds(userDocumentsIds);
+      const numImages = await this.imageRepository.countImagesByUserId(clerkUser.id);
 
       return {
         credits,
         subscription: subscriptionsInfo,
-        numberOfImages: images.length,
+        numberOfImages: numImages,
       };
     } catch (error) {
       if (error instanceof HttpException) {

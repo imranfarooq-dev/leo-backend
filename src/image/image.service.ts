@@ -1,20 +1,19 @@
+import { CreditsRepository } from '@/src/database/repositiories/credits.repository'
+import { DocumentRepository } from '@/src/database/repositiories/document.repository'
+import { ImageRepository } from '@/src/database/repositiories/image.repository'
+import { CreateImageDto } from '@/src/image/dto/create-image.dto'
+import { DeleteImageDto } from '@/src/image/dto/delete-image.dto'
+import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
+import { PdfService } from '@/src/pdf/pdf.service'
+import { SupabaseService } from '@/src/supabase/supabase.service'
+import { ImageOrder, InsertImage } from '@/types/image'
 import {
   ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
-} from '@nestjs/common';
-import { CreateImageDto } from '@/src/image/dto/create-image.dto';
-import { SupabaseService } from '@/src/supabase/supabase.service';
-import { DeleteImageDto } from '@/src/image/dto/delete-image.dto';
-import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { ImageOrder, InsertImage } from '@/types/image';
-import { DocumentRepository } from '@/src/database/repositiories/document.repository';
-import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
-import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
-import { Image } from '@/types/image';
-import { PdfService } from '@/src/pdf/pdf.service';
-import { Readable } from 'stream';
+} from '@nestjs/common'
+import { Readable } from 'stream'
 
 @Injectable()
 export class ImageService {
@@ -91,13 +90,9 @@ export class ImageService {
       }
 
       const credits = await this.creditRepository.fetchUserCredits(userId);
-      const userDocuments =
-        await this.documentRepository.fetchDocumentsByUserId(userId);
-      const images = await this.imageRepository.fetchImagesByDocumentIds(
-        userDocuments.documents.map((document) => document.id),
-      );
+      const numImages: number = await this.imageRepository.countImagesByUserId(userId);
 
-      if (images.length >= credits.image_limits) {
+      if (numImages >= credits.image_limits) {
         throw new ForbiddenException(
           'You have reached the maximum limit of images you can upload',
         );

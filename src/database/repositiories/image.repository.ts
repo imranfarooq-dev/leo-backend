@@ -1,15 +1,15 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { DBFunctions, Provides, Tables } from '@/src/shared/constant';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
+import { Provides, Tables } from '@/src/shared/constant'
+import { SupabaseService } from '@/src/supabase/supabase.service'
 import {
   Image,
   ImageDB,
-  ImageSummary,
   ImageOrder,
+  ImageSummary,
   InsertImage,
-} from '@/types/image';
-import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
-import { SupabaseService } from '@/src/supabase/supabase.service';
+} from '@/types/image'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 @Injectable()
 export class ImageRepository {
@@ -62,20 +62,20 @@ export class ImageRepository {
     }
   }
 
-  async fetchImagesByDocumentIds(documentIds: string[]) {
+  async countImagesByUserId(userId: string) {
     try {
       const { data, error } = await this.supabase.rpc(
-        DBFunctions.getOrderedImagesByDocumentIds,
-        { document_ids: documentIds },
+        "get_total_images_by_user_id",
+        { user_id: userId },
       );
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to fetch images by document');
+        throw new Error(error.message ?? 'Failed to count images by user id');
       }
 
       return data;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch images by document');
+      this.logger.error(error.message ?? 'Failed to count images by user id');
       throw error;
     }
   }
@@ -154,37 +154,6 @@ export class ImageRepository {
     } catch (error) {
       this.logger.error(
         error.message ?? 'Failed to fetch image paths associated with document',
-      );
-      throw error;
-    }
-  }
-
-  async fetchImagesByDocumentId(
-    documentId: string,
-    includeTranscriptionAndNotes: boolean = false,
-  ): Promise<ImageWithTranscriptionAndNote[] | ImageWithPresignedUrl[] | null> {
-    try {
-      const { data, error } = await this.supabase.rpc(
-        DBFunctions.getOrderedImagesByDocumentId,
-        {
-          document_id_param: documentId,
-          include_relations: includeTranscriptionAndNotes,
-        },
-      );
-
-      if (error) {
-        throw new Error('Failed to fetch images associated with document');
-      }
-
-      if (data) {
-        const imagesWithUrls = await this.addPresignedUrlsToImages(data);
-        return imagesWithUrls;
-      }
-
-      return null;
-    } catch (error) {
-      this.logger.error(
-        error.message ?? 'Failed to fetch images associated with document',
       );
       throw error;
     }

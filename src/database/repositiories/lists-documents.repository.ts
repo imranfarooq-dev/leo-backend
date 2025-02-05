@@ -1,30 +1,28 @@
-import { Inject, Logger } from '@nestjs/common';
-import { DBFunctions, Provides, Tables } from '@/src/shared/constant';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { ListDocument } from '@/types/list-document';
-import { Document } from '@/types/document';
+import { Provides, Tables } from '@/src/shared/constant'
+import { SupabaseService } from '@/src/supabase/supabase.service'
+import { DocumentSummary } from '@/types/document'
+import { ListDocument } from '@/types/list-document'
+import { Inject, Logger } from '@nestjs/common'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 export class ListsDocumentsRepository {
   private readonly logger: Logger = new Logger(ListsDocumentsRepository.name);
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
+    private readonly supabaseService: SupabaseService,
   ) { }
 
-  async createListDocument(list_id: string, document_id: string) {
+  async createListDocument(list_id: string, document_id: string): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.ListsDocuments)
         .insert({ list_id, document_id })
-        .select()
-        .maybeSingle();
 
       if (error) {
         throw new Error(
           error.message ?? 'Failed to create document and list relation',
         );
       }
-
-      return data;
     } catch (error) {
       this.logger.error(
         error.message ?? 'Failed to create document and list relation',
@@ -55,7 +53,7 @@ export class ListsDocumentsRepository {
   async fetchListChild(list_id: string) {
     try {
       const { data, error } = await this.supabase.rpc(
-        DBFunctions.getListWithChildren,
+        "get_list_with_children",
         { _id: list_id },
       );
 
@@ -69,50 +67,28 @@ export class ListsDocumentsRepository {
     }
   }
 
-  async fetchDocumentsForLists(
-    lists_ids: string[],
-    pagination: { from: number; to: number },
-  ): Promise<{ documents: Document[]; count: number }> {
-    try {
-      const { data: documents } = await this.supabase.rpc(
-        DBFunctions.fetchDocumentsForLists,
-        { list_ids: lists_ids, _from: pagination.from, _to: pagination.to },
-      );
-
-      const totalCount = documents.length > 0 ? documents[0].total_count : 0;
-
-      const withoutTotalCount = documents.map((document) => {
-        delete document.total_count;
-        return document;
-      });
-
-      return { documents: withoutTotalCount, count: totalCount };
-    } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch documents for lists');
-    }
-  }
-
   async fetchDocumentsForList(
     list_id: string,
-    pagination?: { from: number; to: number },
-  ): Promise<{ documents: Document[]; count: number }> {
+    pagination: { from: number; to: number },
+  ): Promise<{ documents: DocumentSummary[]; count: number }> {
     try {
-      let query = this.supabase.rpc('get_documents_by_list_id', { list_id });
+      const { data: { count } } = await this.supabase.from(Tables.ListsDocuments).select('*', { count: 'exact' }).eq('list_id', list_id);
 
-      if (pagination) {
-        query = query.range(pagination.from, pagination.to);
+      const { data, error } = await this.supabase.rpc('get_documents_by_list_id', { list_id, page_size: pagination.to, page_number: pagination.from });
+
+      const documentsWithThumbnailUrls: DocumentSummary[] = await Promise.all(data.map(async (document) => {
+        const { first_image_path, ...rest } = document;
+        return {
+          ...rest,
+          thumbnail_url: first_image_path ? await this.supabaseService.getPresignedThumbnailUrl(first_image_path) : null,
+        };
+      }));
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch documents for list');
       }
 
-      const { data: documents } = await query;
-
-      const totalCount = documents.length > 0 ? documents[0].total_count : 0;
-
-      const withoutTotalCount = documents.map((document) => {
-        delete document.total_count;
-        return document;
-      });
-
-      return { documents: withoutTotalCount, count: totalCount };
+      return { documents: documentsWithThumbnailUrls, count };
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch documents for lists');
     }
@@ -131,17 +107,17 @@ export class ListsDocumentsRepository {
     }
   }
 
-  async deleteListDocument(list_id: string, document_id: string) {
+  async deleteListDocument(list_id: string, document_id: string): Promise<void> {
     try {
-      const { data } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.ListsDocuments)
         .delete()
         .eq('list_id', list_id)
         .eq('document_id', document_id)
-        .select()
-        .maybeSingle();
 
-      return data;
+      if (error) {
+        throw new Error(error.message ?? 'Failed to remove document from list');
+      }
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to remove document from list');
     }

@@ -1,32 +1,28 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
-import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
-import { DocumentRepository } from '@/src/database/repositiories/document.repository';
-import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
-import { ListRespository } from '@/src/database/repositiories/list.respository';
-import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { Document, DocumentSummary } from '@/types/document';
-import { ListDB } from '@/types/list';
-import { User } from '@clerk/clerk-sdk-node';
+import { DocumentRepository } from '@/src/database/repositiories/document.repository'
+import { ListRespository } from '@/src/database/repositiories/list.respository'
+import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository'
+import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
+import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
+import { DocumentSummary } from '@/types/document'
+import { ListDB, ListSummary } from '@/types/list'
+import { User } from '@clerk/clerk-sdk-node'
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 
 
 @Injectable()
 export class ListsDocumentsService {
   constructor(
     private readonly listRepository: ListRespository,
-    private readonly imageRepository: ImageRepository,
     private readonly listsDocumentsRepository: ListsDocumentsRepository,
     private readonly documentRepository: DocumentRepository,
   ) { }
 
-  async update(updateListDocumentDto: UpdateListDocumentDto) {
+  async update(document_id: string, updateListDocumentDto: UpdateListDocumentDto, user: User): Promise<void> {
     try {
-      let documentAdded, documentRemoved;
-      const { document_id, add_list_ids, remove_list_ids } =
+      const { add_list_ids, remove_list_ids } =
         updateListDocumentDto;
 
-      const documentExist =
-        await this.documentRepository.fetchDocumentById(document_id);
+      const documentExist = await this.documentRepository.fetchDocumentById(document_id);
 
       if (!documentExist) {
         throw new HttpException(
@@ -35,31 +31,36 @@ export class ListsDocumentsService {
         );
       }
 
+      if (documentExist.user_id !== user.id) {
+        throw new HttpException(
+          'Document does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      const allPromises = [];
+
       if (add_list_ids) {
-        const linkPromises = add_list_ids.map(async (list_id) => {
-          const list = await this.listsDocumentsRepository.createListDocument(
+        const addPromises = add_list_ids.map(async (list_id) => {
+          await this.listsDocumentsRepository.createListDocument(
             list_id,
             document_id,
           );
-          return { list_id: list_id, created: !!list };
         });
-
-        documentAdded = await Promise.all(linkPromises);
+        allPromises.push(...addPromises);
       }
 
       if (remove_list_ids) {
-        const linkPromises = remove_list_ids.map(async (list_id) => {
-          const list = await this.listsDocumentsRepository.deleteListDocument(
+        const removePromises = remove_list_ids.map(async (list_id) => {
+          await this.listsDocumentsRepository.deleteListDocument(
             list_id,
             document_id,
           );
-          return { list_id: list_id, deleted: !!list };
         });
-
-        documentRemoved = await Promise.all(linkPromises);
+        allPromises.push(...removePromises);
       }
 
-      return { documentAdded, documentRemoved };
+      await Promise.all(allPromises);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -94,41 +95,19 @@ export class ListsDocumentsService {
         throw new HttpException('List does not belong to user', HttpStatus.FORBIDDEN);
       }
 
-      // Fetch list documents
-      const listDocuments =
+      const { documents, count } =
         await this.listsDocumentsRepository.fetchDocumentsForList(list_id, {
           from: offset,
           to: size,
         });
 
-      // Calculate total pages
-      const totalPages: number = Math.ceil(listDocuments.count / limit);
-
-      if (!listDocuments.documents.length) {
-        return {
-          documents: [],
-          currentPage: page,
-          totalPages,
-          totalDocuments: listDocuments.count,
-        };
-      }
-
-      // Fetch Document Images and transcription
-      const documents = await Promise.all(
-        listDocuments.documents.map(async (document: Document) => {
-          const images = await this.imageRepository.fetchImagesByDocumentId(
-            document.id,
-            true,
-          );
-          return { ...document, images };
-        }),
-      );
+      const totalPages: number = Math.ceil(count / limit);
 
       return {
         documents,
         currentPage: page,
         totalPages,
-        totalDocuments: listDocuments.count,
+        totalDocuments: count,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -142,7 +121,7 @@ export class ListsDocumentsService {
     }
   }
 
-  async fetchDocumentLists(document_id: string) {
+  async fetchDocumentLists(user: User, document_id: string): Promise<ListSummary[]> {
     try {
       const documentExist =
         await this.documentRepository.fetchDocumentById(document_id);

@@ -1,6 +1,6 @@
-import { Inject, Logger } from '@nestjs/common';
-import { DBFunctions, Provides, Tables } from '@/src/shared/constant';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Provides, Tables } from '@/src/shared/constant'
+import { Inject, Logger } from '@nestjs/common'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 export class SearchRepository {
   private readonly logger: Logger = new Logger(SearchRepository.name);
@@ -12,7 +12,7 @@ export class SearchRepository {
   async searchListAndDocument(searchKeyword: string, userId: string) {
     try {
       const { data, error } = await this.supabase.rpc(
-        DBFunctions.searchDocumentAndList,
+        "search_document_and_list",
         { search_term: searchKeyword, user_id_param: userId },
       );
 

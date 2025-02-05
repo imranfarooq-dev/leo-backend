@@ -1,3 +1,9 @@
+import { User } from '@/src/comon/decorators/user.decorator'
+import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
+import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
+import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service'
+import { DocumentSummary } from '@/types/document'
+import { User as UserType } from '@clerk/clerk-sdk-node'
 import {
   Body,
   Controller,
@@ -7,30 +13,24 @@ import {
   Param,
   Put,
   Query,
-} from '@nestjs/common';
-import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service';
-import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
-import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
-import { FetchDocumentListDto } from '@/src/lists-documents/dto/fetch-document-lists.dto';
-import { DocumentSummary } from '@/types/document';
-import { User as UserType } from '@clerk/clerk-sdk-node';
-import { User } from '@/src/comon/decorators/user.decorator';
+} from '@nestjs/common'
 
 @Controller('lists-documents')
 export class ListsDocumentsController {
   constructor(private listsDocumentsService: ListsDocumentsService) { }
 
-  @Put()
-  async update(@Body() updateListDocumentDto: UpdateListDocumentDto) {
+  @Put(':document_id')
+  async update(@User() user: UserType, @Param('document_id') documentId: string, @Body() updateListDocumentDto: UpdateListDocumentDto) {
     try {
-      const link = await this.listsDocumentsService.update(
+      await this.listsDocumentsService.update(
+        documentId,
         updateListDocumentDto,
+        user,
       );
 
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Document added/removed from list successfully',
-        link,
       };
     } catch (error) {
       throw new HttpException(
@@ -73,11 +73,11 @@ export class ListsDocumentsController {
     }
   }
 
-  @Get('lists')
-  async fetchDocumentLists(@Query() query: FetchDocumentListDto) {
+  @Get('lists/:document_id')
+  async fetchDocumentLists(@Param('document_id') documentId: string) {
     try {
       const lists = await this.listsDocumentsService.fetchDocumentLists(
-        query.document_id,
+        documentId,
       );
 
       return {

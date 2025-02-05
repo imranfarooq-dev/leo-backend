@@ -32,11 +32,6 @@ export enum Tables {
 
 // TODO: Update this.
 export enum DBFunctions {
-  getListWithChildren = 'get_list_with_children',
-  fetchDocumentsForLists = 'fetch_documents_for_lists',
-  searchDocumentAndList = 'search_documents_and_lists',
-  getOrderedImagesByDocumentIds = 'get_ordered_images_by_document_ids',
-  getOrderedImagesByDocumentId = 'get_ordered_images_by_document_id',
 }
 
 export enum StripeCheckoutMode {

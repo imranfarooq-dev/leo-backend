@@ -6,7 +6,11 @@ DROP FUNCTION IF EXISTS get_ordered_images_by_document_id;
 DROP FUNCTION IF EXISTS get_ordered_images_by_document_ids;
 
 DROP FUNCTION IF EXISTS get_documents_by_user_id;
-CREATE OR REPLACE FUNCTION get_documents_by_user_id(user_id UUID)
+CREATE OR REPLACE FUNCTION get_documents_by_user_id(
+    user_id UUID,
+    page_size INTEGER DEFAULT 10,
+    page_number INTEGER DEFAULT 1
+)
 RETURNS TABLE (
     id UUID,
     user_id UUID,
@@ -23,24 +27,33 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    WITH image_counts AS (
-        SELECT 
+    WITH paginated_documents AS (
+        SELECT d.*
+        FROM documents d
+        WHERE d.user_id = user_id
+        ORDER BY d.created_at DESC
+        LIMIT page_size
+        OFFSET ((page_number - 1) * page_size)
+    ),
+    image_counts AS (
+        SELECT
             i.document_id,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'draft' OR t.image_id IS NULL THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'draft' OR t.image_id IS NULL THEN 1
                  END) AS number_of_images_draft,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'transcribed' THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'transcribed' THEN 1
                  END) AS number_of_images_transcribed,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'finalised' THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'finalised' THEN 1
                  END) AS number_of_images_finalised,
             MIN(i.image_path) AS first_image_path
         FROM images i
         LEFT JOIN transcriptions t ON i.id = t.image_id
+        WHERE i.document_id IN (SELECT id FROM paginated_documents)
         GROUP BY i.document_id
     )
-    SELECT 
+    SELECT
         d.id,
         d.user_id,
         d.document_name,
@@ -53,14 +66,18 @@ BEGIN
         COALESCE(ic.number_of_images_transcribed, 0) AS number_of_images_transcribed,
         COALESCE(ic.number_of_images_finalised, 0) AS number_of_images_finalised,
         ic.first_image_path
-    FROM documents d
+    FROM paginated_documents d
     LEFT JOIN image_counts ic ON d.id = ic.document_id
-    WHERE d.user_id = user_id;
+    ORDER BY d.created_at DESC;
 END;
 $$ LANGUAGE plpgsql;
 
 DROP FUNCTION IF EXISTS get_documents_by_list_id;
-CREATE OR REPLACE FUNCTION get_documents_by_list_id(list_id UUID)
+CREATE OR REPLACE FUNCTION get_documents_by_list_id(
+    list_id UUID,
+    page_size INTEGER DEFAULT 10,
+    page_number INTEGER DEFAULT 1
+)
 RETURNS TABLE (
     id UUID,
     user_id UUID,
@@ -77,24 +94,34 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    WITH image_counts AS (
-        SELECT 
+    WITH paginated_documents AS (
+        SELECT d.*
+        FROM documents d
+        JOIN lists_documents ld ON d.id = ld.document_id
+        WHERE ld.list_id = list_id
+        ORDER BY d.created_at DESC
+        LIMIT page_size
+        OFFSET ((page_number - 1) * page_size)
+    ),
+    image_counts AS (
+        SELECT
             i.document_id,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'draft' OR t.image_id IS NULL THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'draft' OR t.image_id IS NULL THEN 1
                  END) AS number_of_images_draft,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'transcribed' THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'transcribed' THEN 1
                  END) AS number_of_images_transcribed,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'finalised' THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'finalised' THEN 1
                  END) AS number_of_images_finalised,
             MIN(i.image_path) AS first_image_path
         FROM images i
         LEFT JOIN transcriptions t ON i.id = t.image_id
+        WHERE i.document_id IN (SELECT id FROM paginated_documents)
         GROUP BY i.document_id
     )
-    SELECT 
+    SELECT
         d.id,
         d.user_id,
         d.document_name,
@@ -107,10 +134,9 @@ BEGIN
         COALESCE(ic.number_of_images_transcribed, 0) AS number_of_images_transcribed,
         COALESCE(ic.number_of_images_finalised, 0) AS number_of_images_finalised,
         ic.first_image_path
-    FROM documents d
-    JOIN lists_documents ld ON d.id = ld.document_id
+    FROM paginated_documents d
     LEFT JOIN image_counts ic ON d.id = ic.document_id
-    WHERE ld.list_id = list_id;
+    ORDER BY d.created_at DESC;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -139,23 +165,23 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     WITH image_counts AS (
-        SELECT 
+        SELECT
             i.document_id,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'draft' OR t.image_id IS NULL THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'draft' OR t.image_id IS NULL THEN 1
                  END) AS number_of_images_draft,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'transcribed' THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'transcribed' THEN 1
                  END) AS number_of_images_transcribed,
-            COUNT(CASE 
-                     WHEN t.transcription_status = 'finalised' THEN 1 
+            COUNT(CASE
+                     WHEN t.transcription_status = 'finalised' THEN 1
                  END) AS number_of_images_finalised,
             MIN(i.image_path) AS first_image_path
         FROM images i
         LEFT JOIN transcriptions t ON i.id = t.image_id
         GROUP BY i.document_id
     )
-    SELECT 
+    SELECT
         d.id,
         d.user_id,
         d.document_name,
@@ -180,7 +206,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS get_image_by_id; 
+DROP FUNCTION IF EXISTS get_image_by_id;
 CREATE OR REPLACE FUNCTION get_image_by_id(image_id UUID)
 RETURNS TABLE (
     id UUID,
@@ -200,16 +226,16 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     WITH latest_transcription_job AS (
-        SELECT tj.id AS transcription_job_id, 
-               tj.image_id, 
-               tj.status AS transcription_job_status, 
+        SELECT tj.id AS transcription_job_id,
+               tj.image_id,
+               tj.status AS transcription_job_status,
                tj.created_at
         FROM transcription_jobs tj
         WHERE tj.image_id = image_id
         ORDER BY tj.created_at DESC
         LIMIT 1
     )
-    SELECT 
+    SELECT
         i.id,
         i.document_id,
         i.image_name,
@@ -230,5 +256,22 @@ BEGIN
     WHERE i.id = image_id;
 END;
 $$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS get_total_images_by_user_id;
+CREATE OR REPLACE FUNCTION get_total_images_by_user_id(user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+    total_count INTEGER;
+BEGIN
+    SELECT COUNT(i.id)
+    INTO total_count
+    FROM documents d
+    JOIN images i ON d.id = i.document_id
+    WHERE d.user_id = user_id;
+
+    RETURN total_count;
+END;
+$$ LANGUAGE plpgsql;
+
 
 COMMIT;

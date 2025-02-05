@@ -1,11 +1,11 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Provides, Tables } from '@/src/shared/constant';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Document, DocumentDB, DocumentFromRPC, DocumentSummary } from '@/types/document';
-import { CreateDocumentDto } from '@/src/document/dto/create-document.dto';
-import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
-import { ImageRepository } from './image.repository';
-import { SupabaseService } from '@/src/supabase/supabase.service';
+import { CreateDocumentDto } from '@/src/document/dto/create-document.dto'
+import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto'
+import { Provides, Tables } from '@/src/shared/constant'
+import { SupabaseService } from '@/src/supabase/supabase.service'
+import { Document, DocumentFromRPC, DocumentSummary } from '@/types/document'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { ImageRepository } from './image.repository'
 
 @Injectable()
 export class DocumentRepository {
@@ -71,18 +71,18 @@ export class DocumentRepository {
 
   async fetchDocumentsByUserId(
     userId: string,
-    pagination?: { from: number; to: number },
+    pagination: { from: number; to: number },
   ): Promise<{ documents: DocumentSummary[]; count: number }> {
     try {
-      let query = this.supabase.rpc('get_documents_by_user_id', { user_id: userId });
+      const { data: { count } } = await this.supabase.from(Tables.Documents).select('*', { count: 'exact' }).eq('user_id', userId);
 
-      if (pagination) {
-        query = query.range(pagination.from, pagination.to);
+      const { data, error } = await this.supabase.rpc('get_documents_by_user_id', { user_id: userId, page_size: pagination.to, page_number: pagination.from });
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch documents by user id');
       }
 
-      const { data: documents, count } = await query;
-
-      const documentsWithThumbnailUrls: DocumentSummary[] = await Promise.all(documents.map(async (document) => {
+      const documentsWithThumbnailUrls: DocumentSummary[] = await Promise.all(data.map(async (document) => {
         const { first_image_path, ...rest } = document;
         return {
           ...rest,

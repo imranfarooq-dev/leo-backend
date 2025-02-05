@@ -1,14 +1,12 @@
 import {
   IsArray,
-  IsInt,
-  IsString,
-  IsNotEmpty,
   IsOptional,
+  IsString,
   Validate,
   ValidationArguments,
   ValidatorConstraint,
-  ValidatorConstraintInterface,
-} from 'class-validator';
+  ValidatorConstraintInterface
+} from 'class-validator'
 
 @ValidatorConstraint({ name: 'atLeastOneArray', async: false })
 class AtLeastOneArrayValidator implements ValidatorConstraintInterface {
@@ -23,10 +21,6 @@ class AtLeastOneArrayValidator implements ValidatorConstraintInterface {
 }
 
 export class UpdateListDocumentDto {
-  @IsString()
-  @IsNotEmpty()
-  document_id: string;
-
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
