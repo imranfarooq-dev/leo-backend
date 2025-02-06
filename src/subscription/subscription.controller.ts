@@ -150,11 +150,10 @@ export class SubscriptionController {
   @Post('free-plan')
   async selectFreePlan(@User() clerkUser: ClerkUser) {
     try {
-      const freePlan = await this.subscriptionService.selectFreePlan(clerkUser);
+      await this.subscriptionService.selectFreePlan(clerkUser);
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Free plan selected successfully',
-        freePlan,
       };
     } catch (error) {
       throw new HttpException(
@@ -205,9 +204,15 @@ export class SubscriptionController {
         stripe_price_id: string | null;
         current_period_end: string | null;
         price: string | null;
-      } =
+      } | null =
         await this.subscriptionService.fetchStatusAndCredits(user);
 
+      if (!statusAndCredits) {
+        return {
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'No user found',
+        };
+      }
       return {
         statusCode: HttpStatus.OK,
         message: 'Subscription Status and Credits fetched successfully',

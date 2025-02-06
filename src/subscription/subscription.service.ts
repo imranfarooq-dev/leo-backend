@@ -72,13 +72,17 @@ export class SubscriptionService {
     stripe_price_id: string | null;
     current_period_end: string | null;
     price: string | null;
-  }> {
+  } | null> {
     try {
       const [subscription, credits, numImages] = await Promise.all([
         this.fetchSubscription(clerkUser.id),
         this.creditRepository.fetchUserCredits(clerkUser.id),
         this.imageRepository.countImagesByUserId(clerkUser.id)
       ]);
+
+      if (!credits) {
+        return null
+      }
 
       return {
         image_limits: credits.image_limits,
