@@ -9,7 +9,7 @@ export class UserRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     try {
@@ -39,7 +39,7 @@ export class UserRepository {
 
       return data;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to create user');
+      this.logger.error(error.message ?? 'Failed to get user');
     }
   }
 

@@ -1,19 +1,19 @@
 import { Inject, Logger } from '@nestjs/common';
 import { Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Subscription } from '@/types/subscription';
+import { SubscriptionDB } from '@/types/subscription';
 
 export class SubscriptionRepository {
   private readonly logger: Logger = new Logger(SubscriptionRepository.name);
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async createSubscription(
     userId: string,
     stripeCustomerId: string,
-  ): Promise<Subscription | null> {
+  ): Promise<SubscriptionDB> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Subscriptions)
@@ -31,7 +31,7 @@ export class SubscriptionRepository {
     }
   }
 
-  async getUserSubscription(userId: string): Promise<Subscription | null> {
+  async getUserSubscription(userId: string): Promise<SubscriptionDB | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Subscriptions)
@@ -47,21 +47,17 @@ export class SubscriptionRepository {
 
   async updateUserSubscription(
     userId: string,
-    subscriptions: Partial<Subscription>,
-  ): Promise<Subscription | null> {
+    subscriptions: Partial<SubscriptionDB>,
+  ): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.Subscriptions)
         .update(subscriptions)
         .eq('user_id', userId)
-        .select()
-        .maybeSingle();
 
       if (error) {
         throw new Error(error.message);
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update user subscription');
     }

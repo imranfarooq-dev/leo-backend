@@ -10,8 +10,7 @@ import {
   SubscriptionStatus,
 } from '@/src/shared/constant'
 import { Credit } from '@/types/credit'
-import { FreePlanStatus, Subscription } from '@/types/subscription'
-import { User } from '@/types/user'
+import { FreePlanStatus, SubscriptionDB } from '@/types/subscription'
 import { User as ClerkUser } from '@clerk/clerk-sdk-node'
 import {
   BadRequestException,
@@ -63,22 +62,34 @@ export class SubscriptionService {
     }
   }
 
-  async fetchStatusAndCredits(clerkUser: ClerkUser) {
+  async fetchStatusAndCredits(clerkUser: ClerkUser): Promise<{
+    image_limits: number;
+    lifetime_credits: number;
+    monthly_credits: number;
+    free_plan_status: FreePlanStatus;
+    status: SubscriptionStatus | null;
+    numberOfImages: number;
+    stripe_price_id: string | null;
+    current_period_end: string | null;
+    price: string | null;
+  }> {
     try {
-      const { subscriptionsInfo } = await this.fetchUserAndSubscriptionInfo(
-        clerkUser.id,
-      );
-
-      const credits = await this.creditRepository.fetchUserCredits(
-        clerkUser.id,
-      );
-
-      const numImages = await this.imageRepository.countImagesByUserId(clerkUser.id);
+      const [subscription, credits, numImages] = await Promise.all([
+        this.fetchSubscription(clerkUser.id),
+        this.creditRepository.fetchUserCredits(clerkUser.id),
+        this.imageRepository.countImagesByUserId(clerkUser.id)
+      ]);
 
       return {
-        credits,
-        subscription: subscriptionsInfo,
+        image_limits: credits.image_limits,
+        lifetime_credits: credits.lifetime_credits,
+        monthly_credits: credits.monthly_credits,
+        free_plan_status: subscription?.free_plan_status as FreePlanStatus,
+        status: subscription?.status as SubscriptionStatus | null,
         numberOfImages: numImages,
+        stripe_price_id: subscription?.stripe_price_id,
+        current_period_end: subscription?.current_period_end,
+        price: subscription?.price,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -95,13 +106,11 @@ export class SubscriptionService {
 
   async fetchPaymentMethods(clerkUser: ClerkUser) {
     try {
-      const { subscriptionsInfo } = await this.fetchUserAndSubscriptionInfo(
-        clerkUser.id,
-      );
+      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
 
       // Get payment methods
       const paymentLists = await this.stripeService.paymentMethods.list({
-        customer: subscriptionsInfo.stripe_customer_id,
+        customer: subscription.stripe_customer_id,
         type: 'card',
       });
 
@@ -121,16 +130,14 @@ export class SubscriptionService {
 
   async fetchInvoices(clerkUser: ClerkUser) {
     try {
-      const { subscriptionsInfo } = await this.fetchUserAndSubscriptionInfo(
-        clerkUser.id,
-      );
+      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
 
-      if (!subscriptionsInfo.stripe_customer_id) {
+      if (!subscription.stripe_customer_id) {
         throw new BadRequestException('Stripe customer ID not found');
       }
 
       const stripeInvoicelists = await this.stripeService.invoices.list({
-        customer: subscriptionsInfo.stripe_customer_id,
+        customer: subscription.stripe_customer_id,
       });
 
       return stripeInvoicelists.data.map((invoice: Stripe.Invoice) => ({
@@ -156,15 +163,13 @@ export class SubscriptionService {
 
   async cancelSubscription(clerkUser: ClerkUser) {
     try {
-      const { subscriptionsInfo } = await this.fetchUserAndSubscriptionInfo(
-        clerkUser.id,
-      );
+      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
 
-      if (!subscriptionsInfo.stripe_subscription_id) {
+      if (!subscription.stripe_subscription_id) {
         throw new HttpException('Subscription not found', HttpStatus.NOT_FOUND);
       }
 
-      if (subscriptionsInfo.status === SubscriptionStatus.Canceled) {
+      if (subscription.status === SubscriptionStatus.Canceled) {
         throw new HttpException(
           'Subscription already cancelled',
           HttpStatus.BAD_REQUEST,
@@ -172,7 +177,7 @@ export class SubscriptionService {
       }
 
       await this.stripeService.subscriptions.update(
-        subscriptionsInfo.stripe_subscription_id,
+        subscription.stripe_subscription_id,
         { cancel_at_period_end: true },
       );
 
@@ -191,21 +196,19 @@ export class SubscriptionService {
 
   async changeSubscriptionPlan(clerkUser: ClerkUser, priceId?: string) {
     try {
-      const { subscriptionsInfo } = await this.fetchUserAndSubscriptionInfo(
-        clerkUser.id,
-      );
+      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
 
-      if (!subscriptionsInfo.stripe_subscription_id) {
+      if (!subscription.stripe_subscription_id) {
         throw new BadRequestException('No Subscription found');
       }
 
       const stripeSubscription =
         await this.stripeService.subscriptions.retrieve(
-          subscriptionsInfo.stripe_subscription_id,
+          subscription.stripe_subscription_id,
         );
 
       return await this.stripeService.subscriptions.update(
-        subscriptionsInfo.stripe_subscription_id,
+        subscription.stripe_subscription_id,
         {
           items: [{ id: stripeSubscription.items.data[0].id, price: priceId }],
           proration_behavior: 'always_invoice',
@@ -227,29 +230,20 @@ export class SubscriptionService {
 
   async selectFreePlan(
     clerkUser: ClerkUser,
-  ): Promise<{ credits: Credit; subscription: Subscription }> {
+  ): Promise<void> {
     try {
-      const { subscriptionsInfo } = await this.fetchUserAndSubscriptionInfo(
-        clerkUser.id,
-      );
+      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
 
       // When we downgrade
-      if (subscriptionsInfo.status === SubscriptionStatus.Active) {
+      if (subscription.status === SubscriptionStatus.Active) {
         await this.stripeService.subscriptions.update(
-          subscriptionsInfo.stripe_subscription_id,
+          subscription.stripe_subscription_id,
           { cancel_at_period_end: true },
         );
-
-        const credits = await this.creditRepository.fetchUserCredits(
-          clerkUser.id,
-        );
-        const subscription =
-          await this.subscriptionRepository.getUserSubscription(clerkUser.id);
-
-        return { credits, subscription };
+        return
       }
 
-      if (subscriptionsInfo.free_plan_status === FreePlanStatus.Subscribed) {
+      if (subscription.free_plan_status === FreePlanStatus.Subscribed) {
         throw new BadRequestException('Already subscribed to free plan');
       }
 
@@ -258,27 +252,24 @@ export class SubscriptionService {
         image_limits: FreePlan.storage_limit,
       };
 
-      const updatedSubscription: Partial<Subscription> = {
+      const updatedSubscription: Partial<SubscriptionDB> = {
         free_plan_status: FreePlanStatus.Subscribed,
       };
 
-      if (!subscriptionsInfo.lifetime_tokens_awarded) {
+      if (!subscription.lifetime_tokens_awarded) {
         updatedCredits.lifetime_credits = FreePlan.lifetime_credits;
         updatedSubscription.lifetime_tokens_awarded = true;
       }
 
-      const credits = await this.creditRepository.updateCredits(
+      await this.creditRepository.updateCredits(
         clerkUser.id,
         updatedCredits,
       );
 
-      const subscription =
-        await this.subscriptionRepository.updateUserSubscription(
-          clerkUser.id,
-          updatedSubscription,
-        );
-
-      return { credits, subscription };
+      await this.subscriptionRepository.updateUserSubscription(
+        clerkUser.id,
+        updatedSubscription,
+      );
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -297,12 +288,11 @@ export class SubscriptionService {
     mode: StripeCheckoutMode,
   ) {
     try {
-      const { userInfo, subscriptionsInfo } =
-        await this.fetchUserAndSubscriptionInfo(user.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(user.id);
 
       const checkoutOption: Stripe.Checkout.SessionCreateParams = {
-        customer: subscriptionsInfo.stripe_customer_id,
-        client_reference_id: userInfo.id,
+        customer: subscription.stripe_customer_id,
+        client_reference_id: user.id,
         mode,
         line_items: [
           {
@@ -310,14 +300,14 @@ export class SubscriptionService {
             quantity: 1,
           },
         ],
-        metadata: { userId: userInfo.id },
+        metadata: { userId: user.id },
         success_url: this.successUrl,
       };
 
       if (mode === StripeCheckoutMode.Subscription) {
         checkoutOption.subscription_data = {
           metadata: {
-            userId: userInfo.id,
+            userId: user.id,
           },
         };
       }
@@ -457,8 +447,7 @@ export class SubscriptionService {
         throw new HttpException('UserId not found', HttpStatus.NOT_FOUND);
       }
 
-      const { subscriptionsInfo } =
-        await this.fetchUserAndSubscriptionInfo(userId);
+      const subscriptionInfo: SubscriptionDB = await this.fetchSubscription(userId);
 
       const credits = await this.creditRepository.fetchUserCredits(userId);
 
@@ -467,7 +456,7 @@ export class SubscriptionService {
         image_limits: FreePlan.storage_limit,
       };
 
-      const updatedSubscription: Partial<Subscription> = {
+      const updatedSubscription: Partial<SubscriptionDB> = {
         status: subscription.status,
         price: null,
         stripe_price_id: null,
@@ -481,7 +470,7 @@ export class SubscriptionService {
         free_plan_status: FreePlanStatus.Subscribed,
       };
 
-      if (!subscriptionsInfo.lifetime_tokens_awarded) {
+      if (!subscriptionInfo.lifetime_tokens_awarded) {
         updatedCredits.lifetime_credits =
           FreePlan.lifetime_credits + credits.lifetime_credits;
         updatedSubscription.lifetime_tokens_awarded = true;
@@ -516,8 +505,7 @@ export class SubscriptionService {
         throw new NotFoundException('User not found');
       }
 
-      const { subscriptionsInfo } =
-        await this.fetchUserAndSubscriptionInfo(userId);
+      const subscriptionInfo: SubscriptionDB = await this.fetchSubscription(userId);
 
       // Get product details
       const subscriptionProduct = subscription.items.data[0].price.product;
@@ -531,7 +519,7 @@ export class SubscriptionService {
 
       // Extract metadata and convert to numbers with fallbacks
       const metadata = product.metadata;
-      const lifetimeCredits = subscriptionsInfo.lifetime_tokens_awarded
+      const lifetimeCredits = subscriptionInfo.lifetime_tokens_awarded
         ? creditsInfo.lifetime_credits
         : parseInt(metadata.lifetime_credit) + creditsInfo.lifetime_credits;
       const updatedCredits = {
@@ -541,7 +529,7 @@ export class SubscriptionService {
       };
 
       // Prepare subscription update data
-      const updatedSubscription: Partial<Subscription> = {
+      const updatedSubscription: Partial<SubscriptionDB> = {
         status: subscription.status,
         price: String(subscription.items.data[0].price.unit_amount / 100),
         stripe_price_id: subscription.items.data[0].price.id,
@@ -554,11 +542,11 @@ export class SubscriptionService {
         stripe_subscription_id: subscription.id,
       };
 
-      if (!subscriptionsInfo.lifetime_tokens_awarded) {
+      if (!subscriptionInfo.lifetime_tokens_awarded) {
         updatedSubscription.lifetime_tokens_awarded = true;
       }
 
-      if (subscriptionsInfo.free_plan_status === FreePlanStatus.Subscribed) {
+      if (subscriptionInfo.free_plan_status === FreePlanStatus.Subscribed) {
         updatedSubscription.free_plan_status =
           FreePlanStatus.PreviouslySubscribed;
       }
@@ -573,22 +561,16 @@ export class SubscriptionService {
     }
   }
 
-  private readonly fetchUserAndSubscriptionInfo = async (userId: string) => {
+  private readonly fetchSubscription = async (userId: string): Promise<SubscriptionDB | null> => {
     try {
-      const userInfo: User | null = await this.userRepository.getUser(userId);
-
-      if (!userInfo) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-      }
-
-      const subscriptionsInfo: Subscription | null =
+      const subscription: SubscriptionDB | null =
         await this.subscriptionRepository.getUserSubscription(userId);
 
-      if (!subscriptionsInfo) {
-        throw new HttpException('Subscription not found', HttpStatus.NOT_FOUND);
+      if (!subscription) {
+        return null;
       }
 
-      return { userInfo, subscriptionsInfo };
+      return subscription;
     } catch (error) {
       throw new HttpException(
         error.message ??

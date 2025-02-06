@@ -19,13 +19,15 @@ import {
 import { SubscriptionService } from '@/src/subscription/subscription.service';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '@/src/comon/decorators/public.decorator';
+import { FreePlanStatus } from '@/types/subscription';
+import { SubscriptionStatus } from '../shared/constant';
 
 @Controller('subscription')
 export class SubscriptionController {
   constructor(
     private readonly subscriptionService: SubscriptionService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   @Post('checkout-session')
   async createCheckoutSession(
@@ -193,8 +195,19 @@ export class SubscriptionController {
   @Get('status')
   async fetchSubscriptionStatusAndCredits(@User() user: ClerkUser) {
     try {
-      const statusAndCredits =
+      const statusAndCredits: {
+        image_limits: number;
+        lifetime_credits: number;
+        monthly_credits: number;
+        free_plan_status: FreePlanStatus;
+        numberOfImages: number;
+        status: SubscriptionStatus | null;
+        stripe_price_id: string | null;
+        current_period_end: string | null;
+        price: string | null;
+      } =
         await this.subscriptionService.fetchStatusAndCredits(user);
+
       return {
         statusCode: HttpStatus.OK,
         message: 'Subscription Status and Credits fetched successfully',

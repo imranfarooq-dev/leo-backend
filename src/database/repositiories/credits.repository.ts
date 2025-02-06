@@ -8,7 +8,7 @@ export class CreditsRepository {
   private readonly logger: Logger = new Logger(CreditsRepository.name);
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) {}
+  ) { }
 
   async fetchUserCredits(userId: string): Promise<Credit | null> {
     try {
@@ -46,20 +46,16 @@ export class CreditsRepository {
   async updateCredits(
     userId: string,
     credits: Partial<Credit>,
-  ): Promise<Credit | null> {
+  ): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.Credits)
         .update(credits)
         .eq('user_id', userId)
-        .select()
-        .maybeSingle();
 
       if (error) {
         throw new Error(error.message);
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update user credits');
     }

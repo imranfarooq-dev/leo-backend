@@ -1,6 +1,6 @@
 import { Database } from '@/database.types';
 
-export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
+export type SubscriptionDB = Database['public']['Tables']['subscriptions']['Row'];
 export type SubscriptionStatusType =
   Database['public']['Enums']['subscription_status'];
 
