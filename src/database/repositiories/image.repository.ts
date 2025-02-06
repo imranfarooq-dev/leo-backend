@@ -70,7 +70,7 @@ export class ImageRepository {
     imageId: string,
   ): Promise<Image | null> {
     try {
-      const data = this.supabase.rpc("get_image_by_id", { image_id: imageId }) as any;
+      const data = this.supabase.rpc("get_image_by_id", { p_image_id: imageId }) as any;
 
       if (!data) {
         return null;
@@ -90,7 +90,7 @@ export class ImageRepository {
     try {
       const { data, error } = await this.supabase.rpc(
         "get_total_images_by_user_id",
-        { user_id: userId },
+        { p_user_id: userId },
       );
 
       if (error) {

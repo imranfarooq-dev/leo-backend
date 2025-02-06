@@ -48,7 +48,7 @@ export class DocumentRepository {
   ): Promise<DocumentSummary | null> {
     try {
       const { data } = await this.supabase
-        .rpc('get_document_by_id', { document_id: documentId })
+        .rpc('get_document_by_id', { p_document_id: documentId })
         .maybeSingle();
 
       if (!data) {
@@ -82,7 +82,7 @@ export class DocumentRepository {
   ): Promise<Document | null> {
     try {
       const { data } = await this.supabase
-        .rpc('get_document_by_id', { document_id: documentId })
+        .rpc('get_document_by_id', { p_document_id: documentId })
         .maybeSingle();
 
       if (!data) {
@@ -110,7 +110,7 @@ export class DocumentRepository {
     try {
       const { count } = await this.supabase.from(Tables.Documents).select('*', { count: 'exact', head: true }).eq('user_id', userId);
 
-      const { data, error } = await this.supabase.rpc('get_documents_by_user_id', { user_id: userId, page_size: pagination.to, page_number: pagination.from });
+      const { data, error } = await this.supabase.rpc('get_documents_by_user_id', { p_user_id: userId, page_size: pagination.to, page_number: pagination.from });
 
       if (error) {
         throw new Error(error.message ?? 'Failed to fetch documents by user id');

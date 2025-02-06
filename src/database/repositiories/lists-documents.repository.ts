@@ -75,7 +75,7 @@ export class ListsDocumentsRepository {
     try {
       const { count } = await this.supabase.from(Tables.ListsDocuments).select('*', { count: 'exact', head: true }).eq('list_id', list_id);
 
-      const { data, error } = await this.supabase.rpc('get_documents_by_list_id', { list_id, page_size: pagination.to, page_number: pagination.from });
+      const { data, error } = await this.supabase.rpc('get_documents_by_list_id', { p_list_id: list_id, page_size: pagination.to, page_number: pagination.from });
 
       const documentsWithThumbnailUrls: DocumentSummary[] = await Promise.all(data.map(async (document) => {
         const { first_image_path, ...rest } = document;
