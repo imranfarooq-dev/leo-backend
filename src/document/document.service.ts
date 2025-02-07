@@ -106,7 +106,7 @@ export class DocumentService {
     files: Array<Express.Multer.File>,
   ): Promise<DocumentSummary> {
     try {
-      const document: DocumentSummary = await this.documentRepository.createDocument(
+      const documentId = await this.documentRepository.createDocument(
         user.id,
         { ...createDocument },
       );
@@ -116,14 +116,21 @@ export class DocumentService {
           async (list_id) =>
             await this.listsDocumentsRepository.createListDocument(
               list_id,
-              document.id,
+              documentId,
             ),
         );
 
         await Promise.all(addDocumentListPromises);
       }
 
-      return document;
+      // ATTN: Unnecessarily presigning thumbnails.
+      await this.imageService.create(
+        { document_id: documentId },
+        files,
+        user.id,
+      );
+
+      return await this.documentRepository.fetchDocumentSummaryById(documentId);;
     } catch (error) {
       throw new HttpException(
         'An error occurred while creating the document record',

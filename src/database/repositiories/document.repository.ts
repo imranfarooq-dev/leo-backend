@@ -20,24 +20,21 @@ export class DocumentRepository {
   async createDocument(
     userId: string,
     createDocument: CreateDocumentDto,
-  ): Promise<DocumentSummary> {
+  ): Promise<string | null> {
     try {
-      // Delete list_ids from object
       delete createDocument.list_ids;
-
       const { data, error } = await this.supabase
         .from(Tables.Documents)
         .insert({ ...createDocument, user_id: userId })
         .select("id")
         .single();
 
-      const newDocument: DocumentSummary = await this.fetchDocumentById(data.id);
-
       if (error) {
         throw new Error(error.message ?? 'Failed to create document.');
       }
 
-      return newDocument;
+      return data.id;
+
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create document');
     }
