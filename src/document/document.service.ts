@@ -10,7 +10,6 @@ import { DocumentRepository } from '@/src/database/repositiories/document.reposi
 import { ImageService } from '@/src/image/image.service';
 import { User } from '@clerk/clerk-sdk-node';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
-import { Image } from '@/types/image';
 import { DocumentSummary, Document } from '@/types/document';
 
 @Injectable()
