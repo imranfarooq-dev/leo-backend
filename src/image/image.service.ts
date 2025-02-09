@@ -221,7 +221,7 @@ export class ImageService {
         throw new HttpException('Order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
       }
 
-      await this.imageRepository.updateImageOrder(updates);
+      // await this.imageRepository.updateImageOrder(updates);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
