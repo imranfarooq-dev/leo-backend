@@ -148,7 +148,6 @@ export class DocumentController {
       return {
         statusCode: HttpStatus.OK,
         message: 'Document Updated successfully',
-        data: document,
       };
     } catch (error) {
       throw new HttpException(
