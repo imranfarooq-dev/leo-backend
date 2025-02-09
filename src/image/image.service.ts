@@ -53,14 +53,14 @@ export class ImageService {
 
       if (!documentSummary) {
         throw new HttpException(
-          'Document does not exist',
+          'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
       if (documentSummary.user_id !== userId) {
         throw new HttpException(
-          'Document does not belong to user',
+          'Item does not belong to user',
           HttpStatus.FORBIDDEN,
         );
       }
@@ -107,7 +107,7 @@ export class ImageService {
 
       if (!processedFiles.length) {
         throw new HttpException(
-          'There are no images available to attach to the document.',
+          'There are no images to attach to the item',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -144,7 +144,7 @@ export class ImageService {
       }
 
       throw new HttpException(
-        'An error occurred while creating the image record',
+        'An error occurred while creating the image',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -169,7 +169,7 @@ export class ImageService {
       }
 
       throw new HttpException(
-        'An error occurred while updating the image record',
+        'An error occurred while updating the image',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -187,11 +187,11 @@ export class ImageService {
       const document: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(documentId);
 
       if (!document) {
-        throw new HttpException('Document does not exist', HttpStatus.NOT_FOUND);
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
       if (document.user_id !== user.id) {
-        throw new HttpException('Document does not belong to user', HttpStatus.FORBIDDEN);
+        throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
       }
 
       const images: ImageSummary[] = await this.imageRepository.fetchImageSummariesByDocumentId(documentId);
@@ -216,7 +216,7 @@ export class ImageService {
       const expectedSequence = Array.from({ length: updates.length }, (_, i) => i + 1);
 
       if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
-        throw new HttpException('Order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
+        throw new HttpException('Image order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
       }
 
       await this.imageRepository.updateImageOrder(updates);
@@ -243,7 +243,7 @@ export class ImageService {
       const document: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(image.document_id);
 
       if (document.user_id != user.id) {
-        throw new HttpException('Document does not belong to user', HttpStatus.FORBIDDEN);
+        throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
       }
 
       // Delete the image
@@ -259,7 +259,7 @@ export class ImageService {
       }
 
       throw new HttpException(
-        'An error occured while deleting the image record',
+        'An error occured while deleting the image',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

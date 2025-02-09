@@ -28,7 +28,7 @@ export class ImageRepository {
         .select("id, document_id, image_name, image_path, order");
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to create image record');
+        throw new Error(error.message ?? 'Failed to create image');
       }
       const imageSummaries: ImageSummary[] = await Promise.all(newImages.map(async (image) => {
         const { image_path, ...rest } = image;
@@ -40,7 +40,7 @@ export class ImageRepository {
 
       return imageSummaries;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to create image record');
+      this.logger.error(error.message ?? 'Failed to create image');
       throw error;
     }
   }
@@ -259,11 +259,11 @@ export class ImageRepository {
         .eq('id', imageId)
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to update image record}');
+        throw new Error(error.message ?? 'Failed to update image}');
       }
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to update image record');
-      throw new Error(error.message ?? 'Failed to update image record');
+      this.logger.error(error.message ?? 'Failed to update image');
+      throw new Error(error.message ?? 'Failed to update image');
     }
   }
 
@@ -295,7 +295,7 @@ export class ImageRepository {
 
       return data;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to delete image record');
+      this.logger.error(error.message ?? 'Failed to delete image');
       throw error;
     }
   }

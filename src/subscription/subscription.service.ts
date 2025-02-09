@@ -203,7 +203,7 @@ export class SubscriptionService {
       const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
 
       if (!subscription.stripe_subscription_id) {
-        throw new BadRequestException('No Subscription found');
+        throw new BadRequestException('No subscription found');
       }
 
       const stripeSubscription =

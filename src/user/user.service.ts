@@ -48,7 +48,7 @@ export class UserService {
       return user;
     } catch (error) {
       throw new HttpException(
-        'An error occurred while deleting the document record',
+        'An error occurred while deleting the items',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -75,7 +75,7 @@ export class UserService {
       });
     } catch (error) {
       throw new HttpException(
-        'An error occurred while deleting the document record',
+        'An error occurred while deleting the item',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -91,7 +91,7 @@ export class UserService {
       return await this.userRepository.deleteUser(user.id);
     } catch (error) {
       throw new HttpException(
-        error.message ?? 'An error occurred while deleting the document record',
+        error.message ?? 'An error occurred while deleting the item',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -26,14 +26,14 @@ export class ListsDocumentsService {
 
       if (!documentExist) {
         throw new HttpException(
-          'Document does not exist',
+          'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
       if (documentExist.user_id !== user.id) {
         throw new HttpException(
-          'Document does not belong to user',
+          'Item does not belong to user',
           HttpStatus.FORBIDDEN,
         );
       }
@@ -115,7 +115,7 @@ export class ListsDocumentsService {
       }
 
       throw new HttpException(
-        'An error occurred while fetching the document records',
+        'An error occurred while fetching the items',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -127,14 +127,14 @@ export class ListsDocumentsService {
 
       if (!documentSummary) {
         throw new HttpException(
-          'Document does not exist',
+          'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
       if (documentSummary.user_id !== user.id) {
         throw new HttpException(
-          'Document does not belong to user',
+          'Item does not belong to user',
           HttpStatus.FORBIDDEN,
         );
       }
@@ -148,7 +148,7 @@ export class ListsDocumentsService {
       }
 
       throw new HttpException(
-        'An error occurred while fetching the document records',
+        'An error occurred while fetching the items',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -12,7 +12,7 @@ export class SvixService {
   constructor(
     @Inject(Provides.Svix) private readonly webhook: Webhook,
     private readonly userService: UserService,
-  ) {}
+  ) { }
 
   async handleClerkEvent(event: ClerkEventType): Promise<void> {
     switch (event.type) {
@@ -42,7 +42,7 @@ export class SvixService {
         try {
           await this.userService.delete(event.data);
         } catch (error) {
-          this.logger.error(error.message ?? 'Failed to delete user.');
+          this.logger.error(error.message ?? 'Failed to delete user');
         }
         break;
       default:

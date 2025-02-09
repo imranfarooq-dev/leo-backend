@@ -161,7 +161,7 @@ export class TranscriptionService {
       }
 
       throw new HttpException(
-        'An error occurred while creating/updating the transcription record',
+        'An error occurred while creating/updating the transcription',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -32,7 +32,7 @@ export class TranscriptionController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Image Transcribed successfully',
+        message: 'Image transcribed',
         transcription,
       };
     } catch (error) {
@@ -58,7 +58,7 @@ export class TranscriptionController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transcription created/updated successfully',
+        message: 'Transcription created/updated',
         data: transcription,
       };
     } catch (error) {
@@ -67,7 +67,7 @@ export class TranscriptionController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while creating/updating the transcription record',
+            'An error occurred while creating/updating the transcription',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

@@ -26,7 +26,7 @@ export class NoteRepository {
 
       return data;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to create note record');
+      this.logger.error(error.message ?? 'Failed to create note');
     }
   }
 

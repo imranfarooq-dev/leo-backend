@@ -13,7 +13,7 @@ import { ExportDocumentDto } from '@/src/gotenberg/dto/convert-multiple-html-pdf
 
 @Controller('gotenberg')
 export class GotenbergController {
-  constructor(private readonly gotenbergService: GotenbergService) {}
+  constructor(private readonly gotenbergService: GotenbergService) { }
 
   @Post(':image_id')
   async exportImage(@Param() { image_id }: ExportImageDTO) {
@@ -29,7 +29,7 @@ export class GotenbergController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message ?? 'An error occurred while exporting Image',
+          message: error.message ?? 'An error occurred while exporting the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

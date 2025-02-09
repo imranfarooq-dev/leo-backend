@@ -10,7 +10,7 @@ import { NoteService } from '@/src/note/note.service';
 
 @Controller('note')
 export class NoteController {
-  constructor(private readonly noteService: NoteService) {}
+  constructor(private readonly noteService: NoteService) { }
 
   @Put()
   async creatOrUpdate(@Body() createUpdateNote: CreateUpdateNoteDto) {
@@ -19,7 +19,7 @@ export class NoteController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Note created/updated successfully',
+        message: 'Note created/updated',
         data: note,
       };
     } catch (error) {
@@ -28,7 +28,7 @@ export class NoteController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while creating/updating the note record',
+            'An error occurred while creating/updating the note',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

@@ -30,13 +30,13 @@ export class DocumentRepository {
         .single();
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to create document.');
+        throw new Error(error.message ?? 'Failed to create item');
       }
 
       return data.id;
 
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to create document');
+      this.logger.error(error.message ?? 'Failed to create item');
     }
   }
 
@@ -70,7 +70,7 @@ export class DocumentRepository {
       return documentSummary;
 
     } catch (error) {
-      this.logger.error('Failed to fetch document by id');
+      this.logger.error('Failed to fetch item by id');
     }
   }
 
@@ -96,7 +96,7 @@ export class DocumentRepository {
 
       return document;
     } catch (error) {
-      this.logger.error('Failed to fetch document by id');
+      this.logger.error('Failed to fetch item by id');
     }
   }
 
@@ -110,7 +110,7 @@ export class DocumentRepository {
       const { data, error } = await this.supabase.rpc('get_documents_by_user_id', { p_user_id: userId, page_size: pagination.to, page_number: pagination.from });
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to fetch documents by user id');
+        throw new Error(error.message ?? 'Failed to fetch items by user id');
       }
 
       const documentsWithThumbnailUrls: DocumentSummary[] = await Promise.all(data.map(async (document) => {
@@ -123,7 +123,7 @@ export class DocumentRepository {
 
       return { documents: documentsWithThumbnailUrls, count };
     } catch (error) {
-      this.logger.error('Failed to fetch document by user_id');
+      this.logger.error('Failed to fetch item by user_id');
     }
   }
 
@@ -202,8 +202,8 @@ export class DocumentRepository {
   //     const { data, error } = await query;
 
   //     if (error) {
-  //       this.logger.error('Failed to fetch documents', { error });
-  //       throw new Error('Failed to fetch documents');
+  //       this.logger.error('Failed to fetch items', { error });
+  //       throw new Error('Failed to fetch items');
   //     }
 
   //     if (includeImageTranscriptionAndNotes) {
@@ -220,7 +220,7 @@ export class DocumentRepository {
 
   //     return (data as unknown) as Document[];
   //   } catch (error) {
-  //     this.logger.error('Failed to fetch document by id');
+  //     this.logger.error('Failed to fetch item by id');
   //   }
   // }
 
@@ -235,10 +235,10 @@ export class DocumentRepository {
         .eq('id', documentId);
 
       if (error) {
-        throw new Error('Failed to update document}');
+        throw new Error('Failed to update item');
       }
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to update document');
+      this.logger.error(error.message ?? 'Failed to update item');
     }
   }
 
@@ -250,10 +250,10 @@ export class DocumentRepository {
         .eq('id', documentId);
 
       if (error) {
-        throw new Error('Faied to delete document.');
+        throw new Error('Faied to delete item');
       }
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to delete document');
+      this.logger.error(error.message ?? 'Failed to delete item');
     }
   }
 }

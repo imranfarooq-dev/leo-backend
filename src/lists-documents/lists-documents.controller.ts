@@ -31,7 +31,7 @@ export class ListsDocumentsController {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Document added/removed from list successfully',
+        message: 'Item added/removed from list',
       };
     } catch (error) {
       throw new HttpException(
@@ -39,7 +39,7 @@ export class ListsDocumentsController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while adding/removing document from list',
+            'An error occurred while adding/removing item from list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -58,7 +58,7 @@ export class ListsDocumentsController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Documents fetched successfully',
+        message: 'Items fetched',
         data: documents,
       };
     } catch (error) {
@@ -67,7 +67,7 @@ export class ListsDocumentsController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching the document record',
+            'An error occurred while fetching the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -84,7 +84,7 @@ export class ListsDocumentsController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Document Lists fetched successfully',
+        message: 'Item lists fetched',
         lists,
       };
     } catch (error) {
@@ -93,7 +93,7 @@ export class ListsDocumentsController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching the document lists record',
+            'An error occurred while fetching the item lists',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

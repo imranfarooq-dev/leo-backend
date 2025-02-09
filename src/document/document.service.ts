@@ -60,7 +60,7 @@ export class DocumentService {
       }
 
       throw new HttpException(
-        'An error occurred while fetching the document records',
+        'An error occurred while fetching the items',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -74,14 +74,14 @@ export class DocumentService {
 
       if (!document) {
         throw new HttpException(
-          'Document does not exist',
+          'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
       if (document.user_id !== user.id) {
         throw new HttpException(
-          'You are not authorized to view this document',
+          'You are not authorized to view this item',
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -93,7 +93,7 @@ export class DocumentService {
       }
 
       throw new HttpException(
-        'An error occured while fetching document',
+        'An error occured while fetching item',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -132,7 +132,7 @@ export class DocumentService {
       return await this.documentRepository.fetchDocumentSummaryById(documentId);;
     } catch (error) {
       throw new HttpException(
-        'An error occurred while creating the document record',
+        'An error occurred while creating the item',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -146,14 +146,14 @@ export class DocumentService {
 
       if (!document) {
         throw new HttpException(
-          'Document does not exist',
+          'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
       if (document.user_id !== user.id) {
         throw new HttpException(
-          'You are not authorized to delete this document',
+          'You are not authorized to delete this item',
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -167,7 +167,7 @@ export class DocumentService {
       }
 
       throw new HttpException(
-        'An error occurred while deleting the document record',
+        'An error occurred while deleting the item',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -180,14 +180,14 @@ export class DocumentService {
 
       if (!document) {
         throw new HttpException(
-          'Document does not exist',
+          'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
       if (document.user_id !== user.id) {
         throw new HttpException(
-          'You are not authorized to update this document',
+          'You are not authorized to update this item',
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -202,7 +202,7 @@ export class DocumentService {
       }
 
       throw new HttpException(
-        'An error occured while updating the document',
+        'An error occured while updating the item',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

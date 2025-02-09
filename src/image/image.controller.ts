@@ -38,7 +38,7 @@ export class ImageController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Image fetched successfully',
+        message: 'Image fetched',
         data: image,
       };
     } catch (error) {
@@ -87,7 +87,7 @@ export class ImageController {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Image attached successfully',
+        message: 'Image attached',
         data: imageSummaries,
       };
     } catch (error) {
@@ -96,7 +96,7 @@ export class ImageController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while creating the images record',
+            'An error occurred while creating the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -114,7 +114,7 @@ export class ImageController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Image updated successfully',
+        message: 'Image updated',
       };
     } catch (error) {
       throw new HttpException(
@@ -122,7 +122,7 @@ export class ImageController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while updating the images record',
+            'An error occurred while updating the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -143,7 +143,7 @@ export class ImageController {
       );
       return {
         statusCode: HttpStatus.OK,
-        message: 'Image order updated successfully',
+        message: 'Image order updated',
       };
     } catch (error) {
       throw new HttpException(
@@ -164,7 +164,7 @@ export class ImageController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Image deleted successfully',
+        message: 'Image deleted',
         data: siblingImageOrders,
       };
     } catch (error) {
@@ -173,7 +173,7 @@ export class ImageController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while deleting the images record',
+            'An error occurred while deleting the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

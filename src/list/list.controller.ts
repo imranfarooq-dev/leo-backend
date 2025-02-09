@@ -28,7 +28,7 @@ export class ListController {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'List created successfully',
+        message: 'List created',
         id: newListId,
       };
     } catch (error) {
@@ -36,7 +36,7 @@ export class ListController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while creating the list record',
+            error.message ?? 'An error occurred while creating the list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -56,7 +56,7 @@ export class ListController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'List order updated successfully',
+        message: 'List order updated',
         lists,
       };
     } catch (error) {
@@ -78,7 +78,7 @@ export class ListController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'List fetched successfully',
+        message: 'List fetched',
         list,
       };
     } catch (error) {
@@ -87,7 +87,7 @@ export class ListController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching the user list record',
+            'An error occurred while fetching the user\'s lists',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -109,14 +109,14 @@ export class ListController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'List updated successfully',
+        message: 'List updated',
       };
     } catch (error) {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while updating the list record',
+            error.message ?? 'An error occurred while updating the list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -133,7 +133,7 @@ export class ListController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'List deleted successfully',
+        message: 'List deleted',
         siblingListOrders,
       };
     } catch (error) {
@@ -141,7 +141,7 @@ export class ListController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while deleting the list record',
+            error.message ?? 'An error occurred while deleting the list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

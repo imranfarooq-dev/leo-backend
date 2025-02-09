@@ -42,7 +42,7 @@ export class SubscriptionController {
       );
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Checkout Session created successfully',
+        message: 'Checkout session created',
         sessionToken,
       };
     } catch (error) {
@@ -104,7 +104,7 @@ export class SubscriptionController {
         await this.subscriptionService.cancelSubscription(clerkUser);
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Subscription cancelled successfully',
+        message: 'Subscription cancelled',
         cancelSubscription,
       };
     } catch (error) {
@@ -131,7 +131,7 @@ export class SubscriptionController {
       );
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Subscription plan changed successfully',
+        message: 'Subscription plan updated',
         changePlan,
       };
     } catch (error) {
@@ -140,7 +140,7 @@ export class SubscriptionController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while changing subscription plan',
+            'An error occurred while updating subscription plan',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -153,7 +153,7 @@ export class SubscriptionController {
       await this.subscriptionService.selectFreePlan(clerkUser);
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Free plan selected successfully',
+        message: 'Free plan selected',
       };
     } catch (error) {
       throw new HttpException(
@@ -175,7 +175,7 @@ export class SubscriptionController {
         await this.subscriptionService.fetchPricingAndPlans();
       return {
         statusCode: HttpStatus.OK,
-        message: 'Product list fetched successfully',
+        message: 'Product list fetched',
         pricingAndPlans,
       };
     } catch (error) {
@@ -215,7 +215,7 @@ export class SubscriptionController {
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Subscription Status and Credits fetched successfully',
+        message: 'Subscription status fetched',
         statusAndCredits,
       };
     } catch (error) {
@@ -224,7 +224,7 @@ export class SubscriptionController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching subscription status and credits',
+            'An error occurred while fetching subscription status',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -238,7 +238,7 @@ export class SubscriptionController {
         await this.subscriptionService.fetchPaymentMethods(user);
       return {
         statusCode: HttpStatus.OK,
-        message: 'Payment Methods fetched successfully',
+        message: 'Payment methods fetched',
         paymentMethods,
       };
     } catch (error) {
@@ -259,14 +259,14 @@ export class SubscriptionController {
       const invoices = await this.subscriptionService.fetchInvoices(user);
       return {
         statusCode: HttpStatus.OK,
-        message: 'Invoices fetched successfully',
+        message: 'Invoices fetched',
         invoices,
       };
     } catch (error) {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message ?? 'An error occurred while fetching Invoices',
+          message: error.message ?? 'An error occurred while fetching invoices',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

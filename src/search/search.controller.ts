@@ -12,7 +12,7 @@ import { User as UserType } from '@clerk/clerk-sdk-node';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) { }
 
   @Get()
   async search(
@@ -28,7 +28,7 @@ export class SearchController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Searched Document and List successfully',
+        message: 'Searched documents and lists',
         search,
       };
     } catch (error) {

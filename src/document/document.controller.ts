@@ -38,7 +38,7 @@ export class DocumentController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Documents fetched successfully',
+        message: 'Items fetched',
         data: documents,
       };
     } catch (error) {
@@ -47,7 +47,7 @@ export class DocumentController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching the document record',
+            'An error occurred while fetching the items',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -61,7 +61,7 @@ export class DocumentController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Document fetched successfully',
+        message: 'Item fetched',
         data: document,
       };
     } catch (error) {
@@ -70,7 +70,7 @@ export class DocumentController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching the document record',
+            'An error occurred while fetching the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -93,7 +93,7 @@ export class DocumentController {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Document created successfully',
+        message: 'Item created',
         data: document,
       };
     } catch (error) {
@@ -102,7 +102,7 @@ export class DocumentController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while creating the document record',
+            'An error occurred while creating the item'
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -116,7 +116,7 @@ export class DocumentController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Document deleted successfully',
+        message: 'Item deleted',
         data: document,
       };
     } catch (error) {
@@ -125,7 +125,7 @@ export class DocumentController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while deleting the document record',
+            'An error occurred while deleting the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -147,7 +147,7 @@ export class DocumentController {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Document Updated successfully',
+        message: 'Item updated',
       };
     } catch (error) {
       throw new HttpException(
@@ -155,7 +155,7 @@ export class DocumentController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while updating the document record',
+            'An error occurred while updating the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

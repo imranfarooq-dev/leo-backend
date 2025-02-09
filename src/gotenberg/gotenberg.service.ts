@@ -89,7 +89,7 @@ export class GotenbergService {
       }
 
       throw new HttpException(
-        'An error occurred while converting the HTMl to PDF',
+        'An error occurred while converting to PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -105,7 +105,7 @@ export class GotenbergService {
       //   ));
 
       // if (!documents) {
-      //   throw new HttpException('Documents not found', HttpStatus.NOT_FOUND);
+      //   throw new HttpException('Items not found', HttpStatus.NOT_FOUND);
       // }
 
       // return new Promise(async (resolve, reject) => {
@@ -143,7 +143,7 @@ export class GotenbergService {
       }
 
       throw new HttpException(
-        'An error occurred while converting the HTMl to PDF',
+        'An error occurred while converting to PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

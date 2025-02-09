@@ -8,7 +8,7 @@ export class NoteService {
   constructor(
     private readonly noteRepository: NoteRepository,
     private readonly imageRepository: ImageRepository,
-  ) {}
+  ) { }
 
   async createOrUpdate(createUpdateNote: CreateUpdateNoteDto) {
     try {
@@ -35,7 +35,7 @@ export class NoteService {
       }
 
       throw new HttpException(
-        'An error occurred while creating/updating the transcription record',
+        'An error occurred while creating/updating the transcription',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -131,7 +131,7 @@ export class ListService {
 
       if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
         throw new HttpException(
-          'Order values must form a complete 1-indexed sequence',
+          'List order values must form a complete 1-indexed sequence',
           HttpStatus.BAD_REQUEST
         );
       }
