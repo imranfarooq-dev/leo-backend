@@ -271,6 +271,7 @@ export class ImageRepository {
     updates: { id: string; order: number }[],
   ): Promise<void> {
     try {
+      console.log("Updates", updates);
       const { error } = await this.supabase
         .rpc('update_image_orders', { updates })
 
