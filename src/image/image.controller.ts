@@ -135,6 +135,7 @@ export class ImageController {
     @Body() { updates }: UpdateImageOrderDto,
   ) {
     try {
+      return;
       await this.imageService.updateOrder(
         user,
         updates,
