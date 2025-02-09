@@ -129,15 +129,16 @@ export class ImageController {
     }
   }
 
-  @Put('update-order')
+  @Put('update-order/:document_id')
   async updateOrder(
     @User() user: UserType,
+    @Param('document_id') documentId: string,
     @Body() { updates }: UpdateImageOrderDto,
   ) {
     try {
-      return;
       await this.imageService.updateOrder(
         user,
+        documentId,
         updates,
       );
       return {

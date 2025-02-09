@@ -175,7 +175,7 @@ export class ImageService {
     }
   }
 
-  async updateOrder(user: User, updates: { id: string; order: number }[]): Promise<void> {
+  async updateOrder(user: User, documentId: string, updates: { id: string; order: number }[]): Promise<void> {
     try {
       if (!updates.length) {
         throw new HttpException(
@@ -184,58 +184,42 @@ export class ImageService {
         );
       }
 
-      // console.log("1 Updating order for images", updates);
+      const document: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(documentId);
 
-      // const image: ImageDB | null = await this.imageRepository.fetchImageDB(updates[0].id);
+      if (!document) {
+        throw new HttpException('Document does not exist', HttpStatus.NOT_FOUND);
+      }
 
-      // console.log("2 Image", image);
+      if (document.user_id !== user.id) {
+        throw new HttpException('Document does not belong to user', HttpStatus.FORBIDDEN);
+      }
 
-      // if (!image) {
-      //   throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
-      // }
+      const images: ImageSummary[] = await this.imageRepository.fetchImageSummariesByDocumentId(documentId);
 
-      // const userId: string | null = await this.imageRepository.userIdFromImageId(image.id);
+      if (!images.length) {
+        throw new HttpException(
+          'There are no images available to update the order',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
-      // console.log("3 User ID", userId);
+      if (images.some(image => !updates.some(update => update.id === image.id))) {
+        throw new HttpException('Images do not have consistent parents', HttpStatus.BAD_REQUEST);
+      }
 
-      // if (userId !== user.id) {
-      //   throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
-      // }
+      if (new Set(updates.map(update => update.id)).size !== updates.length) {
+        throw new HttpException('Image IDs must be unique', HttpStatus.BAD_REQUEST);
+      }
 
-      // const images: ImageSummary[] = await this.imageRepository.fetchImageSummariesByDocumentId(image.document_id);
+      // Validate order values
+      const sortedOrders = [...updates.map(update => update.order)].sort((a, b) => a - b);
+      const expectedSequence = Array.from({ length: updates.length }, (_, i) => i + 1);
 
-      // console.log("4 Images", images);
+      if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
+        throw new HttpException('Order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
+      }
 
-      // if (!images.length) {
-      //   throw new HttpException(
-      //     'There are no images available to update the order',
-      //     HttpStatus.BAD_REQUEST,
-      //   );
-      // }
-
-      // console.log("5 Next step");
-
-      // if (images.some(image => !updates.some(update => update.id === image.id))) {
-      //   throw new HttpException('Images do not have consistent parents', HttpStatus.BAD_REQUEST);
-      // }
-
-      // console.log("6 Next step");
-
-      // if (new Set(updates.map(update => update.id)).size !== updates.length) {
-      //   throw new HttpException('Image IDs must be unique', HttpStatus.BAD_REQUEST);
-      // }
-
-      // // Validate order values
-      // const sortedOrders = [...updates.map(update => update.order)].sort((a, b) => a - b);
-      // const expectedSequence = Array.from({ length: updates.length }, (_, i) => i + 1);
-
-      // if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
-      //   throw new HttpException('Order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
-      // }
-
-      // console.log("7 Updates", updates);
-
-      // await this.imageRepository.updateImageOrder(updates);
+      await this.imageRepository.updateImageOrder(updates);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
