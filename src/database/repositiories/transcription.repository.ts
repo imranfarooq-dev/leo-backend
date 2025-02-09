@@ -15,19 +15,19 @@ export class TranscriptRepository {
 
   async createTranscription(
     createTranscription: CreateTranscriptionDto,
-  ): Promise<Transcription> {
+  ): Promise<string> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Transcriptions)
         .insert(createTranscription)
-        .select()
+        .select("id")
         .single();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to create transcription');
       }
 
-      return data;
+      return data.id;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create transcription');
     }
@@ -70,20 +70,16 @@ export class TranscriptRepository {
   async updateTranscription(
     transcriptionId: string,
     updateTranscription: UpdateTranscriptionDto,
-  ): Promise<Transcription> {
+  ): Promise<void> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Transcriptions)
         .update(updateTranscription)
-        .eq('id', transcriptionId)
-        .select()
-        .single();
+        .eq('id', transcriptionId);
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update transcription}');
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update transcription');
     }

@@ -13,10 +13,6 @@ const VALID_TRANSCRIPTION_STATUSES: TranscriptionStatus[] = [
 ];
 
 export class CreateUpdateTranscriptionDto {
-  @IsNotEmpty()
-  @IsString()
-  image_id: string;
-
   @IsOptional()
   @IsEnum(VALID_TRANSCRIPTION_STATUSES)
   transcription_status?: TranscriptionStatus;

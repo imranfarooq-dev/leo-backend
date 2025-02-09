@@ -228,28 +228,23 @@ export class ImageRepository {
     }
   }
 
-  // async fetchImagesByIds(imageIds: string[]) {
-  //   try {
-  //     const { data, error } = await this.supabase
-  //       .from(Tables.Images)
-  //       .select()
-  //       .in('id', imageIds);
+  async fetchImagesByIds(imageIds: string[]): Promise<ImageDB[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from(Tables.Images)
+        .select()
+        .in('id', imageIds);
 
-  //     if (error) {
-  //       throw new Error(error.message ?? 'Failed to fetch images by ids');
-  //     }
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch images by ids');
+      }
 
-  //     if (data) {
-  //       const imagesWithUrls = await this.addPresignedUrlsToImages(data);
-  //       return imagesWithUrls;
-  //     }
-
-  //     return null;
-  //   } catch (error) {
-  //     this.logger.error(error.message ?? 'Failed to fetch images by ids');
-  //     throw error;
-  //   }
-  // }
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch images by ids');
+      throw error;
+    }
+  }
 
   async updateImage(imageId: string, imageName: string): Promise<void> {
     try {

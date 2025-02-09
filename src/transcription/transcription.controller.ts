@@ -4,7 +4,6 @@ import {
   HttpException,
   HttpStatus,
   Post,
-  Get,
   Param,
   Put,
 } from '@nestjs/common';
@@ -13,7 +12,6 @@ import { CreateUpdateTranscriptionDto } from '@/src/transcription/dto/create-upd
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import { AiTranscriptionDto } from '@/src/transcription/dto/ai-transcription.dto';
-import { FetchTranscriptionStatusDto } from '@/src/transcription/dto/fetch-transcription-status.dto';
 
 @Controller('transcription')
 export class TranscriptionController {
@@ -25,15 +23,17 @@ export class TranscriptionController {
     @Body() { imageIds }: AiTranscriptionDto,
   ) {
     try {
-      const transcription = await this.transcriptionService.aiTranscribe(
+      const { transcribedImageIds } = await this.transcriptionService.aiTranscribe(
         clerkUser,
         imageIds,
       );
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Image transcribed',
-        transcription,
+        message: 'Images transcribed',
+        data: {
+          transcribedImageIds,
+        },
       };
     } catch (error) {
       throw new HttpException(
@@ -47,19 +47,23 @@ export class TranscriptionController {
     }
   }
 
-  @Put()
+  @Put(":image_id")
   async createOrUpdate(
+    @User() clerkUser: ClerkUser,
+    @Param("image_id") imageId: string,
     @Body() createUpdateTranscription: CreateUpdateTranscriptionDto,
   ) {
     try {
-      const transcription = await this.transcriptionService.createOrUpdate(
+      const transcriptionId: string = await this.transcriptionService.createOrUpdate(
+        clerkUser,
+        imageId,
         createUpdateTranscription,
       );
 
       return {
         statusCode: HttpStatus.OK,
         message: 'Transcription created/updated',
-        data: transcription,
+        data: { id: transcriptionId },
       };
     } catch (error) {
       throw new HttpException(
