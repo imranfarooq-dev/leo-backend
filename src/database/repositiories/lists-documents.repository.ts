@@ -102,8 +102,6 @@ export class ListsDocumentsRepository {
         .select('lists(id, user_id, list_name)')
         .eq('document_id', document_id);
 
-      console.log(data);
-
       if (error) {
         throw new Error(error.message ?? 'Failed to fetch document lists');
       }
