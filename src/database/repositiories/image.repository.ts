@@ -134,8 +134,6 @@ export class ImageRepository {
         .eq('id', imageId)
         .maybeSingle();
 
-      console.log(data);
-
       if (error) {
         throw new Error('Failed to fetch user id from image id');
       }
@@ -144,7 +142,8 @@ export class ImageRepository {
         return null;
       }
 
-      return data.document[0].user_id;
+      const document = data.document as unknown as { user_id: string };
+      return document.user_id;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch user id from image id');
       throw error;
