@@ -3,7 +3,7 @@ import { CreateUpdateTranscriptionDto } from '@/src/transcription/dto/create-upd
 import { TranscriptRepository } from '@/src/database/repositiories/transcription.repository';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
-import { Image, ImageDB } from '@/types/image';
+import { ImageDB } from '@/types/image';
 import axios, { AxiosResponse } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
@@ -12,7 +12,7 @@ import { TRANSCRIBE_COST } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { APITranscriptionStatus, Transcription, TranscriptionStatus } from '@/types/transcription';
 import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
-import { APITranscriptionJobStatus, TranscriptionJobDB } from '@/types/transcription_job';
+import { APITranscriptionJobStatus } from '@/types/transcription_job';
 import { Credit } from '@/types/credit';
 
 const MAX_RETRIES = 5;
@@ -29,6 +29,20 @@ export class TranscriptionService {
     private readonly supabaseService: SupabaseService,
     private readonly transcriptionJobRepository: TranscriptionJobRepository,
   ) { }
+
+  async getTranscription(clerkUser: ClerkUser, imageId: string): Promise<Transcription | null> {
+    const userId: string | null = await this.imageRepository.userIdFromImageId(imageId);
+
+    if (!userId) {
+      throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
+    }
+
+    if (userId !== clerkUser.id) {
+      throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
+    }
+
+    return await this.transcriptionRepository.fetchTranscriptionByImageId(imageId);
+  }
 
   async aiTranscribe(clerkUser: ClerkUser, imageIds: string[]): Promise<{
     transcribedImageIds: string[];
@@ -113,7 +127,7 @@ export class TranscriptionService {
     clerkUser: ClerkUser,
     imageId: string,
     createUpdateTranscription: CreateUpdateTranscriptionDto,
-  ) {
+  ): Promise<string> {
     try {
       const {
         transcription_status,

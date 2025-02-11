@@ -76,6 +76,8 @@ export class ImageRepository {
         return null;
       }
 
+      console.log(data)
+
       const image_url = await this.supabaseService.getPresignedUrl(data.image_path);
       const thumbnail_url = await this.supabaseService.getPresignedThumbnailUrl(data.image_path);
 

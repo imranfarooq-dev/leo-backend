@@ -6,16 +6,40 @@ import {
   Post,
   Param,
   Put,
+  Get,
 } from '@nestjs/common';
 import { TranscriptionService } from '@/src/transcription/transcription.service';
 import { CreateUpdateTranscriptionDto } from '@/src/transcription/dto/create-update-transcription.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import { AiTranscriptionDto } from '@/src/transcription/dto/ai-transcription.dto';
+import { Transcription } from '@/types/transcription';
+
 
 @Controller('transcription')
 export class TranscriptionController {
   constructor(private transcriptionService: TranscriptionService) { }
+
+  @Get(":image_id")
+  async getTranscription(@User() clerkUser: ClerkUser, @Param("image_id") imageId: string) {
+    try {
+      const transcription: Transcription = await this.transcriptionService.getTranscription(clerkUser, imageId);
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Transcription fetched',
+        data: transcription,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message ?? 'An error occurred while fetching the transcription',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   @Post('ai')
   async aiTranscribe(
