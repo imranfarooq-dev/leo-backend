@@ -14,7 +14,6 @@ export class NoteService {
   async createOrUpdate(clerkUser: ClerkUser, imageId: string, createUpdateNote: CreateUpdateNoteDto): Promise<string> {
     try {
       const { notes_text } = createUpdateNote;
-
       const userId: string | null = await this.imageRepository.userIdFromImageId(imageId);
 
       if (!userId) {

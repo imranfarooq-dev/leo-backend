@@ -114,13 +114,13 @@ export class ImageRepository {
         .eq('document_id', documentId);
 
       if (error) {
-        throw new Error('Failed to fetch images associated with document');
+        throw new Error('Failed to fetch images associated with item');
       }
 
       return data;
     } catch (error) {
       this.logger.error(
-        error.message ?? 'Failed to fetch images associated with document',
+        error.message ?? 'Failed to fetch images associated with item',
       );
       throw error;
     }
@@ -128,18 +128,14 @@ export class ImageRepository {
 
   async userIdFromImageId(imageId: string): Promise<string | null> {
     try {
-      console.log(imageId)
       const { data, error } = await this.supabase
         .from(Tables.Images)
         .select('document:document_id (user_id)')
         .eq('id', imageId)
         .maybeSingle();
 
-      console.log(data)
-      console.log(error)
-
       if (error) {
-        throw new Error('Failed to fetch user id from image id');
+        throw new Error('Failed to fetch user id from image id'); // TODO: Here and elsewhere, actually propagate the error to the FE
       }
 
       if (!data) {
@@ -164,7 +160,7 @@ export class ImageRepository {
         .eq('document_id', documentId);
 
       if (error) {
-        throw new Error('Failed to fetch images associated with document');
+        throw new Error('Failed to fetch images associated with item');
       }
 
       if (!data) {
@@ -179,7 +175,7 @@ export class ImageRepository {
       return imageSummaries;
     } catch (error) {
       this.logger.error(
-        error.message ?? 'Failed to fetch images associated with document',
+        error.message ?? 'Failed to fetch images associated with item',
       );
       throw error;
     }
@@ -195,7 +191,7 @@ export class ImageRepository {
         .eq('document_id', documentId);
 
       if (error) {
-        throw new Error('Failed to fetch image paths associated with document');
+        throw new Error('Failed to fetch image paths associated with item');
       }
 
       if (!data) {
@@ -205,7 +201,7 @@ export class ImageRepository {
       return data.map((image) => image.image_path);
     } catch (error) {
       this.logger.error(
-        error.message ?? 'Failed to fetch image paths associated with document',
+        error.message ?? 'Failed to fetch image paths associated with item',
       );
       throw error;
     }
