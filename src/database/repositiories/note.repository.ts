@@ -12,19 +12,19 @@ export class NoteRepository {
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) { }
 
-  async createNote(createNote: CreateNoteDto): Promise<Note> {
+  async createNote(createNote: CreateNoteDto): Promise<string> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Notes)
         .insert(createNote)
-        .select()
+        .select("id")
         .single();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to create note');
       }
 
-      return data;
+      return data.id;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create note');
     }
@@ -58,20 +58,16 @@ export class NoteRepository {
     }
   }
 
-  async updateNote(notesId, updateNote: UpdateNoteDto): Promise<Note> {
+  async updateNote(notesId: string, updateNote: UpdateNoteDto): Promise<void> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Notes)
         .update(updateNote)
         .eq('id', notesId)
-        .select()
-        .single();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update note');
       }
-
-      return data;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to update note');
     }
