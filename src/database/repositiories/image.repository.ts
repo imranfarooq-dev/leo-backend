@@ -70,7 +70,7 @@ export class ImageRepository {
     imageId: string,
   ): Promise<Image | null> {
     try {
-      const data = this.supabase.rpc("get_image_by_id", { p_image_id: imageId }) as any;
+      const { data } = await this.supabase.rpc("get_image_by_id", { p_image_id: imageId }).maybeSingle() as any;
 
       if (!data) {
         return null;
