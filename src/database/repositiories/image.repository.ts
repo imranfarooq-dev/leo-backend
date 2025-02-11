@@ -128,11 +128,15 @@ export class ImageRepository {
 
   async userIdFromImageId(imageId: string): Promise<string | null> {
     try {
+      console.log(imageId)
       const { data, error } = await this.supabase
         .from(Tables.Images)
         .select('document:document_id (user_id)')
         .eq('id', imageId)
         .maybeSingle();
+
+      console.log(data)
+      console.log(error)
 
       if (error) {
         throw new Error('Failed to fetch user id from image id');
