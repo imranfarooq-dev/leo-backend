@@ -49,9 +49,3 @@ export enum SubscriptionStatus {
   Unpaid = 'unpaid',
   Paused = 'paused',
 }
-
-export enum SearchMode {
-  Item = 'item',
-  Transcript = 'transcript',
-  Note = 'note',
-}

@@ -2,33 +2,31 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SearchRepository } from '@/src/database/repositiories/search.repository';
 import {
   SearchDocumentAndList,
+  SearchDocumentAndListTypeEnum,
   SearchTranscription,
   SearchUserNote,
 } from '@/types/search';
-import { SearchMode } from '@/src/shared/constant';
+
 
 @Injectable()
 export class SearchService {
   constructor(private readonly searchRepository: SearchRepository) { }
 
   async searchDocumentAndList(
-    search_mode: SearchMode,
     searchKeyword: string,
     userId: string,
   ) {
     try {
-      switch (search_mode) {
-        case SearchMode.Item:
-          return await this.itemSearch(searchKeyword, userId);
-        case SearchMode.Transcript:
-          return this.transcriptSearch(searchKeyword, userId);
-        case SearchMode.Note:
-          return this.notesSearch(searchKeyword, userId);
-        default:
-          throw new HttpException(
-            'Invalid search mode',
-            HttpStatus.BAD_REQUEST,
-          );
+      const [itemResults, transcriptResults, notesResults] = await Promise.all([
+        this.itemSearch(searchKeyword, userId),
+        this.transcriptSearch(searchKeyword, userId),
+        this.notesSearch(searchKeyword, userId),
+      ]);
+
+      return {
+        items: itemResults,
+        transcripts: transcriptResults,
+        notes: notesResults,
       }
     } catch (error) {
       if (error instanceof HttpException) {
@@ -42,9 +40,9 @@ export class SearchService {
     }
   }
 
-  private async itemSearch(searchKeyword: string, userId: string) {
+  private async itemSearch(searchKeyword: string, userId: string): Promise<SearchDocumentAndList[]> {
     try {
-      const results = await this.searchRepository.searchListAndDocument(
+      const results: SearchDocumentAndList[] = await this.searchRepository.searchListAndDocument(
         searchKeyword,
         userId,
       );
@@ -62,43 +60,15 @@ export class SearchService {
     }
   }
 
-  private async transcriptSearch(searchKeyword: string, userId: string) {
+  private async transcriptSearch(searchKeyword: string, userId: string): Promise<SearchTranscription[]> {
     try {
       const results: SearchTranscription[] =
         (await this.searchRepository.searchUserTranscription(
           searchKeyword,
           userId,
-        )) as unknown as SearchTranscription[];
+        ));
 
-      const documentMap = new Map();
-
-      // Process each search result
-      results.forEach((item) => {
-        const { document } = item.image;
-        const documentId = document.id;
-
-        // If document doesn't exist in map, create it
-        if (!documentMap.has(documentId)) {
-          documentMap.set(documentId, {
-            ...document,
-            images: [],
-          });
-        }
-
-        // Add image with its transcription to the document
-        documentMap.get(documentId)?.images.push({
-          id: item.image.id,
-          image_name: item.image.image_name,
-          transcription: {
-            id: item.id,
-            current_transcription_text: item.current_transcription_text,
-            ai_transcription_text: item.ai_transcription_text,
-            transcription_status: item.transcription_status,
-          },
-        });
-      });
-
-      return Array.from(documentMap.values());
+      return results;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -117,32 +87,9 @@ export class SearchService {
         (await this.searchRepository.searchUserNote(
           searchKeyword,
           userId,
-        )) as unknown as SearchUserNote[];
+        ));
 
-      const documentMap = new Map();
-
-      results.forEach((item) => {
-        const { document } = item.image;
-        const documentId = document.id;
-
-        if (!documentMap.has(documentId)) {
-          documentMap.set(documentId, {
-            ...document,
-            images: [],
-          });
-        }
-
-        documentMap.get(documentId)?.images.push({
-          id: item.image.id,
-          image_name: item.image.image_name,
-          note: {
-            id: item.id,
-            notes_text: item.notes_text,
-          },
-        });
-      });
-
-      return Array.from(documentMap.values());
+      return results;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

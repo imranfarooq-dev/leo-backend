@@ -16,12 +16,11 @@ export class SearchController {
 
   @Get()
   async search(
-    @Query() { search_keyword, search_mode }: SearchDto,
+    @Query() { search_keyword }: SearchDto,
     @User() user: UserType,
   ) {
     try {
       const search = await this.searchService.searchDocumentAndList(
-        search_mode,
         search_keyword,
         user.id,
       );
