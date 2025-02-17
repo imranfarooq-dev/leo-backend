@@ -68,7 +68,35 @@ export class SearchService {
           userId,
         ));
 
-      return results;
+      const documentMap = new Map();
+
+      // Process each search result
+      results.forEach((item) => {
+        const { document } = item.image;
+        const documentId = document.id;
+
+        // If document doesn't exist in map, create it
+        if (!documentMap.has(documentId)) {
+          documentMap.set(documentId, {
+            ...document,
+            images: [],
+          });
+        }
+
+        // Add image with its transcription to the document
+        documentMap.get(documentId)?.images.push({
+          id: item.image.id,
+          image_name: item.image.image_name,
+          transcription: {
+            id: item.id,
+            current_transcription_text: item.current_transcription_text,
+            ai_transcription_text: item.ai_transcription_text,
+            transcription_status: item.transcription_status,
+          },
+        });
+      });
+
+      return Array.from(documentMap.values());
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -89,7 +117,30 @@ export class SearchService {
           userId,
         ));
 
-      return results;
+      const documentMap = new Map();
+
+      results.forEach((item) => {
+        const { document } = item.image;
+        const documentId = document.id;
+
+        if (!documentMap.has(documentId)) {
+          documentMap.set(documentId, {
+            ...document,
+            images: [],
+          });
+        }
+
+        documentMap.get(documentId)?.images.push({
+          id: item.image.id,
+          image_name: item.image.image_name,
+          note: {
+            id: item.id,
+            notes_text: item.notes_text,
+          },
+        });
+      });
+
+      return Array.from(documentMap.values());
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
