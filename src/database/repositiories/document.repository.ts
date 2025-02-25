@@ -2,7 +2,7 @@ import { CreateDocumentDto } from '@/src/document/dto/create-document.dto'
 import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto'
 import { Provides, Tables } from '@/src/shared/constant'
 import { SupabaseService } from '@/src/supabase/supabase.service'
-import { Document, DocumentFromRPC, DocumentSummary } from '@/types/document'
+import { Document, DocumentFromRPC, DocumentSummary, DocumentExtra } from '@/types/document'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { ImageRepository } from './image.repository'
@@ -127,102 +127,34 @@ export class DocumentRepository {
     }
   }
 
-  // async fetchDocumentsByIds(
-  //   documentIds: Array<string>,
-  //   includeImageTranscriptionAndNotes: boolean = false,
-  //   attributes?: keyof Image,
-  // ): Promise<DocumentDB[] | undefined> {
-  //   try {
-  //     let query = this.supabase
-  //       .from(Tables.Documents)
-  //       .select(
-  //         `
-  //       *,
-  //       ${includeImageTranscriptionAndNotes
-  //           ? `
-  //       images (
-  //         *,
-  //         transcriptions (
-  //           id,
-  //           current_transcription_text,
-  //           ai_transcription_text,
-  //           transcription_status,
-  //           image_id,
-  //           created_at,
-  //           updated_at
-  //         ),
-  //         notes (
-  //           id,
-  //           notes_text,
-  //           image_id,
-  //           created_at,
-  //           updated_at
-  //         )
-  //       )
-  //       `
-  //           : ''
-  //         }`,
-  //       )
-  //       .in('id', documentIds);
+  async fetchDocumentsByIdsWithImages(
+    documentIds: Array<string>,
+  ): Promise<(DocumentExtra | null)[]> {
+    // TODO: Probably update the rpc to take in an array of ids and return an array of documents.
+    try {
+      const documents: (Document | null)[] = await Promise.all(
+        documentIds.map(id => this.fetchDocumentById(id))
+      );
 
-  //     if (attributes) {
-  //       query = this.supabase
-  //         .from(Tables.Documents)
-  //         .select(
-  //           `
-  //         ${attributes},
-  //         ${includeImageTranscriptionAndNotes
-  //             ? `
-  //         images (
-  //           *,
-  //           transcriptions (
-  //             id,
-  //             current_transcription_text,
-  //             ai_transcription_text,
-  //             transcription_status,
-  //             image_id,
-  //             created_at,
-  //             updated_at
-  //           ),
-  //           notes (
-  //             id,
-  //             notes_text,
-  //             image_id,
-  //             created_at,
-  //             updated_at
-  //           )
-  //         )
-  //         `
-  //             : ''
-  //           }`,
-  //         )
-  //         .in('id', documentIds);
-  //     }
+      // This is inefficient.
+      const documentsWithImages: (DocumentExtra | null)[] = await Promise.all(documents.map(async (document) => {
+        if (document) {
+          const documentExtra: DocumentExtra = {
+            ...document,
+            images: await Promise.all(document.images.map(async (image) => {
+              return await this.imageRepository.fetchImageById(image.id);
+            }))
+          }
+          return documentExtra;
+        }
+        return null;
+      }));
 
-  //     const { data, error } = await query;
-
-  //     if (error) {
-  //       this.logger.error('Failed to fetch items', { error });
-  //       throw new Error('Failed to fetch items');
-  //     }
-
-  //     if (includeImageTranscriptionAndNotes) {
-  //       // Type assertion since we know the structure when includeImageTranscriptionAndNotes is true
-  //       const documentsWithImages = (data as unknown) as (Document & { images: Image[] })[];
-  //       const documentsWithUrlImages = await Promise.all(
-  //         documentsWithImages.map(async (doc) => {
-  //           const imagesWithUrls = await this.imageRepository.addPresignedUrlsToImages(doc.images);
-  //           return { ...doc, images: imagesWithUrls };
-  //         })
-  //       );
-  //       return documentsWithUrlImages;
-  //     }
-
-  //     return (data as unknown) as Document[];
-  //   } catch (error) {
-  //     this.logger.error('Failed to fetch item by id');
-  //   }
-  // }
+      return documentsWithImages;
+    } catch (error) {
+      this.logger.error('Failed to fetch item by id');
+    }
+  }
 
   async updateDocument(
     documentId: string,

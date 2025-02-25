@@ -1,5 +1,5 @@
 import { Database } from '@/database.types';
-import { ImageSummary } from '@/types/image';
+import { Image, ImageSummary } from '@/types/image';
 
 export type DocumentDB = Database['public']['Tables']['documents']['Row'];
 
@@ -43,6 +43,16 @@ export type DocumentDetails = {
   images: ImageSummary[];
 }
 
+export type DocumentDetailsWithImageDetails = {
+  archive: string | null;
+  box: string | null;
+  collection: string | null;
+  folder: string | null;
+  rights: string | null;
+  type: string | null;
+  images: Image[];
+}
+
 export type DocumentDetailsFromRPC = {
   archive: string | null;
   box: string | null;
@@ -53,4 +63,5 @@ export type DocumentDetailsFromRPC = {
 }
 
 export type Document = DocumentSummary & DocumentDetails;
+export type DocumentExtra = DocumentSummary & DocumentDetailsWithImageDetails;
 export type DocumentFromRPC = DocumentSummaryFromRPC & DocumentDetailsFromRPC;

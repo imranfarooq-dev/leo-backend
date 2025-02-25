@@ -2,9 +2,10 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SearchRepository } from '@/src/database/repositiories/search.repository';
 import {
   SearchDocumentAndList,
-  SearchDocumentAndListTypeEnum,
   SearchTranscription,
   SearchUserNote,
+  TranscriptSearchByDocument,
+  NoteSearchByDocument,
 } from '@/types/search';
 
 
@@ -60,7 +61,7 @@ export class SearchService {
     }
   }
 
-  private async transcriptSearch(searchKeyword: string, userId: string): Promise<SearchTranscription[]> {
+  private async transcriptSearch(searchKeyword: string, userId: string): Promise<TranscriptSearchByDocument[]> {
     try {
       const results: SearchTranscription[] =
         (await this.searchRepository.searchUserTranscription(
@@ -70,29 +71,23 @@ export class SearchService {
 
       const documentMap = new Map();
 
-      // Process each search result
       results.forEach((item) => {
-        const { document } = item.image;
-        const documentId = document.id;
+        const documentId = item.document_id;
 
-        // If document doesn't exist in map, create it
         if (!documentMap.has(documentId)) {
           documentMap.set(documentId, {
-            ...document,
+            document_id: item.document_id,
+            document_name: item.document_name,
             images: [],
           });
         }
 
-        // Add image with its transcription to the document
         documentMap.get(documentId)?.images.push({
-          id: item.image.id,
-          image_name: item.image.image_name,
-          transcription: {
-            id: item.id,
-            current_transcription_text: item.current_transcription_text,
-            ai_transcription_text: item.ai_transcription_text,
-            transcription_status: item.transcription_status,
-          },
+          id: item.image_id,
+          name: item.image_name,
+          current_transcription_text: item.current_transcription_text,
+          ai_transcription_text: item.ai_transcription_text,
+          transcription_status: item.transcription_status,
         });
       });
 
@@ -109,7 +104,7 @@ export class SearchService {
     }
   }
 
-  private async notesSearch(searchKeyword: string, userId: string) {
+  private async notesSearch(searchKeyword: string, userId: string): Promise<NoteSearchByDocument[]> {
     try {
       const results: SearchUserNote[] =
         (await this.searchRepository.searchUserNote(
@@ -120,23 +115,20 @@ export class SearchService {
       const documentMap = new Map();
 
       results.forEach((item) => {
-        const { document } = item.image;
-        const documentId = document.id;
+        const documentId = item.document_id;
 
         if (!documentMap.has(documentId)) {
           documentMap.set(documentId, {
-            ...document,
+            document_id: item.document_id,
+            document_name: item.document_name,
             images: [],
           });
         }
 
         documentMap.get(documentId)?.images.push({
-          id: item.image.id,
-          image_name: item.image.image_name,
-          note: {
-            id: item.id,
-            notes_text: item.notes_text,
-          },
+          id: item.image_id,
+          name: item.image_name,
+          notes_text: item.notes_text,
         });
       });
 

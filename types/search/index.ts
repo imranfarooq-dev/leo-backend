@@ -33,3 +33,32 @@ export type SearchUserNote = {
   image_name: string;
   notes_text: string;
 };
+
+
+export type TranscriptSearchImage = {
+  id: string;
+  name: string;
+  image_url: string;
+  current_transcription_text: string | null;
+  ai_transcription_text: string;
+  transcription_status: TranscriptionStatus;
+};
+
+export type TranscriptSearchByDocument = {
+  document_id: string;
+  document_name: string;
+  images: TranscriptSearchImage[];
+};
+
+export type NoteSearchImage = {
+  id: string;
+  name: string;
+  image_url: string;
+  notes_text: string;
+};
+
+export type NoteSearchByDocument = {
+  document_id: string;
+  document_name: string;
+  images: NoteSearchImage[];
+};

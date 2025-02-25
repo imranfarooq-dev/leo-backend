@@ -23,66 +23,66 @@ export class GotenbergService {
 
   async exportImage(image_id: string): Promise<Buffer> {
     try {
-      throw new Error('Method not implemented.');
+      // Fetch image data
+      const image = await this.imageRepository.fetchImageById(image_id);
 
-      // // Fetch image data
-      // const image =
-      //   (await this.imageRepository.fetchImageById(
-      //     image_id,
-      //     true,
-      //   ));
+      if (!image) {
+        throw new HttpException('Image not found', HttpStatus.NOT_FOUND);
+      }
 
-      // if (!image) {
-      //   throw new HttpException('Image not found', HttpStatus.NOT_FOUND);
-      // }
+      return new Promise(async (resolve, reject) => {
+        const archive = archiver('zip', {
+          zlib: { level: 6 },
+        });
 
-      // return new Promise(async (resolve, reject) => {
-      //   const archive = archiver('zip', {
-      //     zlib: { level: 6 },
-      //   });
+        const chunks: Buffer[] = [];
 
-      //   const chunks: Buffer[] = [];
+        // Handle archive data
+        archive.on('data', (chunk) => chunks.push(chunk));
+        archive.on('end', () => resolve(Buffer.concat(chunks)));
+        archive.on('error', (error: ArchiverError) =>
+          reject(
+            new HttpException(
+              error.message ?? 'An error occurred while creating the zip file',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            ),
+          ),
+        );
 
-      //   // Handle archive data
-      //   archive.on('data', (chunk) => chunks.push(chunk));
-      //   archive.on('end', () => resolve(Buffer.concat(chunks)));
-      //   archive.on('error', (error: ArchiverError) =>
-      //     reject(
-      //       new HttpException(
-      //         error.message ?? 'An error occurred while creating the zip file',
-      //         HttpStatus.INTERNAL_SERVER_ERROR,
-      //       ),
-      //     ),
-      //   );
+        // Download and add original image
+        const imageBuffer = await this.downloadImage(image.image_url);
+        const imageExtension = image.image_url
+          .split('?')[0] // Remove query parameters
+          .split('/')    // Split by path separator
+          .pop()         // Get the last segment (filename)
+          ?.split('.')   // Split filename by dot
+          .pop()         // Get the extension
+          || 'jpg';      // Fallback to jpg if no extension found
+        archive.append(imageBuffer, {
+          name: `{original-image}.${imageExtension}`,
+        });
 
-      //   // Download and add original image
-      //   const imageBuffer = await this.downloadImage(image.image_path);
-      //   const imageExtension = image.image_path.split('.').pop() || 'jpg';
-      //   archive.append(imageBuffer, {
-      //     name: `{original-image}.${imageExtension}`,
-      //   });
+        // Convert and add transcription PDF
+        if (image.transcription_id) {
+          const transcriptionContent: string | null =
+            image.current_transcription_text ??
+            image.ai_transcription_text;
+          if (!transcriptionContent) return;
 
-      //   // Convert and add transcription PDF
-      //   if (image.transcriptions) {
-      //     const transcriptionContent: string | null =
-      //       image.transcriptions.current_transcription_text ??
-      //       image.transcriptions.ai_transcription_text;
-      //     if (!transcriptionContent) return;
+          const transcriptionPdf =
+            await this.convertHtmlToPdf(transcriptionContent);
+          archive.append(transcriptionPdf, { name: 'transcription.pdf' });
+        }
 
-      //     const transcriptionPdf =
-      //       await this.convertHtmlToPdf(transcriptionContent);
-      //     archive.append(transcriptionPdf, { name: 'transcription.pdf' });
-      //   }
+        // Convert and add notes PDF
+        if (image.note_id) {
+          const notesPdf = await this.convertHtmlToPdf(image.notes_text);
+          archive.append(notesPdf, { name: 'notes.pdf' });
+        }
 
-      //   // Convert and add notes PDF
-      //   if (image?.notes?.notes_text) {
-      //     const notesPdf = await this.convertHtmlToPdf(image.notes.notes_text);
-      //     archive.append(notesPdf, { name: 'notes.pdf' });
-      //   }
-
-      //   // Finalize the archive
-      //   archive.finalize();
-      // });
+        // Finalize the archive
+        archive.finalize();
+      });
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -97,45 +97,43 @@ export class GotenbergService {
 
   async exportDocuments(documentIds: Array<string>): Promise<Buffer> {
     try {
-      throw new Error('Method not implemented.');
-      // const documents =
-      //   (await this.documentRepository.fetchDocumentsByIds(
-      //     documentIds,
-      //     true,
-      //   ));
+      const documents =
+        (await this.documentRepository.fetchDocumentsByIdsWithImages(
+          documentIds,
+        ));
 
-      // if (!documents) {
-      //   throw new HttpException('Items not found', HttpStatus.NOT_FOUND);
-      // }
+      if (!documents) {
+        throw new HttpException('Items not found', HttpStatus.NOT_FOUND);
+      }
 
-      // return new Promise(async (resolve, reject) => {
-      //   const archive = archiver('zip', {
-      //     zlib: { level: 6 },
-      //   });
+      return new Promise(async (resolve, reject) => {
+        const archive = archiver('zip', {
+          zlib: { level: 6 },
+        });
 
-      //   const chunks: Buffer[] = [];
+        const chunks: Buffer[] = [];
 
-      //   archive.on('data', (chunk) => chunks.push(chunk));
-      //   archive.on('end', () => resolve(Buffer.concat(chunks)));
-      //   archive.on('error', (error: ArchiverError) =>
-      //     reject(
-      //       new HttpException(
-      //         error.message ?? 'An error occurred while creating the zip file',
-      //         HttpStatus.INTERNAL_SERVER_ERROR,
-      //       ),
-      //     ),
-      //   );
+        archive.on('data', (chunk) => chunks.push(chunk));
+        archive.on('end', () => resolve(Buffer.concat(chunks)));
+        archive.on('error', (error: ArchiverError) =>
+          reject(
+            new HttpException(
+              error.message ?? 'An error occurred while creating the zip file',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            ),
+          ),
+        );
 
-      //   // Process each document
-      //   for (const document of documents) {
-      //     // Process each image in the document
-      //     for (const image of document.images) {
-      //       await this.processImage(image, archive, document.document_name);
-      //     }
-      //   }
+        // Process each document
+        for (const document of documents) {
+          // Process each image in the document
+          for (const image of document.images) {
+            await this.processImage(image, archive, document.document_name);
+          }
+        }
 
-      //   archive.finalize();
-      // });
+        archive.finalize();
+      });
     } catch (error) {
       console.error(error);
       if (error instanceof HttpException) {
@@ -149,8 +147,7 @@ export class GotenbergService {
     }
   }
 
-  private async downloadImage(imagePath: string): Promise<Buffer> {
-    const imageUrl = await this.supabaseService.getPresignedUrl(imagePath);
+  private async downloadImage(imageUrl: string): Promise<Buffer> {
     const response = await axios.get(imageUrl, {
       responseType: 'arraybuffer',
     });
@@ -179,10 +176,17 @@ export class GotenbergService {
     basePath: string,
   ) {
     // Add original image
-    const imageBuffer = await this.downloadImage(image.image_path);
+    const imageBuffer = await this.downloadImage(image.image_url);
     const imageName =
       image.image_name.split('.').shift() || `image-${image.id}`;
-    const imageExtension = image.image_path.split('.').pop() || 'jpg';
+    const imageExtension = image.image_url
+      .split('?')[0] // Remove query parameters
+      .split('/')    // Split by path separator
+      .pop()         // Get the last segment (filename)
+      ?.split('.')   // Split filename by dot
+      .pop()         // Get the extension
+      || 'jpg';      // Fallback to jpg if no extension found
+
     archive.append(imageBuffer, {
       name: `${basePath}/images/${imageName}.${imageExtension}`,
     });

@@ -100,13 +100,13 @@ export class ListsDocumentsRepository {
       const { data, error } = await this.supabase
         .from(Tables.ListsDocuments)
         .select('lists(id, user_id, list_name)')
-        .eq('document_id', document_id);
+        .eq('document_id', document_id) as any;
 
       if (error) {
         throw new Error(error.message ?? 'Failed to fetch document lists');
       }
 
-      return data.map(({ lists: [{ id, user_id, list_name }] }) => ({
+      return data.map(({ lists: { id, user_id, list_name } }) => ({
         id,
         user_id,
         list_name
