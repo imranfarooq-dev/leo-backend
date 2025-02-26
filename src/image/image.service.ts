@@ -5,7 +5,7 @@ import { CreateImageDto } from '@/src/image/dto/create-image.dto'
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
 import { PdfService } from '@/src/pdf/pdf.service'
 import { SupabaseService } from '@/src/supabase/supabase.service'
-import { DocumentSummary } from '@/types/document'
+import { DocumentDB } from '@/types/document'
 import { ImageDB, ImageOrder, ImageSummary, InsertImage, Image } from '@/types/image'
 import { User } from '@clerk/clerk-sdk-node'
 import {
@@ -49,16 +49,16 @@ export class ImageService {
     userId: string,
   ): Promise<ImageSummary[]> {
     try {
-      const documentSummary: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(document_id);
+      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
 
-      if (!documentSummary) {
+      if (!document) {
         throw new HttpException(
           'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
-      if (documentSummary.user_id !== userId) {
+      if (document.user_id !== userId) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,
@@ -184,7 +184,7 @@ export class ImageService {
         );
       }
 
-      const document: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(documentId);
+      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(documentId);
 
       if (!document) {
         throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
@@ -194,7 +194,7 @@ export class ImageService {
         throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
       }
 
-      const images: ImageSummary[] = await this.imageRepository.fetchImageSummariesByDocumentId(documentId);
+      const images: ImageDB[] = await this.imageRepository.fetchImagesDBByDocumentId(documentId);
 
       if (!images.length) {
         throw new HttpException(
@@ -240,7 +240,7 @@ export class ImageService {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      const document: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(image.document_id);
+      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(image.document_id);
 
       if (document.user_id != user.id) {
         throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);

@@ -2,7 +2,7 @@ import { User } from '@/src/comon/decorators/user.decorator'
 import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
 import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service'
-import { DocumentSummary } from '@/types/document'
+import { DocumentWithImageSummaries } from '@/types/document'
 import { ListSummary } from '@/types/list'
 import { User as UserType } from '@clerk/clerk-sdk-node'
 import {
@@ -53,7 +53,7 @@ export class ListsDocumentsController {
     @Query() query: FetchUserListDocumentDto,
   ) {
     try {
-      const documents: { documents: DocumentSummary[]; currentPage: number; totalPages: number; totalDocuments: number } =
+      const documents: { documents: DocumentWithImageSummaries[]; currentPage: number; totalPages: number; totalDocuments: number } =
         await this.listsDocumentsService.fetchUserDocumentsByList(listId, user, query);
 
       return {

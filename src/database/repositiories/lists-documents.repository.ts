@@ -1,6 +1,6 @@
 import { Provides, Tables } from '@/src/shared/constant'
 import { SupabaseService } from '@/src/supabase/supabase.service'
-import { DocumentSummary } from '@/types/document'
+import { DocumentWithImageSummaries } from '@/types/document'
 import { ListSummary } from '@/types/list'
 import { ListDocument } from '@/types/list-document'
 import { Inject, Logger } from '@nestjs/common'
@@ -71,13 +71,13 @@ export class ListsDocumentsRepository {
   async fetchDocumentsForList(
     list_id: string,
     pagination: { from: number; to: number },
-  ): Promise<{ documents: DocumentSummary[]; count: number }> {
+  ): Promise<{ documents: DocumentWithImageSummaries[]; count: number }> {
     try {
       const { count } = await this.supabase.from(Tables.ListsDocuments).select('*', { count: 'exact', head: true }).eq('list_id', list_id);
 
       const { data, error } = await this.supabase.rpc('get_documents_by_list_id', { p_list_id: list_id, page_size: pagination.to, page_number: pagination.from });
 
-      const documentsWithThumbnailUrls: DocumentSummary[] = await Promise.all(data.map(async (document) => {
+      const documentsWithThumbnailUrls: DocumentWithImageSummaries[] = await Promise.all(data.map(async (document) => {
         const { first_image_path, ...rest } = document;
         return {
           ...rest,

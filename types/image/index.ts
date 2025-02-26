@@ -1,6 +1,5 @@
 import { Database } from '@/database.types';
-import { Transcription, TranscriptionStatus } from '@/types/transcription';
-import { Note } from '@/types/notes';
+import { TranscriptionStatus } from '@/types/transcription';
 import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
 export type UploadedImage = {
@@ -26,6 +25,7 @@ export type ImageSummary = {
   image_name: string | null;
   order: number;
   thumbnail_url: string | null;
+  transcription_status: TranscriptionStatus | null;
 }
 
 export type ImageDetails = {
@@ -33,7 +33,6 @@ export type ImageDetails = {
   transcription_id: string | null;
   ai_transcription_text: string | null;
   current_transcription_text: string | null;
-  transcription_status: TranscriptionStatus | null;
   transcription_job_status: APITranscriptionJobStatus | null;
   note_id: string | null;
   notes_text: string | null;

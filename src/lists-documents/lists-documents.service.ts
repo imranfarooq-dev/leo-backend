@@ -3,7 +3,7 @@ import { ListRespository } from '@/src/database/repositiories/list.respository'
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository'
 import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
-import { DocumentSummary } from '@/types/document'
+import { DocumentDB, DocumentWithImageSummaries } from '@/types/document'
 import { ListDB, ListSummary } from '@/types/list'
 import { User } from '@clerk/clerk-sdk-node'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
@@ -22,7 +22,7 @@ export class ListsDocumentsService {
       const { add_list_ids, remove_list_ids } =
         updateListDocumentDto;
 
-      const documentExist = await this.documentRepository.fetchDocumentById(document_id);
+      const documentExist = await this.documentRepository.fetchDocumentDBById(document_id);
 
       if (!documentExist) {
         throw new HttpException(
@@ -80,7 +80,7 @@ export class ListsDocumentsService {
       page,
       limit,
     }: FetchUserListDocumentDto,
-  ): Promise<{ documents: DocumentSummary[]; currentPage: number; totalPages: number; totalDocuments: number }> {
+  ): Promise<{ documents: DocumentWithImageSummaries[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
       const offset: number = page * limit;
       const size: number = offset + limit - 1;
@@ -123,16 +123,16 @@ export class ListsDocumentsService {
 
   async fetchDocumentLists(user: User, document_id: string): Promise<ListSummary[]> {
     try {
-      const documentSummary: DocumentSummary | null = await this.documentRepository.fetchDocumentSummaryById(document_id);
+      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
 
-      if (!documentSummary) {
+      if (!document) {
         throw new HttpException(
           'Item does not exist',
           HttpStatus.NOT_FOUND,
         );
       }
 
-      if (documentSummary.user_id !== user.id) {
+      if (document.user_id !== user.id) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,
