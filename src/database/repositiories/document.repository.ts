@@ -2,7 +2,7 @@ import { CreateDocumentDto } from '@/src/document/dto/create-document.dto'
 import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto'
 import { Provides, Tables } from '@/src/shared/constant'
 import { SupabaseService } from '@/src/supabase/supabase.service'
-import { DocumentDB, DocumentWithImageSummaries, DocumentWithImages } from '@/types/document'
+import { DocumentDB, Document } from '@/types/document'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { SupabaseClient } from '@supabase/supabase-js'
 
@@ -38,45 +38,9 @@ export class DocumentRepository {
     }
   }
 
-  async fetchDocumentWithImageSummariesById(
-    documentId: string,
-  ): Promise<DocumentWithImageSummaries | null> {
-    try {
-      const { data, error } = await this.supabase.rpc('get_document_summaries_by_ids', { p_document_ids: [documentId] });
-
-      if (error) {
-        throw new Error(error.message ?? 'Failed to fetch item by id');
-      }
-
-      if (!data) {
-        return null;
-      }
-
-      const { images, ...rest } = data[0];
-
-      const processedImages = await Promise.all(images.map(async (image) => {
-        const { image_path, ...imageRest } = image;
-        return {
-          ...imageRest,
-          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
-        };
-      }));
-
-      const document: DocumentWithImages = {
-        ...rest,
-        images: processedImages,
-      };
-
-      return document;
-
-    } catch (error) {
-      this.logger.error('Failed to fetch item by id');
-    }
-  }
-
   async fetchDocumentById(
     documentId: string,
-  ): Promise<DocumentWithImages | null> {
+  ): Promise<Document | null> {
     try {
       const { data, error } = await this.supabase.rpc('get_documents_by_ids', { p_document_ids: [documentId] });
 
@@ -90,16 +54,16 @@ export class DocumentRepository {
 
       const { images, ...rest } = data[0];
 
-      const processedImages = await Promise.all(images.map(async (image) => {
+      const processedImages = images ? await Promise.all(images.map(async (image) => {
         const { image_path, ...imageRest } = image;
         return {
           ...imageRest,
           thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
           image_url: await this.supabaseService.getPresignedUrl(image_path),
         };
-      }));
+      })) : [];
 
-      const document: DocumentWithImages = {
+      const document: Document = {
         ...rest,
         images: processedImages,
       };
@@ -112,8 +76,8 @@ export class DocumentRepository {
 
   async fetchDocumentsByUserId(
     userId: string,
-    pagination: { from: number; to: number },
-  ): Promise<{ documents: DocumentWithImageSummaries[]; count: number }> {
+    pagination: { page_size: number; page_number: number },
+  ): Promise<{ documents: Document[]; count: number }> {
     try {
       const [countResult, documentsResult] = await Promise.all([
         this.supabase
@@ -123,8 +87,8 @@ export class DocumentRepository {
         this.supabase
           .rpc('get_documents_by_user_id', {
             p_user_id: userId,
-            page_size: pagination.to,
-            page_number: pagination.from,
+            page_size: pagination.page_size,
+            page_number: pagination.page_number,
           }),
       ]);
 
@@ -132,23 +96,23 @@ export class DocumentRepository {
         throw new Error(countResult.error?.message ?? documentsResult.error?.message ?? 'Failed to fetch items by user id');
       }
 
-      const documentsWithThumbnailUrls: DocumentWithImageSummaries[] = await Promise.all(documentsResult.data.map(async (document) => {
+      const documentsWithThumbnailUrls: Document[] = await Promise.all(documentsResult.data.map(async (document) => {
         const { images, ...rest } = document;
 
-        const processedImages = await Promise.all(images.map(async (image) => {
+        const processedImages = images ? await Promise.all(images.map(async (image) => {
           const { image_path, ...imageRest } = image;
           return {
             ...imageRest,
             thumbnail_url: image_path ? await this.supabaseService.getPresignedThumbnailUrl(image_path) : null,
+            image_url: image_path ? await this.supabaseService.getPresignedUrl(image_path) : null,
           };
-        }));
+        })) : [];
 
         return {
           ...rest,
           images: processedImages,
         };
       }));
-
       return { documents: documentsWithThumbnailUrls, count: countResult.count };
     } catch (error) {
       this.logger.error('Failed to fetch item by user_id');
@@ -157,7 +121,7 @@ export class DocumentRepository {
 
   async fetchDocumentsByIdsWithImages(
     documentIds: Array<string>,
-  ): Promise<(DocumentWithImages | null)[]> {
+  ): Promise<Document[]> {
     try {
       const { data, error } = await this.supabase.rpc('get_documents_by_ids', { p_document_ids: documentIds });
 
@@ -169,17 +133,17 @@ export class DocumentRepository {
         return [];
       }
 
-      const documentsWithImages: (DocumentWithImages | null)[] = await Promise.all(data.map(async (document) => {
+      const documentsWithImages: Document[] = await Promise.all(data.map(async (document) => {
         const { images, ...rest } = document;
 
-        const processedImages = await Promise.all(images.map(async (image) => {
+        const processedImages = images ? await Promise.all(images.map(async (image) => {
           const { image_path, ...imageRest } = image;
           return {
             ...imageRest,
             thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
             image_url: await this.supabaseService.getPresignedUrl(image_path),
           };
-        }));
+        })) : [];
 
         return {
           ...rest,

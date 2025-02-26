@@ -6,7 +6,7 @@ import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
 import { PdfService } from '@/src/pdf/pdf.service'
 import { SupabaseService } from '@/src/supabase/supabase.service'
 import { DocumentDB } from '@/types/document'
-import { ImageDB, ImageOrder, ImageSummary, InsertImage, Image } from '@/types/image'
+import { ImageDB, ImageOrder, InsertImage, Image } from '@/types/image'
 import { User } from '@clerk/clerk-sdk-node'
 import {
   ForbiddenException,
@@ -47,7 +47,7 @@ export class ImageService {
     { document_id }: CreateImageDto,
     files: Array<Express.Multer.File>,
     userId: string,
-  ): Promise<ImageSummary[]> {
+  ): Promise<Image[]> {
     try {
       const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
 

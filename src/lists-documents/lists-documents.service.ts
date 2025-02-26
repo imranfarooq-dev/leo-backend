@@ -3,7 +3,7 @@ import { ListRespository } from '@/src/database/repositiories/list.respository'
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository'
 import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
-import { DocumentDB, DocumentWithImageSummaries } from '@/types/document'
+import { DocumentDB, Document } from '@/types/document'
 import { ListDB, ListSummary } from '@/types/list'
 import { User } from '@clerk/clerk-sdk-node'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
@@ -80,11 +80,8 @@ export class ListsDocumentsService {
       page,
       limit,
     }: FetchUserListDocumentDto,
-  ): Promise<{ documents: DocumentWithImageSummaries[]; currentPage: number; totalPages: number; totalDocuments: number }> {
+  ): Promise<{ documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
-      const offset: number = page * limit;
-      const size: number = offset + limit - 1;
-
       const list: ListDB | null = await this.listRepository.fetchListById(list_id);
 
       if (!list) {
@@ -97,8 +94,8 @@ export class ListsDocumentsService {
 
       const { documents, count } =
         await this.listsDocumentsRepository.fetchDocumentsForList(list_id, {
-          from: offset,
-          to: size,
+          page_size: limit,
+          page_number: page,
         });
 
       const totalPages: number = Math.ceil(count / limit);

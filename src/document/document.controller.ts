@@ -22,7 +22,7 @@ import { FetchUserDocumentDto } from '@/src/document/dto/fetch-user-document.dto
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/clerk-sdk-node';
 import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
-import { DocumentWithImageSummaries, DocumentWithImages } from '@/types/document';
+import { Document } from '@/types/document';
 
 @Controller('document')
 export class DocumentController {
@@ -31,7 +31,7 @@ export class DocumentController {
   @Get()
   async fetch(@User() user: UserType, @Query() query: FetchUserDocumentDto) {
     try {
-      const documents: { documents: DocumentWithImageSummaries[]; currentPage: number; totalPages: number; totalDocuments: number } = await this.documentService.fetchDocumentsByUser(
+      const documents: { documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number } = await this.documentService.fetchDocumentsByUser(
         user,
         query,
       );
@@ -57,7 +57,7 @@ export class DocumentController {
   @Get(':id')
   async fetchById(@User() user: UserType, @Param() params: FetchDocumentDto) {
     try {
-      const document: DocumentWithImages = await this.documentService.fetchById(user, params);
+      const document: Document = await this.documentService.fetchById(user, params);
 
       return {
         statusCode: HttpStatus.OK,
@@ -85,7 +85,7 @@ export class DocumentController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
-      const document: DocumentWithImageSummaries = await this.documentService.create(
+      const document: Document = await this.documentService.create(
         user,
         createDocument,
         files,

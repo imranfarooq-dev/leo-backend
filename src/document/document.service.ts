@@ -10,7 +10,7 @@ import { DocumentRepository } from '@/src/database/repositiories/document.reposi
 import { ImageService } from '@/src/image/image.service';
 import { User } from '@clerk/clerk-sdk-node';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
-import { DocumentDB, DocumentWithImageSummaries, DocumentWithImages } from '@/types/document';
+import { DocumentDB, Document } from '@/types/document';
 
 @Injectable()
 export class DocumentService {
@@ -25,16 +25,13 @@ export class DocumentService {
   async fetchDocumentsByUser(
     user: User,
     { page, limit }: FetchUserDocumentDto,
-  ): Promise<{ documents: DocumentWithImageSummaries[]; currentPage: number; totalPages: number; totalDocuments: number }> {
+  ): Promise<{ documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
-      const offset: number = page * limit;
-      const size: number = offset + limit - 1;
-
-      const userDocuments: { documents: DocumentWithImageSummaries[]; count: number } = await this.documentRepository.fetchDocumentsByUserId(
+      const userDocuments: { documents: Document[]; count: number } = await this.documentRepository.fetchDocumentsByUserId(
         user.id,
         {
-          from: offset,
-          to: size,
+          page_size: limit,
+          page_number: page,
         },
       );
       const totalPages: number = Math.ceil(userDocuments.count / limit);
@@ -66,9 +63,9 @@ export class DocumentService {
     }
   }
 
-  async fetchById(user: User, fetchDocument: FetchDocumentDto): Promise<DocumentWithImages> {
+  async fetchById(user: User, fetchDocument: FetchDocumentDto): Promise<Document> {
     try {
-      const document: DocumentWithImages | null = await this.documentRepository.fetchDocumentById(
+      const document: Document | null = await this.documentRepository.fetchDocumentById(
         fetchDocument.id,
       );
 
@@ -103,7 +100,7 @@ export class DocumentService {
     user: User,
     createDocument: CreateDocumentDto,
     files: Array<Express.Multer.File>,
-  ): Promise<DocumentWithImageSummaries> {
+  ): Promise<Document | null> {
     try {
       const documentId = await this.documentRepository.createDocument(
         user.id,
@@ -129,7 +126,7 @@ export class DocumentService {
         user.id,
       );
 
-      return await this.documentRepository.fetchDocumentWithImageSummariesById(documentId);
+      return await this.documentRepository.fetchDocumentById(documentId);
     } catch (error) {
       throw new HttpException(
         'An error occurred while creating the item',

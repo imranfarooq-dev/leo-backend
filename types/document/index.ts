@@ -1,9 +1,9 @@
 import { Database } from '@/database.types';
-import { Image, ImageSummary } from '@/types/image';
+import { Image } from '@/types/image';
 
 export type DocumentDB = Database['public']['Tables']['documents']['Row'];
 
-export type DocumentBase = {
+export type Document = {
   id: string;
   user_id: string;
   document_name: string;
@@ -22,25 +22,5 @@ export type DocumentBase = {
   folder: string | null;
   rights: string | null;
   type: string | null;
+  images: Image[];
 };
-
-export type ImageSummaries = {
-  images: ImageSummary[];
-}
-
-export type Images = {
-  images: Image[];
-}
-
-export type DocumentDetailsWithImageDetails = {
-  archive: string | null;
-  box: string | null;
-  collection: string | null;
-  folder: string | null;
-  rights: string | null;
-  type: string | null;
-  images: Image[];
-}
-
-export type DocumentWithImageSummaries = DocumentBase & ImageSummaries;
-export type DocumentWithImages = DocumentBase & Images;

@@ -4,7 +4,6 @@ import {
   Image,
   ImageDB,
   ImageOrder,
-  ImageSummary,
   InsertImage,
 } from '@/types/image'
 import { Inject, Injectable, Logger } from '@nestjs/common'
@@ -19,7 +18,7 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) { }
 
-  async createImage(images: InsertImage[]): Promise<ImageSummary[]> {
+  async createImage(images: InsertImage[]): Promise<Image[]> {
     try {
       const { data: newImages, error } = await this.supabase
         .from(Tables.Images)
@@ -30,21 +29,26 @@ export class ImageRepository {
         throw new Error(error.message ?? 'Failed to create image(s)');
       }
 
-      const { data: imageSummariesData, error: imageSummariesError } = await this.supabase.rpc('get_image_summaries_by_ids', { p_image_ids: newImages.map((image) => image.id) });
+      if (!newImages) {
+        return [];
+      }
+
+      const { data: imagesData, error: imageSummariesError } = await this.supabase.rpc('get_images_by_ids', { p_image_ids: newImages.map((image) => image.id) });
 
       if (imageSummariesError) {
         throw new Error(imageSummariesError.message ?? 'Failed to create image(s)');
       }
 
-      const imageSummaries: ImageSummary[] = await Promise.all(imageSummariesData.map(async (image) => {
+      const returnImages: Image[] = await Promise.all(imagesData.map(async (image) => {
         const { image_path, ...rest } = image;
         return {
           ...rest,
           thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
+          image_url: await this.supabaseService.getPresignedUrl(image_path),
         };
       }));
 
-      return imageSummaries;
+      return returnImages;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to create image');
       throw error;

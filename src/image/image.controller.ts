@@ -21,7 +21,7 @@ import {
   UpdateImageOrderDto,
 } from '@/src/image/dto/update-image.dto';
 import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
-import { ImageOrder, ImageSummary } from '@/types/image';
+import { ImageOrder, Image } from '@/types/image';
 
 @Controller('image')
 export class ImageController {
@@ -30,7 +30,7 @@ export class ImageController {
   @Get(":image_id")
   async getImage(@Param('image_id') imageId: string) {
     try {
-      const image: ImageSummary | null = await this.imageService.getImage(imageId);
+      const image: Image | null = await this.imageService.getImage(imageId);
 
       if (!image) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
@@ -79,7 +79,7 @@ export class ImageController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
-      const imageSummaries: ImageSummary[] = await this.imageService.create(
+      const images: Image[] = await this.imageService.create(
         createImage,
         files,
         user.id,
@@ -88,7 +88,7 @@ export class ImageController {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Image attached',
-        data: imageSummaries,
+        data: images,
       };
     } catch (error) {
       throw new HttpException(

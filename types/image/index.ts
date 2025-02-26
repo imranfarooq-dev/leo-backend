@@ -19,16 +19,13 @@ export type InsertImage = {
 
 export type ImageDB = Database['public']['Tables']['images']['Row'];
 
-export type ImageSummary = {
+export type Image = {
   id: string;
   document_id: string;
   image_name: string | null;
   order: number;
   thumbnail_url: string | null;
   transcription_status: TranscriptionStatus | null;
-}
-
-export type ImageDetails = {
   image_url: string;
   transcription_id: string | null;
   ai_transcription_text: string | null;
@@ -43,7 +40,6 @@ export type ImageOrder = {
   order: number;
 };
 
-export type Image = ImageSummary & ImageDetails;
 
 export type FileBufferDownloadResult = {
   buffer: Buffer | null;
