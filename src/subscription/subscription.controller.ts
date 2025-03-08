@@ -275,6 +275,7 @@ export class SubscriptionController {
     }
   }
 
+  @Public()
   @Post('beta/replenish')
   @UseGuards(ApiKeyAuthGuard)
   async replenishBetaCredits() {

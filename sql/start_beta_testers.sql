@@ -49,14 +49,14 @@ BEGIN
         u.id as user_id,
         1000,  -- 1000 lifetime credits
         100,  -- monthly credits
-        100000 -- image limits
+        10000 -- image limits
     FROM users u
     WHERE u.email_address = ANY(beta_tester_emails)
     ON CONFLICT (user_id) 
     DO UPDATE SET 
 		lifetime_credits = credits.lifetime_credits + 1000,
 		monthly_credits = 100,
-		image_limits = 100000
+		image_limits = 10000
 	;
 
     -- Set up 6-month trial subscription
@@ -67,8 +67,8 @@ BEGIN
         current_period_end = CURRENT_TIMESTAMP + INTERVAL '1 month',
         free_plan_status = 'previously_subscribed'::plan_status,
         price = NULL,
-        stripe_price_id = 'price_1QigrsKpx8LALDnHhkjcUJa1', -- Prod
-        -- stripe_price_id = 'price_1Qcr8oKpx8LALDnHxWZcKnT3', -- Dev 
+        -- stripe_price_id = 'price_1QigrsKpx8LALDnHhkjcUJa1', -- Prod
+        stripe_price_id = 'price_1Qcr8oKpx8LALDnHxWZcKnT3', -- Dev 
         stripe_subscription_id = subscription_id
     FROM users u
     WHERE 
