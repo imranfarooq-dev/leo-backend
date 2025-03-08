@@ -48,14 +48,14 @@ BEGIN
     SELECT 
         u.id as user_id,
         1000,  -- 1000 lifetime credits
-        1000,  -- monthly credits
+        100,  -- monthly credits
         100000 -- image limits
     FROM users u
     WHERE u.email_address = ANY(beta_tester_emails)
     ON CONFLICT (user_id) 
     DO UPDATE SET 
 		lifetime_credits = credits.lifetime_credits + 1000,
-		monthly_credits = 1000,
+		monthly_credits = 100,
 		image_limits = 100000
 	;
 

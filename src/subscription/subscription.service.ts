@@ -613,7 +613,7 @@ export class SubscriptionService {
           await this.creditRepository.updateCredits(
             subscription.user_id,
             {
-              monthly_credits: 1000
+              monthly_credits: 100
             }
           );
 
