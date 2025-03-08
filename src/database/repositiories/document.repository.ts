@@ -104,7 +104,6 @@ export class DocumentRepository {
           return {
             ...imageRest,
             thumbnail_url: image_path ? await this.supabaseService.getPresignedThumbnailUrl(image_path) : null,
-            image_url: image_path ? await this.supabaseService.getPresignedUrl(image_path) : null,
           };
         })) : [];
 

@@ -19,21 +19,25 @@ export type InsertImage = {
 
 export type ImageDB = Database['public']['Tables']['images']['Row'];
 
-export type Image = {
+export type BaseImage = {
   id: string;
   document_id: string;
   image_name: string | null;
   order: number;
   thumbnail_url: string | null;
   transcription_status: TranscriptionStatus | null;
-  image_url: string;
-  transcription_id: string | null;
-  ai_transcription_text: string | null;
-  current_transcription_text: string | null;
-  transcription_job_status: APITranscriptionJobStatus | null;
-  note_id: string | null;
-  notes_text: string | null;
-}
+  note_exists: boolean;
+};
+
+export type Image = BaseImage & {
+  image_url?: string;
+  transcription_id?: string | null;
+  ai_transcription_text?: string | null;
+  current_transcription_text?: string | null;
+  transcription_job_status?: APITranscriptionJobStatus | null;
+  note_id?: string | null;
+  notes_text?: string | null;
+};
 
 export type ImageOrder = {
   id: string;
