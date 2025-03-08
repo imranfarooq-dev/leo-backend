@@ -96,6 +96,10 @@ export class DocumentRepository {
         throw new Error(countResult.error?.message ?? documentsResult.error?.message ?? 'Failed to fetch items by user id');
       }
 
+      if (!documentsResult.data || documentsResult.data.length === 0) {
+        return { documents: [], count: countResult.count };
+      }
+
       const documentsWithThumbnailUrls: Document[] = await Promise.all(documentsResult.data.map(async (document) => {
         const { images, ...rest } = document;
 
@@ -114,7 +118,7 @@ export class DocumentRepository {
       }));
       return { documents: documentsWithThumbnailUrls, count: countResult.count };
     } catch (error) {
-      this.logger.error('Failed to fetch item by user_id');
+      this.logger.error('Failed to fetch items by user_id');
     }
   }
 
