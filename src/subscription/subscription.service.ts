@@ -8,6 +8,7 @@ import {
   Provides,
   StripeCheckoutMode,
   SubscriptionStatus,
+  Tables,
 } from '@/src/shared/constant'
 import { Credit } from '@/types/credit'
 import { FreePlanStatus, SubscriptionDB } from '@/types/subscription'
@@ -23,6 +24,7 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import Stripe from 'stripe'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 @Injectable()
 export class SubscriptionService {
@@ -37,6 +39,7 @@ export class SubscriptionService {
     private readonly documentRepository: DocumentRepository,
     private readonly imageRepository: ImageRepository,
     private configService: ConfigService,
+    private readonly supabase: SupabaseClient,
   ) {
     this.successUrl = this.configService.get<string>('STRIPE_SUCCESS_URL');
   }
@@ -583,4 +586,52 @@ export class SubscriptionService {
       );
     }
   };
+
+  async replenishBetaCredits(): Promise<void> {
+    try {
+      const { data: subscriptions, error } = await this.supabase
+        .from(Tables.Subscriptions)
+        .select('user_id, current_period_end, stripe_subscription_id')
+        .like('stripe_subscription_id', 'beta_%')
+        .eq('status', SubscriptionStatus.Active);
+
+      if (error) {
+        throw new Error(`Failed to fetch beta subscriptions: ${error.message}`);
+      }
+
+      const now = new Date();
+
+      for (const subscription of subscriptions) {
+        const periodEnd = new Date(subscription.current_period_end);
+
+        if (now > periodEnd) {
+          const newPeriodStart = periodEnd;
+          const newPeriodEnd = new Date(periodEnd);
+          newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+
+          // Replenish credits
+          await this.creditRepository.updateCredits(
+            subscription.user_id,
+            {
+              monthly_credits: 1000
+            }
+          );
+
+          // Update subscription periods
+          await this.subscriptionRepository.updateUserSubscription(
+            subscription.user_id,
+            {
+              current_period_start: newPeriodStart.toISOString(),
+              current_period_end: newPeriodEnd.toISOString(),
+            }
+          );
+
+          this.logger.log(`Replenished credits for beta user ${subscription.user_id}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error replenishing beta credits: ${error.message}`);
+      throw error;
+    }
+  }
 }

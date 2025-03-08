@@ -18,12 +18,13 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { CreditModule } from './credit/credit.module';
 import SupabaseConfig from '@/src/config/supabase.config';
 import StripeConfig from '@/src/config/stripe.config';
+import ApiConfig from '@/src/config/api.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [SupabaseConfig, StripeConfig],
+      load: [SupabaseConfig, StripeConfig, ApiConfig],
       envFilePath: [
         '.env.local',
         '.env.development',

@@ -9,6 +9,7 @@ import {
   Headers,
   Req,
   Get,
+  UseGuards,
 } from '@nestjs/common';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import { User } from '@/src/comon/decorators/user.decorator';
@@ -21,6 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import { Public } from '@/src/comon/decorators/public.decorator';
 import { FreePlanStatus } from '@/types/subscription';
 import { SubscriptionStatus } from '../shared/constant';
+import { ApiKeyAuthGuard } from '@/src/auth/guards/api-key-auth.guard';
 
 @Controller('subscription')
 export class SubscriptionController {
@@ -267,6 +269,26 @@ export class SubscriptionController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message: error.message ?? 'An error occurred while fetching invoices',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('beta/replenish')
+  @UseGuards(ApiKeyAuthGuard)
+  async replenishBetaCredits() {
+    try {
+      await this.subscriptionService.replenishBetaCredits();
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Beta credits replenished successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message ?? 'An error occurred while replenishing beta credits',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
