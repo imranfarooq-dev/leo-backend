@@ -39,7 +39,7 @@ export class SubscriptionService {
     private readonly documentRepository: DocumentRepository,
     private readonly imageRepository: ImageRepository,
     private configService: ConfigService,
-    private readonly supabase: SupabaseClient,
+    @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) {
     this.successUrl = this.configService.get<string>('STRIPE_SUCCESS_URL');
   }
