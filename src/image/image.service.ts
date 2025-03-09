@@ -152,13 +152,17 @@ export class ImageService {
 
   async update(user: User, imageId: string, updateImage: UpdateImageDto): Promise<void> {
     try {
-      const imageUserId: string | null = await this.imageRepository.userIdFromImageId(imageId);
+      const imageUserIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
 
-      if (!imageUserId) {
+      if (!imageUserIds) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (imageUserId !== user.id) {
+      if (imageUserIds.length !== 1) {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      if (imageUserIds[0] !== user.id) {
         throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
       }
 

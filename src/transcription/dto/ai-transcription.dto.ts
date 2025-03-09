@@ -1,7 +1,13 @@
-import { IsArray, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class AiTranscriptionDto {
   @IsArray()
   @IsString({ each: true })
-  imageIds: string[];
+  @IsOptional()
+  imageIds?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  documentIds?: string[];
 }

@@ -82,17 +82,21 @@ export class ListsDocumentsRepository {
       }
 
       const documentsWithThumbnailUrls: Document[] = await Promise.all(data.map(async (document) => {
-        const { first_image_path, ...rest } = document;
+        const { images, ...rest } = document;
+
+        const processedImages = images ? await Promise.all(images.map(async (image) => {
+          const { image_path, ...imageRest } = image;
+          return {
+            ...imageRest,
+            thumbnail_url: image_path ? await this.supabaseService.getPresignedThumbnailUrl(image_path) : null,
+          };
+        })) : [];
+
         return {
           ...rest,
-          thumbnail_url: first_image_path ? await this.supabaseService.getPresignedThumbnailUrl(first_image_path) : null,
+          images: processedImages,
         };
       }));
-
-      if (error) {
-        throw new Error(error.message ?? 'Failed to fetch documents for list');
-      }
-
       return { documents: documentsWithThumbnailUrls, count };
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch documents for lists');

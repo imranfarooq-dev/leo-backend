@@ -84,4 +84,29 @@ export class TranscriptRepository {
       this.logger.error(error.message ?? 'Failed to update transcription');
     }
   }
+
+  async fetchUntranscribedImagesByDocumentIds(
+    documentIds: string[],
+  ): Promise<string[]> {
+    try {
+      if (documentIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await this.supabase.rpc('get_untranscribed_image_ids', { p_document_ids: documentIds });
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch untranscribed images by document ids');
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch untranscribed images by document ids');
+    }
+  }
 }
+

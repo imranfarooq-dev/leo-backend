@@ -14,6 +14,7 @@ import { APITranscriptionStatus, Transcription, TranscriptionStatus } from '@/ty
 import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
 import { APITranscriptionJobStatus } from '@/types/transcription_job';
 import { Credit } from '@/types/credit';
+import { AiTranscriptionDto } from './dto/ai-transcription.dto';
 
 const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 1000;
@@ -31,27 +32,84 @@ export class TranscriptionService {
   ) { }
 
   async getTranscription(clerkUser: ClerkUser, imageId: string): Promise<Transcription | null> {
-    const userId: string | null = await this.imageRepository.userIdFromImageId(imageId);
+    const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
 
-    if (!userId) {
+    if (!userIds) {
       throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
     }
 
-    if (userId !== clerkUser.id) {
+    if (userIds.length !== 1) {
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    if (userIds[0] !== clerkUser.id) {
       throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
     }
 
     return await this.transcriptionRepository.fetchTranscriptionByImageId(imageId);
   }
 
-  async aiTranscribe(clerkUser: ClerkUser, imageIds: string[]): Promise<{
+  async getTranscribableImages(clerkUser: ClerkUser, documentIds: string[]): Promise<string[]> {
+    const userIds: string[] = [...new Set([...await this.documentRepository.userIdsFromDocumentIds(documentIds)])];
+
+    if (!userIds) {
+      throw new HttpException('Document does not exist', HttpStatus.NOT_FOUND);
+    }
+
+    if (userIds.length !== 1) {
+      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+    }
+
+    if (userIds[0] !== clerkUser.id) {
+      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+    }
+
+    const untranscribedImages: string[] = await this.transcriptionRepository.fetchUntranscribedImagesByDocumentIds(documentIds);
+    return untranscribedImages;
+  }
+
+  async aiTranscribe(clerkUser: ClerkUser, aiTranscriptionDto: AiTranscriptionDto): Promise<{
     transcribedImageIds: string[];
+    allImageIds: string[];
   }> {
+    const { imageIds = [], documentIds = [] } = aiTranscriptionDto;
+
+    // Check user has permission to transcribe these.
+    const [imageUserIds, documentUserIds] = await Promise.all([
+      this.imageRepository.userIdsFromImageIds(imageIds),
+      this.documentRepository.userIdsFromDocumentIds(documentIds),
+    ]);
+
+    const allUserIds: string[] = [...new Set([...imageUserIds, ...documentUserIds])];
+
+    if (allUserIds.length !== 1) {
+      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+    }
+
+    if (allUserIds[0] !== clerkUser.id) {
+      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+    }
+
+    let allImageIds: string[] = [];
+    if (documentIds.length > 0) {
+      const untranscribedImages: string[] = await this.transcriptionRepository.fetchUntranscribedImagesByDocumentIds(documentIds);
+      allImageIds = [...untranscribedImages, ...imageIds];
+    } else {
+      allImageIds = imageIds;
+    }
+
+    if (allImageIds.length === 0) {
+      return {
+        transcribedImageIds: [],
+        allImageIds: [],
+      };
+    }
+
     try {
       const BATCH_SIZE: number = 10;
       const results = [];
       const processedDocuments = new Set<string>();
-      const transcriptionCost: number = imageIds.length * TRANSCRIBE_COST;
+      const transcriptionCost: number = allImageIds.length * TRANSCRIBE_COST;
 
       // Check credit balance
       const credits: Credit | null = await this.creditsRepository.fetchUserCredits(
@@ -71,8 +129,8 @@ export class TranscriptionService {
 
       // Process images in batches
       // FIXME: Do not batch (after we update to send presigned URLs)
-      for (let i = 0; i < imageIds.length; i += BATCH_SIZE) {
-        const batchImageIds = imageIds.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < allImageIds.length; i += BATCH_SIZE) {
+        const batchImageIds = allImageIds.slice(i, i + BATCH_SIZE);
         const batchImages: ImageDB[] = await this.imageRepository.fetchImagesByIds(batchImageIds);
 
         // Process each image in the batch
@@ -92,7 +150,7 @@ export class TranscriptionService {
         await Promise.all(batchPromises);
 
         // Add delay between batches to prevent rate limiting
-        if (i + BATCH_SIZE < imageIds.length) {
+        if (i + BATCH_SIZE < allImageIds.length) {
           await new Promise((resolve) => setTimeout(resolve, 300));
         }
       }
@@ -110,6 +168,7 @@ export class TranscriptionService {
 
       return {
         transcribedImageIds: transcribedImages.map((image) => image.imageId),
+        allImageIds: allImageIds,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -133,13 +192,17 @@ export class TranscriptionService {
         transcription_status,
         current_transcription_text,
       } = createUpdateTranscription;
-      const userId: string | null = await this.imageRepository.userIdFromImageId(imageId);
+      const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
 
-      if (!userId) {
+      if (!userIds) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (userId !== clerkUser.id) {
+      if (userIds.length !== 1) {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      if (userIds[0] !== clerkUser.id) {
         throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
       }
 
@@ -371,4 +434,6 @@ export class TranscriptionService {
       image_id: imageId,
     });
   }
+
+
 }

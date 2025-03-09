@@ -115,15 +115,19 @@ export class ImageRepository {
     }
   }
 
-  async userIdFromImageId(imageId: string): Promise<string | null> {
+  async userIdsFromImageIds(imageIds: string[]): Promise<string[]> {
     try {
+      if (imageIds.length === 0) {
+        return [];
+      }
+
       const { data, error } = await this.supabase
         .from(Tables.Images)
         .select('document:document_id (user_id)')
-        .eq('id', imageId)
-        .maybeSingle();
+        .in('id', imageIds);
 
       if (error) {
+        this.logger.error(error.message ?? 'Failed to fetch user id from image id');
         throw new Error('Failed to fetch user id from image id'); // TODO: Here and elsewhere, actually propagate the error to the FE
       }
 
@@ -131,8 +135,8 @@ export class ImageRepository {
         return null;
       }
 
-      const document = data.document as unknown as { user_id: string };
-      return document.user_id;
+      const documents = data as unknown as { document: { user_id: string } }[];
+      return documents.map((document) => document.document.user_id);
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch user id from image id');
       throw error;

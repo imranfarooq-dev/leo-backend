@@ -214,4 +214,30 @@ export class DocumentRepository {
       this.logger.error(error.message ?? 'Failed to fetch item by id');
     }
   }
+
+  async userIdsFromDocumentIds(documentIds: string[]): Promise<string[]> {
+    try {
+      if (documentIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await this.supabase
+        .from(Tables.Documents)
+        .select('user_id')
+        .in('id', documentIds);
+
+      if (error) {
+        throw new Error('Failed to fetch user id from document id'); // TODO: Here and elsewhere, actually propagate the error to the FE
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return data.map((item) => item.user_id);
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch user id from document id');
+      throw error;
+    }
+  }
 }

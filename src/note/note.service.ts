@@ -14,13 +14,17 @@ export class NoteService {
   async createOrUpdate(clerkUser: ClerkUser, imageId: string, createUpdateNote: CreateUpdateNoteDto): Promise<string> {
     try {
       const { notes_text } = createUpdateNote;
-      const userId: string | null = await this.imageRepository.userIdFromImageId(imageId);
+      const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
 
-      if (!userId) {
+      if (!userIds) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (userId !== clerkUser.id) {
+      if (userIds.length !== 1) {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      if (userIds[0] !== clerkUser.id) {
         throw new HttpException('You are not authorized to update this image', HttpStatus.UNAUTHORIZED);
       }
 
