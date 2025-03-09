@@ -56,4 +56,26 @@ export class TranscriptionJobRepository {
       throw error;
     }
   }
+
+  async fetchTranscriptionJobsByImageIds(imageIds: string[], earliestCreatedAt: Date | null): Promise<TranscriptionJobDB[]> {
+    try {
+      const { data: jobs, error } = await this.supabase.rpc('get_latest_transcription_jobs', {
+        p_image_ids: imageIds,
+        p_earliest_created_at: earliestCreatedAt,
+      });
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to fetch transcription jobs by image ids');
+      }
+
+      if (!jobs) {
+        return [];
+      }
+
+      return jobs;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to fetch transcription jobs by image ids');
+      throw error;
+    }
+  }
 }

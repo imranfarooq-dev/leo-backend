@@ -1,6 +1,5 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
-
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { SvixModule } from '@/src/svix/svix.module';
 import { SupabaseModule } from '@/src/supabase/supabase.module';
@@ -19,6 +18,7 @@ import { CreditModule } from './credit/credit.module';
 import SupabaseConfig from '@/src/config/supabase.config';
 import StripeConfig from '@/src/config/stripe.config';
 import ApiConfig from '@/src/config/api.config';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
@@ -31,6 +31,19 @@ import ApiConfig from '@/src/config/api.config';
         '.env.production',
         '.env',
       ],
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        redis: {
+          host: configService.get('REDISHOST', 'localhost'),
+          port: parseInt(configService.get('REDISPORT', '6379')),
+          password: configService.get('REDISPASSWORD'),
+          username: configService.get('REDISUSER'),
+          tls: process.env.NODE_ENV === 'production' ? {} : undefined,
+        },
+      }),
+      inject: [ConfigService],
     }),
     SvixModule,
     SupabaseModule,

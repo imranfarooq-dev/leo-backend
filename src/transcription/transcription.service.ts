@@ -12,12 +12,26 @@ import { TRANSCRIBE_COST } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { APITranscriptionStatus, Transcription, TranscriptionStatus } from '@/types/transcription';
 import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
-import { APITranscriptionJobStatus } from '@/types/transcription_job';
+import { APITranscriptionJobStatus, TranscriptionJobDB, TranscriptionJobStatus } from '@/types/transcription_job';
 import { Credit } from '@/types/credit';
 import { AiTranscriptionDto } from './dto/ai-transcription.dto';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 1000;
+export const TRANSCRIPTION_QUEUE = 'transcription';
+
+interface TranscriptionJobData {
+  userId: string;
+  jobs: Array<{
+    imageId: string;
+    externalJobId: string;
+    transcriptionJobId: string;
+    documentId?: string;
+  }>;
+  transcriptionCost: number;
+}
 
 @Injectable()
 export class TranscriptionService {
@@ -29,6 +43,7 @@ export class TranscriptionService {
     private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseService,
     private readonly transcriptionJobRepository: TranscriptionJobRepository,
+    @InjectQueue(TRANSCRIPTION_QUEUE) private transcriptionQueue: Queue<TranscriptionJobData>,
   ) { }
 
   async getTranscription(clerkUser: ClerkUser, imageId: string): Promise<Transcription | null> {
@@ -69,7 +84,6 @@ export class TranscriptionService {
   }
 
   async aiTranscribe(clerkUser: ClerkUser, aiTranscriptionDto: AiTranscriptionDto): Promise<{
-    transcribedImageIds: string[];
     allImageIds: string[];
   }> {
     const { imageIds = [], documentIds = [] } = aiTranscriptionDto;
@@ -100,15 +114,11 @@ export class TranscriptionService {
 
     if (allImageIds.length === 0) {
       return {
-        transcribedImageIds: [],
         allImageIds: [],
       };
     }
 
     try {
-      const BATCH_SIZE: number = 10;
-      const results = [];
-      const processedDocuments = new Set<string>();
       const transcriptionCost: number = allImageIds.length * TRANSCRIBE_COST;
 
       // Check credit balance
@@ -127,48 +137,95 @@ export class TranscriptionService {
         throw new HttpException('Insufficient credits', HttpStatus.BAD_REQUEST);
       }
 
-      // Process images in batches
-      // FIXME: Do not batch (after we update to send presigned URLs)
-      for (let i = 0; i < allImageIds.length; i += BATCH_SIZE) {
-        const batchImageIds = allImageIds.slice(i, i + BATCH_SIZE);
-        const batchImages: ImageDB[] = await this.imageRepository.fetchImagesByIds(batchImageIds);
+      // Fetch all images at once
+      const images: ImageDB[] = await this.imageRepository.fetchImagesByIds(allImageIds);
 
-        // Process each image in the batch
-        const batchPromises = batchImages.map(async (image) => {
-          const result = await this.transcribeSingleImage(image);
-          results.push(result);
+      // Submit all transcription jobs concurrently
+      const jobSubmissionPromises = images.map(async (image) => {
+        try {
+          const apiUrl = this.configService.get<string>('AI_URL');
+          const apiToken = this.configService.get<string>('AI_AUTH_TOKEN');
 
-          if (
-            result.status === APITranscriptionStatus.Success &&
-            result.documentId
-          ) {
-            processedDocuments.add(result.documentId);
+          if (!apiUrl || !apiToken) {
+            throw new HttpException(
+              'API configuration is missing',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
           }
-        });
 
-        // Wait for all operations in the batch to complete
-        await Promise.all(batchPromises);
+          // Download and convert image to base64
+          const { buffer, error } = await this.supabaseService.downloadFileBufferFromSupabase(
+            image.image_path,
+            image.image_name,
+          );
 
-        // Add delay between batches to prevent rate limiting
-        if (i + BATCH_SIZE < allImageIds.length) {
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          if (!!error?.length) {
+            console.error(`Failed to download image ${image.id}: ${error}`);
+            return null;
+          }
+
+          const base64Image = buffer.toString('base64');
+          const payload = {
+            input: {
+              image: base64Image
+            }
+          };
+
+          // Submit job to API
+          const runResponse = await this.axiosWithRetry(`${apiUrl}/run`, payload, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiToken}`,
+              Accept: 'application/json',
+            },
+            maxBodyLength: Infinity,
+          });
+
+          const jobId = runResponse.data.id;
+
+          // Create transcription job record
+          const transcriptionJob = await this.transcriptionJobRepository.createTranscriptionJob({
+            image_id: image.id,
+            external_job_id: jobId,
+            status: APITranscriptionJobStatus.InProgress,
+          });
+
+          return {
+            imageId: image.id,
+            externalJobId: jobId,
+            transcriptionJobId: transcriptionJob.id,
+            documentId: image.document_id,
+          };
+        } catch (error) {
+          console.error(`Failed to submit transcription job for image ${image.id}:`, error);
+          return null;
         }
+      });
+
+      // Wait for all jobs to be submitted and recorded in database
+      const submittedJobs = (await Promise.all(jobSubmissionPromises)).filter((job): job is NonNullable<typeof job> => job !== null);
+
+      // Add monitoring job to the queue
+      if (submittedJobs.length > 0) {
+        await this.transcriptionQueue.add(
+          'monitor',
+          {
+            userId: clerkUser.id,
+            jobs: submittedJobs,
+            transcriptionCost,
+          },
+          {
+            attempts: 5,
+            backoff: {
+              type: 'exponential',
+              delay: 10000,
+            },
+          },
+        );
       }
 
-      const transcribedImages = results.filter(
-        (result) => result.status === APITranscriptionStatus.Success,
-      );
-
-      // Return the credit update promise
-      // FIXME: Deduct credits before transcribing, and then readd them if issues
-      await this.creditsRepository.deductCredits(
-        clerkUser.id,
-        TRANSCRIBE_COST * transcribedImages.length,
-      );
-
       return {
-        transcribedImageIds: transcribedImages.map((image) => image.imageId),
-        allImageIds: allImageIds,
+        allImageIds,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -435,5 +492,24 @@ export class TranscriptionService {
     });
   }
 
+  async getTranscriptionJobStatuses(clerkUser: ClerkUser, imageIds: string[], earliestCreatedAt: Date | null): Promise<TranscriptionJobDB[]> {
+    const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds(imageIds);
 
+    if (!userIds) {
+      throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
+    }
+
+    const userIdsSet: Set<string> = new Set(userIds);
+
+    if (userIdsSet.size !== 1) {
+      throw new HttpException('Not authorized to view these images', HttpStatus.FORBIDDEN);
+    }
+
+    if (!userIdsSet.has(clerkUser.id)) {
+      throw new HttpException('Not authorized to view these images', HttpStatus.FORBIDDEN);
+    }
+
+    const transcriptionJobs: TranscriptionJobDB[] = await this.transcriptionJobRepository.fetchTranscriptionJobsByImageIds(imageIds, earliestCreatedAt);
+    return transcriptionJobs;
+  }
 }

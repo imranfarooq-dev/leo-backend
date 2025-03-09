@@ -15,6 +15,8 @@ import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import { AiTranscriptionDto } from '@/src/transcription/dto/ai-transcription.dto';
 import { Transcription } from '@/types/transcription';
 import { GetTranscribableImagesDto } from './dto/get-transcribable-images.dto';
+import { GetTranscriptionJobStatusesDto } from './dto/get-transcription-job-statuses.dto';
+import { TranscriptionJobDB } from '@/types/transcription_job';
 
 
 @Controller('transcription')
@@ -48,15 +50,14 @@ export class TranscriptionController {
     @Body() aiTranscriptionDto: AiTranscriptionDto,
   ) {
     try {
-      const { transcribedImageIds, allImageIds } = await this.transcriptionService.aiTranscribe(
+      const { allImageIds } = await this.transcriptionService.aiTranscribe(
         clerkUser,
         aiTranscriptionDto,
       );
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Images transcribed',
-        transcribedImageIds,
+        message: 'Transcription jobs created',
         allImageIds,
       };
     } catch (error) {
@@ -64,7 +65,7 @@ export class TranscriptionController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while transcribing the image',
+            error.message ?? 'An error occurred while creating transcription jobs',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -124,6 +125,28 @@ export class TranscriptionController {
           message:
             error.message ??
             'An error occurred while creating/updating the transcription',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post("/jobs")
+  async transcriptionJobStatuses(@User() clerkUser: ClerkUser, @Body() getTranscriptionJobStatusesDto: GetTranscriptionJobStatusesDto) {
+    try {
+      const { imageIds, earliestCreatedAt = null } = getTranscriptionJobStatusesDto;
+      const transcriptionJobs: TranscriptionJobDB[] = await this.transcriptionService.getTranscriptionJobStatuses(clerkUser, imageIds, earliestCreatedAt);
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Transcription jobs fetched',
+        transcriptionJobs,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message ?? 'An error occurred while fetching the transcription job status',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
