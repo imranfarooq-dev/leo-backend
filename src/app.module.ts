@@ -41,7 +41,8 @@ import { BullModule } from '@nestjs/bull';
             port: parseInt(configService.get('REDISPORT', '6379')),
             password: configService.get('REDISPASSWORD'),
             username: configService.get('REDISUSER'),
-            tls: process.env.NODE_ENV === 'production' ? {} : undefined,
+            family: 0,
+            // tls: process.env.NODE_ENV === 'production' ? {} : undefined,
           },
         }
       },
