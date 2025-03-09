@@ -206,6 +206,7 @@ export class TranscriptionService {
       const submittedJobs = (await Promise.all(jobSubmissionPromises)).filter((job): job is NonNullable<typeof job> => job !== null);
 
       // Add monitoring job to the queue
+      console.log(`Submitted ${submittedJobs.length} jobs; adding to Redis queue`);
       if (submittedJobs.length > 0) {
         await this.transcriptionQueue.add(
           'monitor',
@@ -224,6 +225,7 @@ export class TranscriptionService {
         );
       }
 
+      console.log(`Added ${submittedJobs.length} jobs to Redis queue`);
       return {
         allImageIds,
       };
