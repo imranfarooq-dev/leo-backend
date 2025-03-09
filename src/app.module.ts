@@ -34,15 +34,19 @@ import { BullModule } from '@nestjs/bull';
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDISHOST', 'localhost'),
-          port: parseInt(configService.get('REDISPORT', '6379')),
-          password: configService.get('REDISPASSWORD'),
-          username: configService.get('REDISUSER'),
-          tls: process.env.NODE_ENV === 'production' ? {} : undefined,
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const env = process.env.NODE_ENV;
+        const isLocal = !env || env === 'local';
+        return {
+          redis: {
+            host: configService.get('REDISHOST', 'localhost'),
+            port: parseInt(configService.get('REDISPORT', '6379')),
+            password: configService.get('REDISPASSWORD'),
+            username: configService.get('REDISUSER'),
+            tls: isLocal ? undefined : {},
+          },
+        }
+      },
       inject: [ConfigService],
     }),
     SvixModule,
