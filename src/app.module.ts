@@ -43,7 +43,7 @@ import { BullModule } from '@nestjs/bull';
             port: parseInt(configService.get('REDISPORT', '6379')),
             password: configService.get('REDISPASSWORD'),
             username: configService.get('REDISUSER'),
-            // tls: undefined,
+            family: 0,
           },
         }
       },
