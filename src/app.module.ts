@@ -42,7 +42,6 @@ import { BullModule } from '@nestjs/bull';
             password: configService.get('REDISPASSWORD'),
             username: configService.get('REDISUSER'),
             family: 0,
-            // tls: process.env.NODE_ENV === 'production' ? {} : undefined,
           },
         }
       },
