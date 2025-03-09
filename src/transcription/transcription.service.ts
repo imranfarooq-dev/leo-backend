@@ -205,6 +205,12 @@ export class TranscriptionService {
       // Wait for all jobs to be submitted and recorded in database
       const submittedJobs = (await Promise.all(jobSubmissionPromises)).filter((job): job is NonNullable<typeof job> => job !== null);
 
+      console.log(`[Redis Debug] About to add ${submittedJobs.length} jobs to queue. Redis config:`, {
+        host: this.configService.get('REDISHOST'),
+        port: this.configService.get('REDISPORT'),
+        nodeEnv: process.env.NODE_ENV,
+      });
+
       // Add monitoring job to the queue
       console.log(`Submitted ${submittedJobs.length} jobs; adding to Redis queue`);
       if (submittedJobs.length > 0) {
