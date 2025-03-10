@@ -17,7 +17,6 @@ interface TranscriptionJobData {
         transcriptionJobId: string;
         documentId?: string;
     }>;
-    transcriptionCost: number;
 }
 
 @Processor(TRANSCRIPTION_QUEUE)
@@ -32,7 +31,8 @@ export class TranscriptionProcessor {
     @Process('monitor')
     async handleTranscriptionMonitoring(job: Job<TranscriptionJobData>) {
         try {
-            const { userId, jobs, transcriptionCost } = job.data;
+            console.log('transcription monitoring job received');
+            const { userId, jobs } = job.data;
             const apiUrl = this.configService.get<string>('AI_URL');
             const apiToken = this.configService.get<string>('AI_AUTH_TOKEN');
 
@@ -145,10 +145,13 @@ export class TranscriptionProcessor {
             );
 
             if (successfulTranscriptions.length > 0) {
+                console.log('successful transcriptions', successfulTranscriptions);
+                console.log('transcription cost', successfulTranscriptions.length);
                 await this.creditsRepository.deductCredits(
                     userId,
-                    transcriptionCost * successfulTranscriptions.length
+                    successfulTranscriptions.length
                 );
+                console.log('credits deducted');
             }
         } catch (error) {
             console.error('Error in transcription monitoring:', error);

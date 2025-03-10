@@ -1,5 +1,4 @@
 export const MAX_IMAGE_ALLOWED = 1000;
-export const TRANSCRIBE_COST: number = 1;
 
 export const IsPublic = 'isPublic';
 export const SupabaseStorageId = 'leo';

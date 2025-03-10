@@ -8,7 +8,6 @@ import axios, { AxiosResponse } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
-import { TRANSCRIBE_COST } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { APITranscriptionStatus, Transcription, TranscriptionStatus } from '@/types/transcription';
 import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
@@ -30,7 +29,6 @@ interface TranscriptionJobData {
     transcriptionJobId: string;
     documentId?: string;
   }>;
-  transcriptionCost: number;
 }
 
 @Injectable()
@@ -119,7 +117,7 @@ export class TranscriptionService {
     }
 
     try {
-      const transcriptionCost: number = allImageIds.length * TRANSCRIBE_COST;
+      const transcriptionCost: number = allImageIds.length;
 
       // Check credit balance
       const credits: Credit | null = await this.creditsRepository.fetchUserCredits(
@@ -201,7 +199,6 @@ export class TranscriptionService {
           {
             userId: clerkUser.id,
             jobs: submittedJobs,
-            transcriptionCost,
           },
           {
             attempts: 5,
