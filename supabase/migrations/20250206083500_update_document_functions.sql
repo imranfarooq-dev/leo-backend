@@ -1,19 +1,15 @@
 BEGIN;
 
-DROP FUNCTION IF EXISTS fetch_documents_for_lists;
-DROP FUNCTION IF EXISTS get_latest_transcription_job_status;
-DROP FUNCTION IF EXISTS get_ordered_images_by_document_id;
-DROP FUNCTION IF EXISTS get_ordered_images_by_document_ids;
-
-DROP FUNCTION IF EXISTS get_documents_by_user_id;
+DROP FUNCTION IF EXISTS get_documents_by_user_id(TEXT, INTEGER, INTEGER);
+DROP FUNCTION IF EXISTS get_documents_by_user_id(UUID, INTEGER, INTEGER);
 CREATE OR REPLACE FUNCTION get_documents_by_user_id(
-    user_id UUID,
+    p_user_id TEXT,
     page_size INTEGER DEFAULT 10,
     page_number INTEGER DEFAULT 1
 )
 RETURNS TABLE (
     id UUID,
-    user_id UUID,
+    user_id TEXT,
     document_name TEXT,
     creator_name TEXT,
     date DATE,
@@ -30,7 +26,7 @@ BEGIN
     WITH paginated_documents AS (
         SELECT d.*
         FROM documents d
-        WHERE d.user_id = user_id
+        WHERE d.user_id = p_user_id
         ORDER BY d.created_at DESC
         LIMIT page_size
         OFFSET ((page_number - 1) * page_size)
@@ -72,15 +68,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS get_documents_by_list_id;
+DROP FUNCTION IF EXISTS get_documents_by_list_id(TEXT, INTEGER, INTEGER);
+DROP FUNCTION IF EXISTS get_documents_by_list_id(UUID, INTEGER, INTEGER);
 CREATE OR REPLACE FUNCTION get_documents_by_list_id(
-    list_id UUID,
+    p_list_id TEXT,
     page_size INTEGER DEFAULT 10,
     page_number INTEGER DEFAULT 1
 )
 RETURNS TABLE (
     id UUID,
-    user_id UUID,
+    user_id TEXT,
     document_name TEXT,
     creator_name TEXT,
     date DATE,
@@ -98,7 +95,7 @@ BEGIN
         SELECT d.*
         FROM documents d
         JOIN lists_documents ld ON d.id = ld.document_id
-        WHERE ld.list_id = list_id
+        WHERE ld.list_id = p_list_id::uuid
         ORDER BY d.created_at DESC
         LIMIT page_size
         OFFSET ((page_number - 1) * page_size)
@@ -140,11 +137,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS get_document_by_id;
-CREATE OR REPLACE FUNCTION get_document_by_id(document_id UUID)
+DROP FUNCTION IF EXISTS get_document_by_id(TEXT);
+DROP FUNCTION IF EXISTS get_document_by_id(UUID);
+CREATE OR REPLACE FUNCTION get_document_by_id(p_document_id TEXT)
 RETURNS TABLE (
     id UUID,
-    user_id UUID,
+    user_id TEXT,
     document_name TEXT,
     creator_name TEXT,
     date DATE,
@@ -202,12 +200,13 @@ BEGIN
         d.type
     FROM documents d
     LEFT JOIN image_counts ic ON d.id = ic.document_id
-    WHERE d.id = document_id;
+    WHERE d.id = p_document_id::uuid;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS get_image_by_id;
-CREATE OR REPLACE FUNCTION get_image_by_id(image_id UUID)
+DROP FUNCTION IF EXISTS get_image_by_id(TEXT);
+DROP FUNCTION IF EXISTS get_image_by_id(UUID);
+CREATE OR REPLACE FUNCTION get_image_by_id(p_image_id TEXT)
 RETURNS TABLE (
     id UUID,
     document_id UUID,
@@ -231,7 +230,7 @@ BEGIN
                tj.status AS transcription_job_status,
                tj.created_at
         FROM transcription_jobs tj
-        WHERE tj.image_id = image_id
+        WHERE tj.image_id = p_image_id::uuid
         ORDER BY tj.created_at DESC
         LIMIT 1
     )
@@ -253,12 +252,13 @@ BEGIN
     LEFT JOIN transcriptions t ON i.id = t.image_id
     LEFT JOIN latest_transcription_job ltj ON i.id = ltj.image_id
     LEFT JOIN notes n ON i.id = n.image_id
-    WHERE i.id = image_id;
+    WHERE i.id = p_image_id::uuid;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS get_total_images_by_user_id;
-CREATE OR REPLACE FUNCTION get_total_images_by_user_id(user_id UUID)
+DROP FUNCTION IF EXISTS get_total_images_by_user_id(TEXT);
+DROP FUNCTION IF EXISTS get_total_images_by_user_id(UUID);
+CREATE OR REPLACE FUNCTION get_total_images_by_user_id(p_user_id TEXT)
 RETURNS INTEGER AS $$
 DECLARE
     total_count INTEGER;
@@ -267,7 +267,7 @@ BEGIN
     INTO total_count
     FROM documents d
     JOIN images i ON d.id = i.document_id
-    WHERE d.user_id = user_id;
+    WHERE d.user_id = p_user_id;
 
     RETURN total_count;
 END;
