@@ -16,11 +16,11 @@ export class SupabaseService {
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) { }
 
-  async getPresignedUrl(path: string): Promise<string> {
+  async getPresignedUrl(path: string, expiresIn: number = 3600): Promise<string> {
     try {
       const { data, error } = await this.supabase.storage
         .from(SupabaseStorageId)
-        .createSignedUrl(path, 3600); // 1 hour expiration
+        .createSignedUrl(path, expiresIn);
 
       if (error) throw error;
       return data.signedUrl;
