@@ -4,7 +4,7 @@ import { ListRespository } from '@/src/database/repositiories/list.respository';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
 import { ListDB, ListOrder, ListTree } from '@/types/list';
 import { constructListTree } from '@/src/utils';
-
+import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 @Injectable()
 export class ListService {
   constructor(private readonly listRepository: ListRespository) { }
@@ -71,7 +71,7 @@ export class ListService {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (listExist.user_id !== user_id) {
+      if (listExist.user_id !== user_id && !PRIVILEGED_USER_IDS.includes(user_id)) {
         throw new HttpException(
           'You do not have permission to modify this list.',
           HttpStatus.FORBIDDEN,
@@ -157,7 +157,7 @@ export class ListService {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (listToDelete.user_id !== userId) {
+      if (listToDelete.user_id !== userId && !PRIVILEGED_USER_IDS.includes(userId)) {
         throw new HttpException(
           'You do not have permission to delete this list.',
           HttpStatus.FORBIDDEN,

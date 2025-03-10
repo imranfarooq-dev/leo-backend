@@ -16,6 +16,7 @@ import { Credit } from '@/types/credit';
 import { AiTranscriptionDto } from './dto/ai-transcription.dto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 
 const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 1000;
@@ -55,7 +56,7 @@ export class TranscriptionService {
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    if (userIds[0] !== clerkUser.id) {
+    if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
       throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
     }
 
@@ -73,7 +74,7 @@ export class TranscriptionService {
       throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
     }
 
-    if (userIds[0] !== clerkUser.id) {
+    if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
       throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
     }
 
@@ -98,7 +99,7 @@ export class TranscriptionService {
       throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
     }
 
-    if (allUserIds[0] !== clerkUser.id) {
+    if (allUserIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
       throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
     }
 
@@ -245,7 +246,7 @@ export class TranscriptionService {
         throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
-      if (userIds[0] !== clerkUser.id) {
+      if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
         throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
       }
 
@@ -355,7 +356,7 @@ export class TranscriptionService {
       throw new HttpException('Not authorized to view these images', HttpStatus.FORBIDDEN);
     }
 
-    if (!userIdsSet.has(clerkUser.id)) {
+    if (!userIdsSet.has(clerkUser.id) && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
       throw new HttpException('Not authorized to view these images', HttpStatus.FORBIDDEN);
     }
 

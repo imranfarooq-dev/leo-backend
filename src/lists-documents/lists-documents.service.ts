@@ -7,6 +7,7 @@ import { DocumentDB, Document } from '@/types/document'
 import { ListDB, ListSummary } from '@/types/list'
 import { User } from '@clerk/clerk-sdk-node'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { PRIVILEGED_USER_IDS } from '@/src/shared/constant'
 
 
 @Injectable()
@@ -31,7 +32,7 @@ export class ListsDocumentsService {
         );
       }
 
-      if (documentExist.user_id !== user.id) {
+      if (documentExist.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,
@@ -88,7 +89,7 @@ export class ListsDocumentsService {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (list.user_id !== user.id) {
+      if (list.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException('List does not belong to user', HttpStatus.FORBIDDEN);
       }
 
@@ -129,7 +130,7 @@ export class ListsDocumentsService {
         );
       }
 
-      if (document.user_id !== user.id) {
+      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,

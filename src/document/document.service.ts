@@ -11,6 +11,7 @@ import { ImageService } from '@/src/image/image.service';
 import { User } from '@clerk/clerk-sdk-node';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
 import { DocumentDB, Document } from '@/types/document';
+import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 
 @Injectable()
 export class DocumentService {
@@ -76,7 +77,7 @@ export class DocumentService {
         );
       }
 
-      if (document.user_id !== user.id) {
+      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException(
           'You are not authorized to view this item',
           HttpStatus.UNAUTHORIZED,
@@ -148,7 +149,7 @@ export class DocumentService {
         );
       }
 
-      if (document.user_id !== user.id) {
+      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException(
           'You are not authorized to delete this item',
           HttpStatus.UNAUTHORIZED,
@@ -181,7 +182,7 @@ export class DocumentService {
         );
       }
 
-      if (document.user_id !== user.id) {
+      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException(
           'You are not authorized to update this item',
           HttpStatus.UNAUTHORIZED,

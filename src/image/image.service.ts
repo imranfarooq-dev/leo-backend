@@ -15,7 +15,7 @@ import {
   Injectable,
 } from '@nestjs/common'
 import { Readable } from 'stream'
-
+import { PRIVILEGED_USER_IDS } from '@/src/shared/constant'
 @Injectable()
 export class ImageService {
   constructor(
@@ -58,7 +58,7 @@ export class ImageService {
         );
       }
 
-      if (document.user_id !== userId) {
+      if (document.user_id !== userId && !PRIVILEGED_USER_IDS.includes(userId)) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,
@@ -162,7 +162,7 @@ export class ImageService {
         throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
-      if (imageUserIds[0] !== user.id) {
+      if (imageUserIds[0] !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
       }
 
@@ -194,7 +194,7 @@ export class ImageService {
         throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== user.id) {
+      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
       }
 
@@ -246,7 +246,7 @@ export class ImageService {
 
       const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(image.document_id);
 
-      if (document.user_id != user.id) {
+      if (document.user_id != user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
         throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
       }
 

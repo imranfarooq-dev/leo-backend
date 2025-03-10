@@ -48,3 +48,11 @@ export enum SubscriptionStatus {
   Unpaid = 'unpaid',
   Paused = 'paused',
 }
+
+// TODO: Delete me.
+export const PRIVILEGED_USER_IDS = [
+  'user_2t1CvUM2TR1B6dJO454g9Kliac5',
+  'user_2sdpvKpLs9AgF5zHninl30vhg9I',
+  'user_2radvhPQgGwGQUXFooRVTuaySiY',
+  'user_2radvhPQgGwGQUXFooRVTuaySiY'
+];
