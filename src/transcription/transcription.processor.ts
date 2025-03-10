@@ -28,10 +28,9 @@ export class TranscriptionProcessor {
         private readonly creditsRepository: CreditsRepository,
     ) { }
 
-    @Process('monitor')
+    @Process({ name: 'monitor', concurrency: 50 }) // ATTN: concurrency is set to 50
     async handleTranscriptionMonitoring(job: Job<TranscriptionJobData>) {
         try {
-            console.log('transcription monitoring job received');
             const { userId, jobs } = job.data;
             const apiUrl = this.configService.get<string>('AI_URL');
             const apiToken = this.configService.get<string>('AI_AUTH_TOKEN');
@@ -145,13 +144,10 @@ export class TranscriptionProcessor {
             );
 
             if (successfulTranscriptions.length > 0) {
-                console.log('successful transcriptions', successfulTranscriptions);
-                console.log('transcription cost', successfulTranscriptions.length);
                 await this.creditsRepository.deductCredits(
                     userId,
                     successfulTranscriptions.length
                 );
-                console.log('credits deducted');
             }
         } catch (error) {
             console.error('Error in transcription monitoring:', error);
