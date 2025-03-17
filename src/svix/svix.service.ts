@@ -28,21 +28,21 @@ export class SvixService {
             last_name,
           });
         } catch (error) {
-          this.logger.error('Failed to create user');
+          this.logger.error('Failed to create user: ' + error.message);
         }
         break;
       case 'user.updated':
         try {
           await this.userService.update(event.data);
         } catch (error) {
-          this.logger.error('Failed to update user');
+          this.logger.error('Failed to update user: ' + error.message);
         }
         break;
       case 'user.deleted':
         try {
           await this.userService.delete(event.data);
         } catch (error) {
-          this.logger.error(error.message ?? 'Failed to delete user');
+          this.logger.error('Failed to delete user: ' + error.message);
         }
         break;
       default:

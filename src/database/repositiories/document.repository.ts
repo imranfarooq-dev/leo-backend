@@ -34,7 +34,7 @@ export class DocumentRepository {
       return data.id;
 
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to create item');
+      this.logger.error('Failed to create item with error: ' + error.message);
     }
   }
 
@@ -70,7 +70,7 @@ export class DocumentRepository {
 
       return document;
     } catch (error) {
-      this.logger.error('Failed to fetch item by id');
+      this.logger.error('Failed to fetch item by id with error: ' + error.message);
     }
   }
 
@@ -118,7 +118,7 @@ export class DocumentRepository {
       }));
       return { documents: documentsWithThumbnailUrls, count: countResult.count };
     } catch (error) {
-      this.logger.error('Failed to fetch items by user_id');
+      this.logger.error('Failed to fetch items by user_id for user ' + userId + ' with error: ' + error.message);
     }
   }
 
@@ -156,7 +156,7 @@ export class DocumentRepository {
 
       return documentsWithImages;
     } catch (error) {
-      this.logger.error('Failed to fetch item by id');
+      this.logger.error('Failed to fetch items by id with error: ' + error.message);
     }
   }
 
@@ -174,7 +174,7 @@ export class DocumentRepository {
         throw new Error('Failed to update item');
       }
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to update item');
+      this.logger.error('Failed to update item with error: ' + error.message);
     }
   }
 
@@ -189,7 +189,7 @@ export class DocumentRepository {
         throw new Error('Faied to delete item');
       }
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to delete item');
+      this.logger.error('Failed to delete item with error: ' + error.message);
     }
   }
 
@@ -211,7 +211,7 @@ export class DocumentRepository {
 
       return data;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch item by id');
+      this.logger.error('Failed to fetch item by id with error: ' + error.message);
     }
   }
 
@@ -236,7 +236,7 @@ export class DocumentRepository {
 
       return data.map((item) => item.user_id);
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch user id from document id');
+      this.logger.error('Failed to fetch user id from document id with error: ' + error.message);
       throw error;
     }
   }
