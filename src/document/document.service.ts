@@ -29,8 +29,7 @@ export class DocumentService {
   ): Promise<{ documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
       const userDocuments: { documents: Document[]; count: number } = await this.documentRepository.fetchDocumentsByUserId(
-        user.id, // TODO FIXME
-        // 'user_2sJaEFNgVC3PQBmpcPS1JUTxzl1',
+        user.id,
         {
           page_size: limit,
           page_number: page,
