@@ -3,11 +3,13 @@ import {
   ImageStoragePath,
   Provides,
   SupabaseStorageId,
+  ThumbnailStoragePath,
 } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { FileBufferDownloadResult, UploadedImage } from '@/types/image';
 import { chunk } from 'lodash';
+import sharp from 'sharp';
 
 
 @Injectable()
@@ -16,35 +18,31 @@ export class SupabaseService {
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) { }
 
-  async getPresignedUrl(path: string, expiresIn: number = 3600): Promise<string> {
+  async getPresignedUrl(filename: string, expiresIn: number = 3600): Promise<string> {
     try {
       const { data, error } = await this.supabase.storage
         .from(SupabaseStorageId)
-        .createSignedUrl(path, expiresIn);
+        .createSignedUrl(`${ImageStoragePath}/${filename}`, expiresIn);
 
       if (error) throw error;
       return data.signedUrl;
     } catch (error) {
-      throw new Error(`Failed to generate presigned URL: ${error.message}`);
+      console.error(`Failed to generate presigned URL: ${error.message}`);
+      return null;
     }
   }
 
-  async getPresignedThumbnailUrl(path: string): Promise<string> {
+  async getPresignedThumbnailUrl(filename: string, expiresIn: number = 3600): Promise<string | null> {
     try {
       const { data, error } = await this.supabase.storage
         .from(SupabaseStorageId)
-        .createSignedUrl(path, 3600, { // 1 hour expiration
-          transform: {
-            width: 96,
-            height: 96,
-            resize: 'cover'
-          }
-        });
+        .createSignedUrl(`${ThumbnailStoragePath}/${filename}`, expiresIn);
 
       if (error) throw error;
       return data.signedUrl;
     } catch (error) {
-      throw new Error(`Failed to generate presigned URL: ${error.message}`);
+      console.error(`Failed to generate presigned thumbnail URL: ${error.message}`);
+      return null;
     }
   }
 
@@ -62,7 +60,9 @@ export class SupabaseService {
 
         const uploadPromises = batch.map(async (file) => {
           const fileExtension = file.originalname.split('.').pop() || '';
-          const filepath = `${ImageStoragePath}/${uuid()}.${fileExtension}`;
+          const filename = `${uuid()}.${fileExtension}`;
+          const filepath = `${ImageStoragePath}/${filename}`;
+          const thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
 
           const { data, error } = await this.supabase.storage
             .from(SupabaseStorageId)
@@ -74,19 +74,30 @@ export class SupabaseService {
             );
           }
 
-          const { data: signedUrlData, error: signedUrlError } =
-            await this.supabase.storage
-              .from(SupabaseStorageId)
-              .createSignedUrl(data.path, 3600);
+          // Generate thumbnail buffer using sharp
+          const thumbnailBuffer = await sharp(file.buffer)
+            .resize(96, 96, {
+              fit: 'cover',
+              position: 'center'
+            })
+            .toBuffer();
 
-          if (signedUrlError) throw signedUrlError;
+          // Upload the thumbnail
+          const { error: thumbnailError } = await this.supabase.storage
+            .from(SupabaseStorageId)
+            .upload(thumbnailPath, thumbnailBuffer, {
+              contentType: file.mimetype,
+            });
+
+          if (thumbnailError) {
+            throw new Error(`Failed to upload thumbnail: ${thumbnailError.message}`);
+          }
 
           return {
             id: data.id,
-            publicUrl: signedUrlData.signedUrl,
-            fileName: file.originalname,
+            originalFilename: file.originalname,
             path: data.path,
-            fullPath: data.fullPath,
+            filename: filename,
           };
         });
 

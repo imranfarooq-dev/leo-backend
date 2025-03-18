@@ -11,7 +11,7 @@ import { ImageService } from '@/src/image/image.service';
 import { User } from '@clerk/clerk-sdk-node';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
 import { DocumentDB, Document } from '@/types/document';
-import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
+import { ImageStoragePath, PRIVILEGED_USER_IDS, ThumbnailStoragePath } from '@/src/shared/constant';
 
 @Injectable()
 export class DocumentService {
@@ -206,12 +206,19 @@ export class DocumentService {
   }
 
   private async deleteImagesFromStorage(documentId: string): Promise<void> {
-    const imagePaths: string[] = await this.imageRepository.fetchImagePathsByDocumentId(
+    const imageFilenames: string[] = await this.imageRepository.fetchImageFilenamesByDocumentId(
       documentId,
     );
 
-    if (imagePaths.length) {
-      await this.supabaseService.deleteFiles(imagePaths);
+    const fullImagePaths = imageFilenames.map((filename) => `${ImageStoragePath}/${filename}`);
+    const thumbnailPaths = imageFilenames.map((filename) => `${ThumbnailStoragePath}/${filename}`);
+
+    if (fullImagePaths.length) {
+      await this.supabaseService.deleteFiles(fullImagePaths);
+    }
+
+    if (thumbnailPaths.length) {
+      await this.supabaseService.deleteFiles(thumbnailPaths);
     }
   }
 }

@@ -85,10 +85,10 @@ export class ListsDocumentsRepository {
         const { images, ...rest } = document;
 
         const processedImages = images ? await Promise.all(images.map(async (image) => {
-          const { image_path, ...imageRest } = image;
+          const { filename, ...imageRest } = image;
           return {
             ...imageRest,
-            thumbnail_url: image_path ? await this.supabaseService.getPresignedThumbnailUrl(image_path) : null,
+            thumbnail_url: filename ? await this.supabaseService.getPresignedThumbnailUrl(filename) : null,
           };
         })) : [];
 

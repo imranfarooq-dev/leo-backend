@@ -2,6 +2,7 @@ import { Provides, Tables } from '@/src/shared/constant'
 import { SupabaseService } from '@/src/supabase/supabase.service'
 import {
   Image,
+  BaseImage,
   ImageDB,
   ImageOrder,
   InsertImage,
@@ -18,7 +19,7 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) { }
 
-  async createImage(images: InsertImage[]): Promise<Image[]> {
+  async createImage(images: InsertImage[]): Promise<BaseImage[]> {
     try {
       const { data: newImages, error } = await this.supabase
         .from(Tables.Images)
@@ -40,11 +41,10 @@ export class ImageRepository {
       }
 
       const returnImages: Image[] = await Promise.all(imagesData.map(async (image) => {
-        const { image_path, ...rest } = image;
+        const { filename, ...rest } = image;
         return {
           ...rest,
-          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
-          image_url: await this.supabaseService.getPresignedUrl(image_path),
+          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(filename),
         };
       }));
 
@@ -87,10 +87,10 @@ export class ImageRepository {
       }
 
       const image = data[0];
-      const image_url = await this.supabaseService.getPresignedUrl(image.image_path);
-      const thumbnail_url = await this.supabaseService.getPresignedThumbnailUrl(image.image_path);
+      const image_url = await this.supabaseService.getPresignedUrl(image.filename);
+      const thumbnail_url = await this.supabaseService.getPresignedThumbnailUrl(image.filename);
 
-      const { image_path, ...dataWithoutPath } = data;
+      const { filename, ...dataWithoutPath } = data;
       return { ...dataWithoutPath, image_url, thumbnail_url };
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch image by id');
@@ -169,27 +169,27 @@ export class ImageRepository {
     }
   }
 
-  async fetchImagePathsByDocumentId(
+  async fetchImageFilenamesByDocumentId(
     documentId: string,
   ): Promise<string[]> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Images)
-        .select('image_path')
+        .select('filename')
         .eq('document_id', documentId);
 
       if (error) {
-        throw new Error('Failed to fetch image paths associated with item');
+        throw new Error('Failed to fetch filenames associated with item');
       }
 
       if (!data) {
         return [];
       }
 
-      return data.map((image) => image.image_path);
+      return data.map((image) => image.filename);
     } catch (error) {
       this.logger.error(
-        error.message ?? 'Failed to fetch image paths associated with item',
+        error.message ?? 'Failed to fetch filenames associated with item',
       );
       throw error;
     }

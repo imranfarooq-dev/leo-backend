@@ -6,7 +6,7 @@ import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
 import { PdfService } from '@/src/pdf/pdf.service'
 import { SupabaseService } from '@/src/supabase/supabase.service'
 import { DocumentDB } from '@/types/document'
-import { ImageDB, ImageOrder, InsertImage, Image } from '@/types/image'
+import { ImageDB, ImageOrder, InsertImage, Image, BaseImage } from '@/types/image'
 import { User } from '@clerk/clerk-sdk-node'
 import {
   ForbiddenException,
@@ -15,7 +15,7 @@ import {
   Injectable,
 } from '@nestjs/common'
 import { Readable } from 'stream'
-import { PRIVILEGED_USER_IDS } from '@/src/shared/constant'
+import { ImageStoragePath, PRIVILEGED_USER_IDS, ThumbnailStoragePath } from '@/src/shared/constant'
 @Injectable()
 export class ImageService {
   constructor(
@@ -47,7 +47,7 @@ export class ImageService {
     { document_id }: CreateImageDto,
     files: Array<Express.Multer.File>,
     userId: string,
-  ): Promise<Image[]> {
+  ): Promise<BaseImage[]> {
     try {
       const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
 
@@ -132,8 +132,8 @@ export class ImageService {
 
       const imagesData: InsertImage[] = uploadedImages.map((uploadedImage, index) => ({
         document_id: document_id,
-        image_name: uploadedImage.fileName,
-        image_path: uploadedImage.path,
+        image_name: uploadedImage.originalFilename,
+        filename: uploadedImage.filename,
         order: startOrder + index,
       }));
 
@@ -255,7 +255,7 @@ export class ImageService {
         imageId,
       );
 
-      await this.supabaseService.deleteFiles([image.image_path]);
+      await this.supabaseService.deleteFiles([`${ImageStoragePath}/${image.filename}`, `${ThumbnailStoragePath}/${image.filename}`]);
       return siblingImageOrders;
     } catch (error) {
       if (error instanceof HttpException) {

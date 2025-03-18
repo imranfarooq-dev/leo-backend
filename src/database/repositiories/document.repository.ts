@@ -55,11 +55,11 @@ export class DocumentRepository {
       const { images, ...rest } = data[0];
 
       const processedImages = images ? await Promise.all(images.map(async (image) => {
-        const { image_path, ...imageRest } = image;
+        const { filename, ...imageRest } = image;
         return {
           ...imageRest,
-          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
-          image_url: await this.supabaseService.getPresignedUrl(image_path),
+          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(filename),
+          image_url: await this.supabaseService.getPresignedUrl(filename),
         };
       })) : [];
 
@@ -104,10 +104,10 @@ export class DocumentRepository {
         const { images, ...rest } = document;
 
         const processedImages = images ? await Promise.all(images.map(async (image) => {
-          const { image_path, ...imageRest } = image;
+          const { filename, ...imageRest } = image;
           return {
             ...imageRest,
-            thumbnail_url: image_path ? await this.supabaseService.getPresignedThumbnailUrl(image_path) : null,
+            thumbnail_url: filename ? await this.supabaseService.getPresignedThumbnailUrl(filename) : null,
           };
         })) : [];
 
@@ -140,11 +140,11 @@ export class DocumentRepository {
         const { images, ...rest } = document;
 
         const processedImages = images ? await Promise.all(images.map(async (image) => {
-          const { image_path, ...imageRest } = image;
+          const { filename, ...imageRest } = image;
           return {
             ...imageRest,
-            thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(image_path),
-            image_url: await this.supabaseService.getPresignedUrl(image_path),
+            thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(filename),
+            image_url: await this.supabaseService.getPresignedUrl(filename),
           };
         })) : [];
 

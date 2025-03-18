@@ -152,7 +152,7 @@ export class TranscriptionService {
             );
           }
 
-          const imageUrl = await this.supabaseService.getPresignedUrl(image.image_path, 60 * 60 * 24);
+          const imageUrl = await this.supabaseService.getPresignedUrl(image.filename, 60 * 60 * 24);
           const payload = {
             input: {
               image: imageUrl

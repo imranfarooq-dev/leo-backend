@@ -5,15 +5,14 @@ import { APITranscriptionJobStatus } from '@/types/transcription_job';
 export type UploadedImage = {
   id: string;
   path: string;
-  fileName: string;
-  fullPath: string;
-  publicUrl: string;
+  originalFilename: string;
+  filename: string;
 };
 
 export type InsertImage = {
   document_id: string;
   image_name: string;
-  image_path: string;
+  filename: string;
   order: number;
 };
 
