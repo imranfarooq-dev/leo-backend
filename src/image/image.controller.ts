@@ -79,11 +79,14 @@ export class ImageController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
+      console.log('createImage', createImage);
       const images: Image[] = await this.imageService.create(
         createImage,
         files,
         user.id,
       );
+
+      console.log('images', images);
 
       return {
         statusCode: HttpStatus.CREATED,

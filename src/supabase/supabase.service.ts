@@ -9,7 +9,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuid } from 'uuid';
 import { FileBufferDownloadResult, UploadedImage } from '@/types/image';
 import { chunk } from 'lodash';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 
 @Injectable()
@@ -18,30 +18,17 @@ export class SupabaseService {
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) { }
 
-  async getPresignedUrl(filename: string, expiresIn: number = 3600): Promise<string> {
+  async getPresignedUrls(filenames: string[], thumbnail: boolean = false, expiresIn: number = 3600): Promise<string[]> {
     try {
+      const paths = filenames.map((filename) => thumbnail ? `${ThumbnailStoragePath}/${filename}` : `${ImageStoragePath}/${filename}`);
       const { data, error } = await this.supabase.storage
         .from(SupabaseStorageId)
-        .createSignedUrl(`${ImageStoragePath}/${filename}`, expiresIn);
+        .createSignedUrls(paths, expiresIn);
 
       if (error) throw error;
-      return data.signedUrl;
+      return data.map((item) => item.signedUrl);
     } catch (error) {
       console.error(`Failed to generate presigned URL: ${error.message}`);
-      return null;
-    }
-  }
-
-  async getPresignedThumbnailUrl(filename: string, expiresIn: number = 3600): Promise<string | null> {
-    try {
-      const { data, error } = await this.supabase.storage
-        .from(SupabaseStorageId)
-        .createSignedUrl(`${ThumbnailStoragePath}/${filename}`, expiresIn);
-
-      if (error) throw error;
-      return data.signedUrl;
-    } catch (error) {
-      console.error(`Failed to generate presigned thumbnail URL: ${error.message}`);
       return null;
     }
   }
@@ -76,6 +63,7 @@ export class SupabaseService {
 
           // Generate thumbnail buffer using sharp
           const thumbnailBuffer = await sharp(file.buffer)
+            .rotate() // auto-rotate based on EXIF data
             .resize(96, 96, {
               fit: 'cover',
               position: 'center'

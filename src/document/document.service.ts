@@ -29,7 +29,8 @@ export class DocumentService {
   ): Promise<{ documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number }> {
     try {
       const userDocuments: { documents: Document[]; count: number } = await this.documentRepository.fetchDocumentsByUserId(
-        user.id,
+        user.id, // TODO FIXME
+        // 'user_2sJaEFNgVC3PQBmpcPS1JUTxzl1',
         {
           page_size: limit,
           page_number: page,
@@ -120,7 +121,6 @@ export class DocumentService {
         await Promise.all(addDocumentListPromises);
       }
 
-      // ATTN: Unnecessarily presigning thumbnails.
       await this.imageService.create(
         { document_id: documentId },
         files,
@@ -130,7 +130,7 @@ export class DocumentService {
       return await this.documentRepository.fetchDocumentById(documentId);
     } catch (error) {
       throw new HttpException(
-        'An error occurred while creating the item',
+        'An error occurred while creating the item: ' + error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

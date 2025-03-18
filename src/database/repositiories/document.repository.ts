@@ -53,13 +53,17 @@ export class DocumentRepository {
       }
 
       const { images, ...rest } = data[0];
+      const [image_urls, thumbnail_urls] = await Promise.all([
+        this.supabaseService.getPresignedUrls(images.map((image) => image.filename)),
+        this.supabaseService.getPresignedUrls(images.map((image) => image.filename), true),
+      ]);
 
-      const processedImages = images ? await Promise.all(images.map(async (image) => {
+      const processedImages = images ? await Promise.all(images.map(async (image, index) => {
         const { filename, ...imageRest } = image;
         return {
           ...imageRest,
-          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(filename),
-          image_url: await this.supabaseService.getPresignedUrl(filename),
+          thumbnail_url: thumbnail_urls[index],
+          image_url: image_urls[index],
         };
       })) : [];
 
@@ -100,6 +104,26 @@ export class DocumentRepository {
         return { documents: [], count: countResult.count };
       }
 
+      let thumbnailUrlMap = new Map<string, string>();
+      if (documentsResult.data.length > 0) {
+        // Collect all filenames in a single pass
+        const filenames = documentsResult.data.flatMap(document =>
+          document.images?.map(image => image.filename) ?? []
+        ).filter(Boolean); // Remove any potential undefined/null values
+
+        if (filenames.length > 0) {
+          const urls = await this.supabaseService.getPresignedUrls(filenames, true);
+
+          if (urls.length !== filenames.length) {
+            throw new Error('Failed to fetch thumbnail URLs: got different number of URLs and filenames');
+          }
+
+          filenames.forEach((filename, index) => {
+            thumbnailUrlMap.set(filename, urls[index]);
+          });
+        }
+      }
+
       const documentsWithThumbnailUrls: Document[] = await Promise.all(documentsResult.data.map(async (document) => {
         const { images, ...rest } = document;
 
@@ -107,7 +131,7 @@ export class DocumentRepository {
           const { filename, ...imageRest } = image;
           return {
             ...imageRest,
-            thumbnail_url: filename ? await this.supabaseService.getPresignedThumbnailUrl(filename) : null,
+            thumbnail_url: thumbnailUrlMap.get(filename),
           };
         })) : [];
 
@@ -136,15 +160,20 @@ export class DocumentRepository {
         return [];
       }
 
-      const documentsWithImages: Document[] = await Promise.all(data.map(async (document) => {
+      const [image_urls, thumbnail_urls] = await Promise.all([
+        this.supabaseService.getPresignedUrls(data.map((document) => document.images.map((image) => image.filename))),
+        this.supabaseService.getPresignedUrls(data.map((document) => document.images.map((image) => image.filename)), true),
+      ]);
+
+      const documentsWithImages: Document[] = await Promise.all(data.map(async (document, index) => {
         const { images, ...rest } = document;
 
         const processedImages = images ? await Promise.all(images.map(async (image) => {
           const { filename, ...imageRest } = image;
           return {
             ...imageRest,
-            thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(filename),
-            image_url: await this.supabaseService.getPresignedUrl(filename),
+            thumbnail_url: thumbnail_urls[index],
+            image_url: image_urls[index],
           };
         })) : [];
 

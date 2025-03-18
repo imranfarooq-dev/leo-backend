@@ -139,8 +139,11 @@ export class TranscriptionService {
       // Fetch all images at once
       const images: ImageDB[] = await this.imageRepository.fetchImagesByIds(allImageIds);
 
+      // Get presigned URLs for all images
+      const presignedUrls = await this.supabaseService.getPresignedUrls(images.map((image) => image.filename));
+
       // Submit all transcription jobs concurrently
-      const jobSubmissionPromises = images.map(async (image) => {
+      const jobSubmissionPromises = images.map(async (image, index) => {
         try {
           const apiUrl = this.configService.get<string>('AI_URL');
           const apiToken = this.configService.get<string>('AI_AUTH_TOKEN');
@@ -152,10 +155,9 @@ export class TranscriptionService {
             );
           }
 
-          const imageUrl = await this.supabaseService.getPresignedUrl(image.filename, 60 * 60 * 24);
           const payload = {
             input: {
-              image: imageUrl
+              image: presignedUrls[index]
             }
           };
 

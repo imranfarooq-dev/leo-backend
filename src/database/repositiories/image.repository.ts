@@ -19,7 +19,7 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) { }
 
-  async createImage(images: InsertImage[]): Promise<BaseImage[]> {
+  async createImage(images: InsertImage[]): Promise<Image[]> {
     try {
       const { data: newImages, error } = await this.supabase
         .from(Tables.Images)
@@ -40,11 +40,17 @@ export class ImageRepository {
         throw new Error(imageSummariesError.message ?? 'Failed to create image(s)');
       }
 
-      const returnImages: Image[] = await Promise.all(imagesData.map(async (image) => {
+      const [thumbnailUrls, imageUrls] = await Promise.all([
+        this.supabaseService.getPresignedUrls(imagesData.map((image) => image.filename), true),
+        this.supabaseService.getPresignedUrls(imagesData.map((image) => image.filename)),
+      ]);
+
+      const returnImages: Image[] = await Promise.all(imagesData.map(async (image, index) => {
         const { filename, ...rest } = image;
         return {
           ...rest,
-          thumbnail_url: await this.supabaseService.getPresignedThumbnailUrl(filename),
+          thumbnail_url: thumbnailUrls[index],
+          image_url: imageUrls[index],
         };
       }));
 
@@ -81,17 +87,18 @@ export class ImageRepository {
   ): Promise<Image | null> {
     try {
       const { data } = await this.supabase.rpc("get_images_by_ids", { p_image_ids: [imageId] });
-
       if (!data) {
         return null;
       }
 
       const image = data[0];
-      const image_url = await this.supabaseService.getPresignedUrl(image.filename);
-      const thumbnail_url = await this.supabaseService.getPresignedThumbnailUrl(image.filename);
+      const [image_urls, thumbnail_urls] = await Promise.all([
+        this.supabaseService.getPresignedUrls([image.filename]),
+        this.supabaseService.getPresignedUrls([image.filename], true),
+      ]);
 
       const { filename, ...dataWithoutPath } = data;
-      return { ...dataWithoutPath, image_url, thumbnail_url };
+      return { ...dataWithoutPath, image_url: image_urls[0], thumbnail_url: thumbnail_urls[0] };
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch image by id');
     }

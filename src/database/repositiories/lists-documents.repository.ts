@@ -81,22 +81,41 @@ export class ListsDocumentsRepository {
         return { documents: [], count };
       }
 
-      const documentsWithThumbnailUrls: Document[] = await Promise.all(data.map(async (document) => {
-        const { images, ...rest } = document;
+      let thumbnailUrlMap = new Map<string, string>();
+      if (data.length > 0) {
+        // Collect all filenames in a single pass
+        const filenames = data.flatMap(document =>
+          document.images?.map(image => image.filename) ?? []
+        ).filter(Boolean); // Remove any potential undefined/null values
 
-        const processedImages = images ? await Promise.all(images.map(async (image) => {
+        if (filenames.length > 0) {
+          const urls = await this.supabaseService.getPresignedUrls(filenames, true);
+
+          if (urls.length !== filenames.length) {
+            throw new Error('Failed to fetch thumbnail URLs: got different number of URLs and filenames');
+          }
+
+          filenames.forEach((filename, index) => {
+            thumbnailUrlMap.set(filename, urls[index]);
+          });
+        }
+      }
+
+      const documentsWithThumbnailUrls: Document[] = data.map(document => {
+        const { images, ...rest } = document;
+        const processedImages = images?.map(image => {
           const { filename, ...imageRest } = image;
           return {
             ...imageRest,
-            thumbnail_url: filename ? await this.supabaseService.getPresignedThumbnailUrl(filename) : null,
+            thumbnail_url: thumbnailUrlMap.get(filename),
           };
-        })) : [];
+        }) ?? [];
 
         return {
           ...rest,
           images: processedImages,
         };
-      }));
+      });
       return { documents: documentsWithThumbnailUrls, count };
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to fetch documents for lists');

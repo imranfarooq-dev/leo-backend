@@ -144,7 +144,7 @@ export class ImageService {
       }
 
       throw new HttpException(
-        'An error occurred while creating the image',
+        'An error occurred while creating the image: ' + error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

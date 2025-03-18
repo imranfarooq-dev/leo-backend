@@ -135,27 +135,27 @@ export type Database = {
         Row: {
           created_at: string | null
           document_id: string
+          filename: string
           id: string
           image_name: string | null
-          image_path: string
           order: number
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           document_id: string
+          filename: string
           id?: string
           image_name?: string | null
-          image_path: string
           order: number
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           document_id?: string
+          filename?: string
           id?: string
           image_name?: string | null
-          image_path?: string
           order?: number
           updated_at?: string | null
         }
@@ -470,38 +470,52 @@ export type Database = {
           order: number
         }[]
       }
-      fetch_documents_for_lists: {
+      get_document_summaries_by_ids: {
         Args: {
-          list_ids: string[]
-          _from?: number
-          _to?: number
+          p_document_ids: string[]
         }
-        Returns: {
-          id: string
-          document_name: string
-          creator_name: string
-          date: string
-          type: string
-          archive: string
-          collection: string
-          box: string
-          folder: string
-          identifier: string
-          rights: string
-          user_id: string
-          created_at: string
-          updated_at: string
-          total_count: number
-        }[]
+        Returns: Json
       }
-      get_latest_transcription_job_status: {
+      get_documents_by_ids: {
         Args: {
-          image_id: string
+          p_document_ids: string[]
         }
-        Returns: {
-          status: Database["public"]["Enums"]["transcription_job_status"]
-          transcript_text: string
-        }[]
+        Returns: Json
+      }
+      get_documents_by_list_id: {
+        Args: {
+          p_list_id: string
+          page_size?: number
+          page_number?: number
+        }
+        Returns: Json
+      }
+      get_documents_by_user_id: {
+        Args: {
+          p_user_id: string
+          page_size?: number
+          page_number?: number
+        }
+        Returns: Json
+      }
+      get_image_summaries_by_ids: {
+        Args: {
+          p_image_ids: string[]
+        }
+        Returns: Json
+      }
+      get_images_by_ids: {
+        Args: {
+          p_image_ids: string[]
+        }
+        Returns: Json
+      }
+      get_latest_transcription_jobs: {
+        Args: {
+          p_image_ids: string[]
+          p_earliest_created_at?: string
+        }
+        Returns: Json
       }
       get_list_with_children: {
         Args: {
@@ -511,38 +525,17 @@ export type Database = {
           id: string
         }[]
       }
-      get_ordered_images_by_document_id: {
+      get_total_images_by_user_id: {
         Args: {
-          document_id_param: string
-          include_relations: boolean
+          p_user_id: string
         }
-        Returns: {
-          id: string
-          document_id: string
-          image_name: string
-          image_path: string
-          created_at: string
-          updated_at: string
-          order: number
-          notes: Json
-          transcriptions: Json
-          latest_transcription_job_status: Database["public"]["Enums"]["transcription_job_status"]
-        }[]
+        Returns: number
       }
-      get_ordered_images_by_document_ids: {
+      get_untranscribed_image_ids: {
         Args: {
-          document_ids: string[]
+          p_document_ids: string[]
         }
-        Returns: {
-          id: string
-          document_id: string
-          image_name: string
-          image_path: string
-          created_at: string
-          updated_at: string
-          order: number
-          latest_transcription_job_status: Database["public"]["Enums"]["transcription_job_status"]
-        }[]
+        Returns: Json
       }
       search_documents_and_lists: {
         Args: {
@@ -554,6 +547,18 @@ export type Database = {
           name: string
           type: string
         }[]
+      }
+      update_image_orders: {
+        Args: {
+          updates: Json[]
+        }
+        Returns: undefined
+      }
+      update_list_orders: {
+        Args: {
+          updates: Json[]
+        }
+        Returns: undefined
       }
     }
     Enums: {
