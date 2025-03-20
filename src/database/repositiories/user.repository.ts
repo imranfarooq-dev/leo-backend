@@ -9,7 +9,7 @@ export class UserRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     try {

@@ -13,12 +13,20 @@ import { Param } from '@nestjs/common';
 
 @Controller('note')
 export class NoteController {
-  constructor(private readonly noteService: NoteService) { }
+  constructor(private readonly noteService: NoteService) {}
 
-  @Put(":image_id")
-  async createOrUpdate(@User() clerkUser: ClerkUser, @Param("image_id") imageId: string, @Body() createUpdateNote: CreateUpdateNoteDto) {
+  @Put(':image_id')
+  async createOrUpdate(
+    @User() clerkUser: ClerkUser,
+    @Param('image_id') imageId: string,
+    @Body() createUpdateNote: CreateUpdateNoteDto,
+  ) {
     try {
-      const noteId: string = await this.noteService.createOrUpdate(clerkUser, imageId, createUpdateNote);
+      const noteId: string = await this.noteService.createOrUpdate(
+        clerkUser,
+        imageId,
+        createUpdateNote,
+      );
       return {
         statusCode: HttpStatus.OK,
         message: 'Note created/updated',

@@ -25,9 +25,9 @@ import { ImageOrder, Image } from '@/types/image';
 
 @Controller('image')
 export class ImageController {
-  constructor(private readonly imageService: ImageService) { }
+  constructor(private readonly imageService: ImageService) {}
 
-  @Get(":image_id")
+  @Get(':image_id')
   async getImage(@Param('image_id') imageId: string) {
     try {
       const image: Image | null = await this.imageService.getImage(imageId);
@@ -53,26 +53,31 @@ export class ImageController {
   }
 
   @Post()
-  @UseInterceptors(FilesInterceptor('files', MAX_IMAGE_ALLOWED, {
-    fileFilter: (req, file, callback) => {
-      // FIXME TODO Update this type list
-      const allowedMimeTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'application/pdf'
-      ];
+  @UseInterceptors(
+    FilesInterceptor('files', MAX_IMAGE_ALLOWED, {
+      fileFilter: (req, file, callback) => {
+        // FIXME TODO Update this type list
+        const allowedMimeTypes = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+        ];
 
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        callback(new HttpException(
-          'File type not supported. Please upload images (JPG, PNG, GIF, WebP) or PDF files.',
-          HttpStatus.BAD_REQUEST
-        ), false);
-      }
-      callback(null, true);
-    }
-  }))
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+          callback(
+            new HttpException(
+              'File type not supported. Please upload images (JPG, PNG, GIF, WebP) or PDF files.',
+              HttpStatus.BAD_REQUEST,
+            ),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
   async create(
     @User() user: UserType,
     @Body() createImage: CreateImageDto,
@@ -98,15 +103,14 @@ export class ImageController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ??
-            'An error occurred while creating the image',
+            error.message ?? 'An error occurred while creating the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Put(":image_id")
+  @Put(':image_id')
   async update(
     @User() user: UserType,
     @Param('image_id') imageId: string,
@@ -124,8 +128,7 @@ export class ImageController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ??
-            'An error occurred while updating the image',
+            error.message ?? 'An error occurred while updating the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -139,11 +142,7 @@ export class ImageController {
     @Body() { updates }: UpdateImageOrderDto,
   ) {
     try {
-      await this.imageService.updateOrder(
-        user,
-        documentId,
-        updates,
-      );
+      await this.imageService.updateOrder(user, documentId, updates);
       return {
         statusCode: HttpStatus.OK,
         message: 'Image order updated',
@@ -163,7 +162,10 @@ export class ImageController {
   @Delete(':image_id')
   async delete(@User() user: UserType, @Param('image_id') imageId: string) {
     try {
-      const siblingImageOrders: ImageOrder[] = await this.imageService.delete(user, imageId);
+      const siblingImageOrders: ImageOrder[] = await this.imageService.delete(
+        user,
+        imageId,
+      );
 
       return {
         statusCode: HttpStatus.OK,
@@ -175,8 +177,7 @@ export class ImageController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ??
-            'An error occurred while deleting the image',
+            error.message ?? 'An error occurred while deleting the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

@@ -39,4 +39,4 @@ import { TranscriptionJobRepository } from './repositiories/transcription_job.re
     TranscriptionJobRepository,
   ],
 })
-export class DatabaseModule { }
+export class DatabaseModule {}

@@ -1,18 +1,18 @@
-import { CreditsRepository } from '@/src/database/repositiories/credits.repository'
-import { DocumentRepository } from '@/src/database/repositiories/document.repository'
-import { ImageRepository } from '@/src/database/repositiories/image.repository'
-import { SubscriptionRepository } from '@/src/database/repositiories/subscription.repository'
-import { UserRepository } from '@/src/database/repositiories/user.repository'
+import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
+import { DocumentRepository } from '@/src/database/repositiories/document.repository';
+import { ImageRepository } from '@/src/database/repositiories/image.repository';
+import { SubscriptionRepository } from '@/src/database/repositiories/subscription.repository';
+import { UserRepository } from '@/src/database/repositiories/user.repository';
 import {
   FreePlan,
   Provides,
   StripeCheckoutMode,
   SubscriptionStatus,
   Tables,
-} from '@/src/shared/constant'
-import { Credit } from '@/types/credit'
-import { FreePlanStatus, SubscriptionDB } from '@/types/subscription'
-import { User as ClerkUser } from '@clerk/clerk-sdk-node'
+} from '@/src/shared/constant';
+import { Credit } from '@/types/credit';
+import { FreePlanStatus, SubscriptionDB } from '@/types/subscription';
+import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import {
   BadRequestException,
   HttpException,
@@ -21,10 +21,10 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-} from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import Stripe from 'stripe'
-import { SupabaseClient } from '@supabase/supabase-js'
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class SubscriptionService {
@@ -59,7 +59,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the pricing and plans',
+          'An error occurred while fetching the pricing and plans',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -80,11 +80,11 @@ export class SubscriptionService {
       const [subscription, credits, numImages] = await Promise.all([
         this.fetchSubscription(clerkUser.id),
         this.creditRepository.fetchUserCredits(clerkUser.id),
-        this.imageRepository.countImagesByUserId(clerkUser.id)
+        this.imageRepository.countImagesByUserId(clerkUser.id),
       ]);
 
       if (!credits) {
-        return null
+        return null;
       }
 
       return {
@@ -105,7 +105,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the subscription status and credits',
+          'An error occurred while fetching the subscription status and credits',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -113,7 +113,9 @@ export class SubscriptionService {
 
   async fetchPaymentMethods(clerkUser: ClerkUser) {
     try {
-      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        clerkUser.id,
+      );
 
       // Get payment methods
       const paymentLists = await this.stripeService.paymentMethods.list({
@@ -129,7 +131,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the subscription status and credits',
+          'An error occurred while fetching the subscription status and credits',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -137,7 +139,9 @@ export class SubscriptionService {
 
   async fetchInvoices(clerkUser: ClerkUser) {
     try {
-      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        clerkUser.id,
+      );
 
       if (!subscription.stripe_customer_id) {
         throw new BadRequestException('Stripe customer ID not found');
@@ -162,7 +166,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the subscription status and credits',
+          'An error occurred while fetching the subscription status and credits',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -170,7 +174,9 @@ export class SubscriptionService {
 
   async cancelSubscription(clerkUser: ClerkUser) {
     try {
-      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        clerkUser.id,
+      );
 
       if (!subscription.stripe_subscription_id) {
         throw new HttpException('Subscription not found', HttpStatus.NOT_FOUND);
@@ -203,7 +209,9 @@ export class SubscriptionService {
 
   async changeSubscriptionPlan(clerkUser: ClerkUser, priceId?: string) {
     try {
-      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        clerkUser.id,
+      );
 
       if (!subscription.stripe_subscription_id) {
         throw new BadRequestException('No subscription found');
@@ -229,17 +237,17 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the stripe checkout session token',
+          'An error occurred while fetching the stripe checkout session token',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  async selectFreePlan(
-    clerkUser: ClerkUser,
-  ): Promise<void> {
+  async selectFreePlan(clerkUser: ClerkUser): Promise<void> {
     try {
-      const subscription: SubscriptionDB = await this.fetchSubscription(clerkUser.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        clerkUser.id,
+      );
 
       // When we downgrade
       if (subscription.status === SubscriptionStatus.Active) {
@@ -247,7 +255,7 @@ export class SubscriptionService {
           subscription.stripe_subscription_id,
           { cancel_at_period_end: true },
         );
-        return
+        return;
       }
 
       if (subscription.free_plan_status === FreePlanStatus.Subscribed) {
@@ -268,10 +276,7 @@ export class SubscriptionService {
         updatedSubscription.lifetime_tokens_awarded = true;
       }
 
-      await this.creditRepository.updateCredits(
-        clerkUser.id,
-        updatedCredits,
-      );
+      await this.creditRepository.updateCredits(clerkUser.id, updatedCredits);
 
       await this.subscriptionRepository.updateUserSubscription(
         clerkUser.id,
@@ -295,7 +300,9 @@ export class SubscriptionService {
     mode: StripeCheckoutMode,
   ) {
     try {
-      const subscription: SubscriptionDB = await this.fetchSubscription(user.id);
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        user.id,
+      );
 
       const checkoutOption: Stripe.Checkout.SessionCreateParams = {
         customer: subscription.stripe_customer_id,
@@ -327,7 +334,7 @@ export class SubscriptionService {
 
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the stripe checkout session token',
+          'An error occurred while fetching the stripe checkout session token',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -454,7 +461,8 @@ export class SubscriptionService {
         throw new HttpException('UserId not found', HttpStatus.NOT_FOUND);
       }
 
-      const subscriptionInfo: SubscriptionDB = await this.fetchSubscription(userId);
+      const subscriptionInfo: SubscriptionDB =
+        await this.fetchSubscription(userId);
 
       const credits = await this.creditRepository.fetchUserCredits(userId);
 
@@ -502,8 +510,8 @@ export class SubscriptionService {
       const subscription: Stripe.Subscription =
         typeof invoice.subscription === 'string'
           ? await this.stripeService.subscriptions.retrieve(
-            invoice.subscription,
-          )
+              invoice.subscription,
+            )
           : invoice.subscription;
 
       // Validate user metadata
@@ -512,7 +520,8 @@ export class SubscriptionService {
         throw new NotFoundException('User not found');
       }
 
-      const subscriptionInfo: SubscriptionDB = await this.fetchSubscription(userId);
+      const subscriptionInfo: SubscriptionDB =
+        await this.fetchSubscription(userId);
 
       // Get product details
       const subscriptionProduct = subscription.items.data[0].price.product;
@@ -568,7 +577,9 @@ export class SubscriptionService {
     }
   }
 
-  private readonly fetchSubscription = async (userId: string): Promise<SubscriptionDB | null> => {
+  private readonly fetchSubscription = async (
+    userId: string,
+  ): Promise<SubscriptionDB | null> => {
     try {
       const subscription: SubscriptionDB | null =
         await this.subscriptionRepository.getUserSubscription(userId);
@@ -581,7 +592,7 @@ export class SubscriptionService {
     } catch (error) {
       throw new HttpException(
         error.message ??
-        'An error occurred while fetching the user and subscription info',
+          'An error occurred while fetching the user and subscription info',
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -610,12 +621,9 @@ export class SubscriptionService {
           newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
 
           // Replenish credits
-          await this.creditRepository.updateCredits(
-            subscription.user_id,
-            {
-              monthly_credits: 100
-            }
-          );
+          await this.creditRepository.updateCredits(subscription.user_id, {
+            monthly_credits: 100,
+          });
 
           // Update subscription periods
           await this.subscriptionRepository.updateUserSubscription(
@@ -623,10 +631,12 @@ export class SubscriptionService {
             {
               current_period_start: newPeriodStart.toISOString(),
               current_period_end: newPeriodEnd.toISOString(),
-            }
+            },
           );
 
-          this.logger.log(`Replenished credits for beta user ${subscription.user_id}`);
+          this.logger.log(
+            `Replenished credits for beta user ${subscription.user_id}`,
+          );
         }
       }
     } catch (error) {

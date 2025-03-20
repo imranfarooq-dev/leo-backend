@@ -26,15 +26,17 @@ import { Document } from '@/types/document';
 
 @Controller('document')
 export class DocumentController {
-  constructor(private readonly documentService: DocumentService) { }
+  constructor(private readonly documentService: DocumentService) {}
 
   @Get()
   async fetch(@User() user: UserType, @Query() query: FetchUserDocumentDto) {
     try {
-      const documents: { documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number } = await this.documentService.fetchDocumentsByUser(
-        user,
-        query,
-      );
+      const documents: {
+        documents: Document[];
+        currentPage: number;
+        totalPages: number;
+        totalDocuments: number;
+      } = await this.documentService.fetchDocumentsByUser(user, query);
 
       return {
         statusCode: HttpStatus.OK,
@@ -46,8 +48,7 @@ export class DocumentController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ??
-            'An error occurred while fetching the items',
+            error.message ?? 'An error occurred while fetching the items',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -57,7 +58,10 @@ export class DocumentController {
   @Get(':id')
   async fetchById(@User() user: UserType, @Param() params: FetchDocumentDto) {
     try {
-      const document: Document = await this.documentService.fetchById(user, params);
+      const document: Document = await this.documentService.fetchById(
+        user,
+        params,
+      );
 
       return {
         statusCode: HttpStatus.OK,
@@ -68,9 +72,7 @@ export class DocumentController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ??
-            'An error occurred while fetching the item',
+          message: error.message ?? 'An error occurred while fetching the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -100,9 +102,7 @@ export class DocumentController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ??
-            'An error occurred while creating the item'
+          message: error.message ?? 'An error occurred while creating the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -123,9 +123,7 @@ export class DocumentController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ??
-            'An error occurred while deleting the item',
+          message: error.message ?? 'An error occurred while deleting the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -139,11 +137,7 @@ export class DocumentController {
     @Body() updateDocument: UpdateDocumentDto,
   ) {
     try {
-      await this.documentService.update(
-        user,
-        params.id,
-        updateDocument,
-      );
+      await this.documentService.update(user, params.id, updateDocument);
 
       return {
         statusCode: HttpStatus.OK,
@@ -153,9 +147,7 @@ export class DocumentController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ??
-            'An error occurred while updating the item',
+          message: error.message ?? 'An error occurred while updating the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

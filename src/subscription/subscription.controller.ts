@@ -29,7 +29,7 @@ export class SubscriptionController {
   constructor(
     private readonly subscriptionService: SubscriptionService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   @Post('checkout-session')
   async createCheckoutSession(
@@ -206,8 +206,7 @@ export class SubscriptionController {
         stripe_price_id: string | null;
         current_period_end: string | null;
         price: string | null;
-      } | null =
-        await this.subscriptionService.fetchStatusAndCredits(user);
+      } | null = await this.subscriptionService.fetchStatusAndCredits(user);
 
       if (!statusAndCredits) {
         return {
@@ -289,7 +288,9 @@ export class SubscriptionController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message ?? 'An error occurred while replenishing beta credits',
+          message:
+            error.message ??
+            'An error occurred while replenishing beta credits',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

@@ -9,4 +9,4 @@ import { StripeProvider } from '@/src/comon/providers/stripe.provider';
   providers: [SubscriptionService, StripeProvider],
   controllers: [SubscriptionController],
 })
-export class SubscriptionModule { }
+export class SubscriptionModule {}

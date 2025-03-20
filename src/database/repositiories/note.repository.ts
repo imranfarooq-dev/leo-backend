@@ -10,14 +10,14 @@ export class NoteRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async createNote(createNote: CreateNoteDto): Promise<string> {
     try {
       const { data, error } = await this.supabase
         .from(Tables.Notes)
         .insert(createNote)
-        .select("id")
+        .select('id')
         .single();
 
       if (error) {
@@ -60,10 +60,10 @@ export class NoteRepository {
 
   async updateNote(notesId: string, updateNote: UpdateNoteDto): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.Notes)
         .update(updateNote)
-        .eq('id', notesId)
+        .eq('id', notesId);
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update note');

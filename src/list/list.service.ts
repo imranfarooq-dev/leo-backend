@@ -7,7 +7,7 @@ import { constructListTree } from '@/src/utils';
 import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 @Injectable()
 export class ListService {
-  constructor(private readonly listRepository: ListRespository) { }
+  constructor(private readonly listRepository: ListRespository) {}
 
   async create(createListDto: CreateListDto, user_id: string): Promise<string> {
     try {
@@ -44,7 +44,8 @@ export class ListService {
 
   async fetch(user_id: string): Promise<ListTree[]> {
     try {
-      const lists: ListDB[] = await this.listRepository.fetchListByUserId(user_id);
+      const lists: ListDB[] =
+        await this.listRepository.fetchListByUserId(user_id);
 
       return constructListTree(lists);
     } catch (error) {
@@ -71,7 +72,10 @@ export class ListService {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (listExist.user_id !== user_id && !PRIVILEGED_USER_IDS.includes(user_id)) {
+      if (
+        listExist.user_id !== user_id &&
+        !PRIVILEGED_USER_IDS.includes(user_id)
+      ) {
         throw new HttpException(
           'You do not have permission to modify this list.',
           HttpStatus.FORBIDDEN,
@@ -97,7 +101,10 @@ export class ListService {
   ) {
     try {
       if (!updates.length) {
-        throw new HttpException('No lists found to update order.', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'No lists found to update order.',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       const list = await this.listRepository.fetchListById(updates[0].id);
@@ -112,27 +119,45 @@ export class ListService {
       );
 
       if (!lists.length) {
-        throw new HttpException('No lists found to update order.', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'No lists found to update order.',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Check that lists IDs and the list IDs are equivalent.
-      if (lists.some(list => !updates.some(update => update.id === list.id))) {
-        throw new HttpException('Lists do not have consistent parents', HttpStatus.BAD_REQUEST);
+      if (
+        lists.some((list) => !updates.some((update) => update.id === list.id))
+      ) {
+        throw new HttpException(
+          'Lists do not have consistent parents',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Check that the list IDs are unique.
-      if (new Set(updates.map(update => update.id)).size !== updates.length) {
-        throw new HttpException('List IDs must be unique', HttpStatus.BAD_REQUEST);
+      if (new Set(updates.map((update) => update.id)).size !== updates.length) {
+        throw new HttpException(
+          'List IDs must be unique',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Validate order values
-      const sortedOrders = [...updates.map(update => update.order)].sort((a, b) => a - b);
-      const expectedSequence = Array.from({ length: updates.length }, (_, i) => i + 1);
+      const sortedOrders = [...updates.map((update) => update.order)].sort(
+        (a, b) => a - b,
+      );
+      const expectedSequence = Array.from(
+        { length: updates.length },
+        (_, i) => i + 1,
+      );
 
-      if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
+      if (
+        !sortedOrders.every((order, index) => order === expectedSequence[index])
+      ) {
         throw new HttpException(
           'List order values must form a complete 1-indexed sequence',
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -157,7 +182,10 @@ export class ListService {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (listToDelete.user_id !== userId && !PRIVILEGED_USER_IDS.includes(userId)) {
+      if (
+        listToDelete.user_id !== userId &&
+        !PRIVILEGED_USER_IDS.includes(userId)
+      ) {
         throw new HttpException(
           'You do not have permission to delete this list.',
           HttpStatus.FORBIDDEN,

@@ -8,7 +8,7 @@ export class CreditsRepository {
   private readonly logger: Logger = new Logger(CreditsRepository.name);
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async fetchUserCredits(userId: string): Promise<Credit | null> {
     try {
@@ -43,15 +43,12 @@ export class CreditsRepository {
     }
   }
 
-  async updateCredits(
-    userId: string,
-    credits: Partial<Credit>,
-  ): Promise<void> {
+  async updateCredits(userId: string, credits: Partial<Credit>): Promise<void> {
     try {
       const { error } = await this.supabase
         .from(Tables.Credits)
         .update(credits)
-        .eq('user_id', userId)
+        .eq('user_id', userId);
 
       if (error) {
         throw new Error(error.message);

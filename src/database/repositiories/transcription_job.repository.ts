@@ -11,7 +11,7 @@ export class TranscriptionJobRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async createTranscriptionJob(
     createTranscriptionJobDto: CreateTranscriptionJobDto,
@@ -36,7 +36,7 @@ export class TranscriptionJobRepository {
 
   async updateTranscriptionJob(
     transcriptionJobId: string,
-    updateTranscriptionJobDto: UpdateTranscriptionJobDto
+    updateTranscriptionJobDto: UpdateTranscriptionJobDto,
   ): Promise<TranscriptionJobDB> {
     try {
       const { data: job, error } = await this.supabase
@@ -57,15 +57,23 @@ export class TranscriptionJobRepository {
     }
   }
 
-  async fetchTranscriptionJobsByImageIds(imageIds: string[], earliestCreatedAt: Date | null): Promise<TranscriptionJobDB[]> {
+  async fetchTranscriptionJobsByImageIds(
+    imageIds: string[],
+    earliestCreatedAt: Date | null,
+  ): Promise<TranscriptionJobDB[]> {
     try {
-      const { data: jobs, error } = await this.supabase.rpc('get_latest_transcription_jobs', {
-        p_image_ids: imageIds,
-        p_earliest_created_at: earliestCreatedAt,
-      });
+      const { data: jobs, error } = await this.supabase.rpc(
+        'get_latest_transcription_jobs',
+        {
+          p_image_ids: imageIds,
+          p_earliest_created_at: earliestCreatedAt,
+        },
+      );
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to fetch transcription jobs by image ids');
+        throw new Error(
+          error.message ?? 'Failed to fetch transcription jobs by image ids',
+        );
       }
 
       if (!jobs) {
@@ -74,7 +82,9 @@ export class TranscriptionJobRepository {
 
       return jobs;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch transcription jobs by image ids');
+      this.logger.error(
+        error.message ?? 'Failed to fetch transcription jobs by image ids',
+      );
       throw error;
     }
   }

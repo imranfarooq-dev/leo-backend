@@ -11,7 +11,11 @@ import { ImageService } from '@/src/image/image.service';
 import { User } from '@clerk/clerk-sdk-node';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
 import { DocumentDB, Document } from '@/types/document';
-import { ImageStoragePath, PRIVILEGED_USER_IDS, ThumbnailStoragePath } from '@/src/shared/constant';
+import {
+  ImageStoragePath,
+  PRIVILEGED_USER_IDS,
+  ThumbnailStoragePath,
+} from '@/src/shared/constant';
 
 @Injectable()
 export class DocumentService {
@@ -21,20 +25,23 @@ export class DocumentService {
     private readonly imageRepository: ImageRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly listsDocumentsRepository: ListsDocumentsRepository,
-  ) { }
+  ) {}
 
   async fetchDocumentsByUser(
     user: User,
     { page, limit }: FetchUserDocumentDto,
-  ): Promise<{ documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number }> {
+  ): Promise<{
+    documents: Document[];
+    currentPage: number;
+    totalPages: number;
+    totalDocuments: number;
+  }> {
     try {
-      const userDocuments: { documents: Document[]; count: number } = await this.documentRepository.fetchDocumentsByUserId(
-        user.id,
-        {
+      const userDocuments: { documents: Document[]; count: number } =
+        await this.documentRepository.fetchDocumentsByUserId(user.id, {
           page_size: limit,
           page_number: page,
-        },
-      );
+        });
       const totalPages: number = Math.ceil(userDocuments.count / limit);
 
       if (!userDocuments.documents) {
@@ -64,20 +71,22 @@ export class DocumentService {
     }
   }
 
-  async fetchById(user: User, fetchDocument: FetchDocumentDto): Promise<Document> {
+  async fetchById(
+    user: User,
+    fetchDocument: FetchDocumentDto,
+  ): Promise<Document> {
     try {
-      const document: Document | null = await this.documentRepository.fetchDocumentById(
-        fetchDocument.id,
-      );
+      const document: Document | null =
+        await this.documentRepository.fetchDocumentById(fetchDocument.id);
 
       if (!document) {
-        throw new HttpException(
-          'Item does not exist',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
+      if (
+        document.user_id !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
         throw new HttpException(
           'You are not authorized to view this item',
           HttpStatus.UNAUTHORIZED,
@@ -103,10 +112,9 @@ export class DocumentService {
     files: Array<Express.Multer.File>,
   ): Promise<Document | null> {
     try {
-      const documentId = await this.documentRepository.createDocument(
-        user.id,
-        { ...createDocument },
-      );
+      const documentId = await this.documentRepository.createDocument(user.id, {
+        ...createDocument,
+      });
 
       if (createDocument?.list_ids?.length) {
         const addDocumentListPromises = createDocument.list_ids.map(
@@ -135,20 +143,21 @@ export class DocumentService {
     }
   }
 
-  async delete(user: User, deleteDocument: DeleteDocumentDto): Promise<void> {  // TODO: User IDs
+  async delete(user: User, deleteDocument: DeleteDocumentDto): Promise<void> {
+    // TODO: User IDs
     try {
       const document = await this.documentRepository.fetchDocumentById(
         deleteDocument.id,
       );
 
       if (!document) {
-        throw new HttpException(
-          'Item does not exist',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
+      if (
+        document.user_id !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
         throw new HttpException(
           'You are not authorized to delete this item',
           HttpStatus.UNAUTHORIZED,
@@ -170,28 +179,30 @@ export class DocumentService {
     }
   }
 
-  async update(user: User, document_id: string, updateDocument: UpdateDocumentDto): Promise<void> {
+  async update(
+    user: User,
+    document_id: string,
+    updateDocument: UpdateDocumentDto,
+  ): Promise<void> {
     try {
-      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
+      const document: DocumentDB | null =
+        await this.documentRepository.fetchDocumentDBById(document_id);
 
       if (!document) {
-        throw new HttpException(
-          'Item does not exist',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
+      if (
+        document.user_id !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
         throw new HttpException(
           'You are not authorized to update this item',
           HttpStatus.UNAUTHORIZED,
         );
       }
 
-      await this.documentRepository.updateDocument(
-        document_id,
-        updateDocument,
-      );
+      await this.documentRepository.updateDocument(document_id, updateDocument);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -205,12 +216,15 @@ export class DocumentService {
   }
 
   private async deleteImagesFromStorage(documentId: string): Promise<void> {
-    const imageFilenames: string[] = await this.imageRepository.fetchImageFilenamesByDocumentId(
-      documentId,
-    );
+    const imageFilenames: string[] =
+      await this.imageRepository.fetchImageFilenamesByDocumentId(documentId);
 
-    const fullImagePaths = imageFilenames.map((filename) => `${ImageStoragePath}/${filename}`);
-    const thumbnailPaths = imageFilenames.map((filename) => `${ThumbnailStoragePath}/${filename}`);
+    const fullImagePaths = imageFilenames.map(
+      (filename) => `${ImageStoragePath}/${filename}`,
+    );
+    const thumbnailPaths = imageFilenames.map(
+      (filename) => `${ThumbnailStoragePath}/${filename}`,
+    );
 
     if (fullImagePaths.length) {
       await this.supabaseService.deleteFiles(fullImagePaths);

@@ -10,23 +10,37 @@ export class NoteService {
   constructor(
     private readonly noteRepository: NoteRepository,
     private readonly imageRepository: ImageRepository,
-  ) { }
+  ) {}
 
-  async createOrUpdate(clerkUser: ClerkUser, imageId: string, createUpdateNote: CreateUpdateNoteDto): Promise<string> {
+  async createOrUpdate(
+    clerkUser: ClerkUser,
+    imageId: string,
+    createUpdateNote: CreateUpdateNoteDto,
+  ): Promise<string> {
     try {
       const { notes_text } = createUpdateNote;
-      const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
+      const userIds: string[] | null =
+        await this.imageRepository.userIdsFromImageIds([imageId]);
 
       if (!userIds) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
       if (userIds.length !== 1) {
-        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
-      if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
-        throw new HttpException('You are not authorized to update this image', HttpStatus.UNAUTHORIZED);
+      if (
+        userIds[0] !== clerkUser.id &&
+        !PRIVILEGED_USER_IDS.includes(clerkUser.id)
+      ) {
+        throw new HttpException(
+          'You are not authorized to update this image',
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       const noteExist = await this.noteRepository.fetchNoteByImageId(imageId);
@@ -38,7 +52,10 @@ export class NoteService {
         return noteExist.id;
       }
 
-      return await this.noteRepository.createNote({ image_id: imageId, notes_text });
+      return await this.noteRepository.createNote({
+        image_id: imageId,
+        notes_text,
+      });
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

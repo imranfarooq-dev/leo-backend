@@ -1,10 +1,10 @@
-import { User } from '@/src/comon/decorators/user.decorator'
-import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
-import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
-import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service'
-import { Document } from '@/types/document'
-import { ListSummary } from '@/types/list'
-import { User as UserType } from '@clerk/clerk-sdk-node'
+import { User } from '@/src/comon/decorators/user.decorator';
+import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
+import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
+import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service';
+import { Document } from '@/types/document';
+import { ListSummary } from '@/types/list';
+import { User as UserType } from '@clerk/clerk-sdk-node';
 import {
   Body,
   Controller,
@@ -14,14 +14,18 @@ import {
   Param,
   Put,
   Query,
-} from '@nestjs/common'
+} from '@nestjs/common';
 
 @Controller('lists-documents')
 export class ListsDocumentsController {
-  constructor(private listsDocumentsService: ListsDocumentsService) { }
+  constructor(private listsDocumentsService: ListsDocumentsService) {}
 
   @Put(':document_id')
-  async update(@User() user: UserType, @Param('document_id') documentId: string, @Body() updateListDocumentDto: UpdateListDocumentDto) {
+  async update(
+    @User() user: UserType,
+    @Param('document_id') documentId: string,
+    @Body() updateListDocumentDto: UpdateListDocumentDto,
+  ) {
     try {
       await this.listsDocumentsService.update(
         documentId,
@@ -53,8 +57,16 @@ export class ListsDocumentsController {
     @Query() query: FetchUserListDocumentDto,
   ) {
     try {
-      const documents: { documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number } =
-        await this.listsDocumentsService.fetchUserDocumentsByList(listId, user, query);
+      const documents: {
+        documents: Document[];
+        currentPage: number;
+        totalPages: number;
+        totalDocuments: number;
+      } = await this.listsDocumentsService.fetchUserDocumentsByList(
+        listId,
+        user,
+        query,
+      );
 
       return {
         statusCode: HttpStatus.OK,
@@ -65,9 +77,7 @@ export class ListsDocumentsController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ??
-            'An error occurred while fetching the item',
+          message: error.message ?? 'An error occurred while fetching the item',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -75,12 +85,13 @@ export class ListsDocumentsController {
   }
 
   @Get('lists/:document_id')
-  async fetchDocumentLists(@User() user: UserType, @Param('document_id') documentId: string) {
+  async fetchDocumentLists(
+    @User() user: UserType,
+    @Param('document_id') documentId: string,
+  ) {
     try {
-      const lists: ListSummary[] = await this.listsDocumentsService.fetchDocumentLists(
-        user,
-        documentId,
-      );
+      const lists: ListSummary[] =
+        await this.listsDocumentsService.fetchDocumentLists(user, documentId);
 
       return {
         statusCode: HttpStatus.OK,
@@ -92,8 +103,7 @@ export class ListsDocumentsController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ??
-            'An error occurred while fetching the item lists',
+            error.message ?? 'An error occurred while fetching the item lists',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

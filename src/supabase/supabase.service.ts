@@ -11,16 +11,23 @@ import { FileBufferDownloadResult, UploadedImage } from '@/types/image';
 import { chunk } from 'lodash';
 import * as sharp from 'sharp';
 
-
 @Injectable()
 export class SupabaseService {
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
-  async getPresignedUrls(filenames: string[], thumbnail: boolean = false, expiresIn: number = 3600): Promise<string[]> {
+  async getPresignedUrls(
+    filenames: string[],
+    thumbnail: boolean = false,
+    expiresIn: number = 3600,
+  ): Promise<string[]> {
     try {
-      const paths = filenames.map((filename) => thumbnail ? `${ThumbnailStoragePath}/${filename}` : `${ImageStoragePath}/${filename}`);
+      const paths = filenames.map((filename) =>
+        thumbnail
+          ? `${ThumbnailStoragePath}/${filename}`
+          : `${ImageStoragePath}/${filename}`,
+      );
       const { data, error } = await this.supabase.storage
         .from(SupabaseStorageId)
         .createSignedUrls(paths, expiresIn);
@@ -33,10 +40,7 @@ export class SupabaseService {
     }
   }
 
-  async uploadFiles(
-    files: Express.Multer.File[],
-    userId: string,
-  ): Promise<UploadedImage[]> {
+  async uploadFiles(files: Express.Multer.File[]): Promise<UploadedImage[]> {
     try {
       const batchSize = 10;
       const batches = chunk(files, batchSize);
@@ -66,7 +70,7 @@ export class SupabaseService {
             .rotate() // auto-rotate based on EXIF data
             .resize(96, 96, {
               fit: 'cover',
-              position: 'center'
+              position: 'center',
             })
             .toBuffer();
 
@@ -78,7 +82,9 @@ export class SupabaseService {
             });
 
           if (thumbnailError) {
-            throw new Error(`Failed to upload thumbnail: ${thumbnailError.message}`);
+            throw new Error(
+              `Failed to upload thumbnail: ${thumbnailError.message}`,
+            );
           }
 
           return {

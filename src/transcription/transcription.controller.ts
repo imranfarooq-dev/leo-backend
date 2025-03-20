@@ -18,15 +18,18 @@ import { GetTranscribableImagesDto } from './dto/get-transcribable-images.dto';
 import { GetTranscriptionJobStatusesDto } from './dto/get-transcription-job-statuses.dto';
 import { TranscriptionJobDB } from '@/types/transcription_job';
 
-
 @Controller('transcription')
 export class TranscriptionController {
-  constructor(private transcriptionService: TranscriptionService) { }
+  constructor(private transcriptionService: TranscriptionService) {}
 
-  @Get(":image_id")
-  async getTranscription(@User() clerkUser: ClerkUser, @Param("image_id") imageId: string) {
+  @Get(':image_id')
+  async getTranscription(
+    @User() clerkUser: ClerkUser,
+    @Param('image_id') imageId: string,
+  ) {
     try {
-      const transcription: Transcription = await this.transcriptionService.getTranscription(clerkUser, imageId);
+      const transcription: Transcription =
+        await this.transcriptionService.getTranscription(clerkUser, imageId);
 
       return {
         statusCode: HttpStatus.OK,
@@ -37,7 +40,9 @@ export class TranscriptionController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message ?? 'An error occurred while fetching the transcription',
+          message:
+            error.message ??
+            'An error occurred while fetching the transcription',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -65,7 +70,8 @@ export class TranscriptionController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while creating transcription jobs',
+            error.message ??
+            'An error occurred while creating transcription jobs',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -78,10 +84,11 @@ export class TranscriptionController {
     @Body() getTranscribableImagesDto: GetTranscribableImagesDto,
   ) {
     try {
-      const transcribableImageIds: string[] = await this.transcriptionService.getTranscribableImages(
-        clerkUser,
-        getTranscribableImagesDto.documentIds,
-      );
+      const transcribableImageIds: string[] =
+        await this.transcriptionService.getTranscribableImages(
+          clerkUser,
+          getTranscribableImagesDto.documentIds,
+        );
 
       return {
         statusCode: HttpStatus.OK,
@@ -93,25 +100,27 @@ export class TranscriptionController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while fetching transcribable images',
+            error.message ??
+            'An error occurred while fetching transcribable images',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Put(":image_id")
+  @Put(':image_id')
   async createOrUpdate(
     @User() clerkUser: ClerkUser,
-    @Param("image_id") imageId: string,
+    @Param('image_id') imageId: string,
     @Body() createUpdateTranscription: CreateUpdateTranscriptionDto,
   ) {
     try {
-      const transcriptionId: string = await this.transcriptionService.createOrUpdate(
-        clerkUser,
-        imageId,
-        createUpdateTranscription,
-      );
+      const transcriptionId: string =
+        await this.transcriptionService.createOrUpdate(
+          clerkUser,
+          imageId,
+          createUpdateTranscription,
+        );
 
       return {
         statusCode: HttpStatus.OK,
@@ -131,11 +140,20 @@ export class TranscriptionController {
     }
   }
 
-  @Post("/jobs")
-  async transcriptionJobStatuses(@User() clerkUser: ClerkUser, @Body() getTranscriptionJobStatusesDto: GetTranscriptionJobStatusesDto) {
+  @Post('/jobs')
+  async transcriptionJobStatuses(
+    @User() clerkUser: ClerkUser,
+    @Body() getTranscriptionJobStatusesDto: GetTranscriptionJobStatusesDto,
+  ) {
     try {
-      const { imageIds, earliestCreatedAt = null } = getTranscriptionJobStatusesDto;
-      const transcriptionJobs: TranscriptionJobDB[] = await this.transcriptionService.getTranscriptionJobStatuses(clerkUser, imageIds, earliestCreatedAt);
+      const { imageIds, earliestCreatedAt = null } =
+        getTranscriptionJobStatusesDto;
+      const transcriptionJobs: TranscriptionJobDB[] =
+        await this.transcriptionService.getTranscriptionJobStatuses(
+          clerkUser,
+          imageIds,
+          earliestCreatedAt,
+        );
 
       return {
         statusCode: HttpStatus.OK,
@@ -146,7 +164,9 @@ export class TranscriptionController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message: error.message ?? 'An error occurred while fetching the transcription job status',
+          message:
+            error.message ??
+            'An error occurred while fetching the transcription job status',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

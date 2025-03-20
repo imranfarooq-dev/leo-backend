@@ -12,7 +12,7 @@ export class SvixService {
   constructor(
     @Inject(Provides.Svix) private readonly webhook: Webhook,
     private readonly userService: UserService,
-  ) { }
+  ) {}
 
   async handleClerkEvent(event: ClerkEventType): Promise<void> {
     switch (event.type) {

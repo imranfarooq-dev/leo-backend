@@ -19,12 +19,15 @@ import { UpdateOrderListDto } from '@/src/list/dto/update-order-list.dto';
 
 @Controller('list')
 export class ListController {
-  constructor(private readonly listService: ListService) { }
+  constructor(private readonly listService: ListService) {}
 
   @Post()
   async create(@Body() createListDto: CreateListDto, @User() user: UserType) {
     try {
-      const newListId: string = await this.listService.create(createListDto, user.id);
+      const newListId: string = await this.listService.create(
+        createListDto,
+        user.id,
+      );
 
       return {
         statusCode: HttpStatus.CREATED,
@@ -35,8 +38,7 @@ export class ListController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ?? 'An error occurred while creating the list',
+          message: error.message ?? 'An error occurred while creating the list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -49,10 +51,7 @@ export class ListController {
     @User() user: UserType,
   ) {
     try {
-      const lists = await this.listService.updateListOrder(
-        updates,
-        user.id,
-      );
+      const lists = await this.listService.updateListOrder(updates, user.id);
 
       return {
         statusCode: HttpStatus.OK,
@@ -87,7 +86,7 @@ export class ListController {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
             error.message ??
-            'An error occurred while fetching the user\'s lists',
+            "An error occurred while fetching the user's lists",
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -101,11 +100,7 @@ export class ListController {
     @User() user: UserType,
   ) {
     try {
-      await this.listService.update(
-        updateListDto,
-        user.id,
-        params.id,
-      );
+      await this.listService.update(updateListDto, user.id, params.id);
 
       return {
         statusCode: HttpStatus.OK,
@@ -115,8 +110,7 @@ export class ListController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ?? 'An error occurred while updating the list',
+          message: error.message ?? 'An error occurred while updating the list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -140,8 +134,7 @@ export class ListController {
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
-          message:
-            error.message ?? 'An error occurred while deleting the list',
+          message: error.message ?? 'An error occurred while deleting the list',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

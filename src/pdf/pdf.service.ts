@@ -12,7 +12,8 @@ export class PdfService {
       const { getDocument, OPS } = await getResolvedPDFJS();
 
       // Load the PDF document
-      const pdf = await getDocument({ data: new Uint8Array(pdfBuffer) }).promise;
+      const pdf = await getDocument({ data: new Uint8Array(pdfBuffer) })
+        .promise;
       const numPages = pdf.numPages;
       const images: Buffer[] = [];
 
@@ -40,7 +41,11 @@ export class PdfService {
             // If image has JPEG data, use it directly
             if (img.data instanceof Uint8Array) {
               // Check for JPEG signature
-              if (img.data[0] === 0xFF && img.data[1] === 0xD8 && img.data[2] === 0xFF) {
+              if (
+                img.data[0] === 0xff &&
+                img.data[1] === 0xd8 &&
+                img.data[2] === 0xff
+              ) {
                 images.push(Buffer.from(img.data));
                 continue;
               }
@@ -57,31 +62,35 @@ export class PdfService {
             if (img.kind === 2) {
               pixels = new Uint8ClampedArray(img.width * img.height * 4);
               for (let i = 0, j = 0; i < img.data.length; i += 3, j += 4) {
-                pixels[j] = img.data[i];     // R
+                pixels[j] = img.data[i]; // R
                 pixels[j + 1] = img.data[i + 1]; // G
                 pixels[j + 2] = img.data[i + 2]; // B
-                pixels[j + 3] = 255;         // A
+                pixels[j + 3] = 255; // A
               }
             } else if (img.kind === 1) {
               pixels = new Uint8ClampedArray(img.width * img.height * 4);
               for (let i = 0, j = 0; i < img.data.length; i++, j += 4) {
-                pixels[j] = img.data[i];     // R
+                pixels[j] = img.data[i]; // R
                 pixels[j + 1] = img.data[i]; // G
                 pixels[j + 2] = img.data[i]; // B
-                pixels[j + 3] = 255;         // A
+                pixels[j + 3] = 255; // A
               }
             } else if (img.kind === 3) {
               pixels = new Uint8ClampedArray(img.data);
             } else {
               // Skip unknown formats
-              this.logger.warn(`Skipping image with unknown format: ${img.kind}`);
+              this.logger.warn(
+                `Skipping image with unknown format: ${img.kind}`,
+              );
               continue;
             }
 
             // Verify pixel data length matches expected dimensions
             const expectedLength = img.width * img.height * 4;
             if (pixels.length !== expectedLength) {
-              this.logger.warn(`Invalid pixel data length: ${pixels.length}, expected: ${expectedLength}`);
+              this.logger.warn(
+                `Invalid pixel data length: ${pixels.length}, expected: ${expectedLength}`,
+              );
               continue;
             }
 
@@ -92,9 +101,10 @@ export class PdfService {
             // Convert to PNG format
             const buffer = await canvas.toBuffer('image/png');
             images.push(buffer);
-
           } catch (error) {
-            this.logger.warn(`Failed to extract image ${imgId} from page ${pageNum}: ${error.message}`);
+            this.logger.warn(
+              `Failed to extract image ${imgId} from page ${pageNum}: ${error.message}`,
+            );
           }
         }
       }

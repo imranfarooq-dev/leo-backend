@@ -5,8 +5,8 @@ import {
   Validate,
   ValidationArguments,
   ValidatorConstraint,
-  ValidatorConstraintInterface
-} from 'class-validator'
+  ValidatorConstraintInterface,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'atLeastOneArray', async: false })
 class AtLeastOneArrayValidator implements ValidatorConstraintInterface {

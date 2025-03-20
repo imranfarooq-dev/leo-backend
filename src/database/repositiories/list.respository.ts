@@ -3,7 +3,6 @@ import { Provides, Tables } from '@/src/shared/constant';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ListDB, ListOrder } from '@/types/list';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
-import { List } from 'lodash';
 
 @Injectable()
 export class ListRespository {
@@ -11,7 +10,7 @@ export class ListRespository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async createList(
     user_id: string,
@@ -23,7 +22,7 @@ export class ListRespository {
       const { data, error } = await this.supabase
         .from(Tables.Lists)
         .insert({ user_id, list_name, parent_list_id, order })
-        .select("id")
+        .select('id')
         .single();
 
       if (error) {
@@ -36,9 +35,7 @@ export class ListRespository {
     }
   }
 
-  async fetchListById(
-    listId: string,
-  ): Promise<ListDB | null> {
+  async fetchListById(listId: string): Promise<ListDB | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Lists)
@@ -52,9 +49,7 @@ export class ListRespository {
     }
   }
 
-  async fetchListByUserId(
-    userId: string,
-  ): Promise<ListDB[] | null> {
+  async fetchListByUserId(userId: string): Promise<ListDB[] | null> {
     try {
       const { data } = await this.supabase
         .from(Tables.Lists)
@@ -121,7 +116,7 @@ export class ListRespository {
       const { error } = await this.supabase
         .from(Tables.Lists)
         .update(updateListDto)
-        .eq('id', listId)
+        .eq('id', listId);
 
       if (error) {
         throw new Error(error.message ?? 'Failed to update list');
@@ -131,10 +126,13 @@ export class ListRespository {
     }
   }
 
-  async updateListOrder(updates: { id: string; order: number }[]): Promise<void> {
+  async updateListOrder(
+    updates: { id: string; order: number }[],
+  ): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .rpc('update_list_orders', { updates })
+      const { error } = await this.supabase.rpc('update_list_orders', {
+        updates,
+      });
 
       if (error) throw new Error(error.message);
     } catch (error) {
@@ -147,7 +145,7 @@ export class ListRespository {
     try {
       const { data, error } = await this.supabase
         .rpc('delete_list_and_reorder', { p_list_id: listId })
-        .select()
+        .select();
 
       if (error) {
         throw new Error(error.message ?? 'Failed to delete the list');

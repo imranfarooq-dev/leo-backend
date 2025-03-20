@@ -1,14 +1,13 @@
-import { DocumentRepository } from '@/src/database/repositiories/document.repository'
-import { ListRespository } from '@/src/database/repositiories/list.respository'
-import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository'
-import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto'
-import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto'
-import { DocumentDB, Document } from '@/types/document'
-import { ListDB, ListSummary } from '@/types/list'
-import { User } from '@clerk/clerk-sdk-node'
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
-import { PRIVILEGED_USER_IDS } from '@/src/shared/constant'
-
+import { DocumentRepository } from '@/src/database/repositiories/document.repository';
+import { ListRespository } from '@/src/database/repositiories/list.respository';
+import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
+import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
+import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
+import { DocumentDB, Document } from '@/types/document';
+import { ListDB, ListSummary } from '@/types/list';
+import { User } from '@clerk/clerk-sdk-node';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 
 @Injectable()
 export class ListsDocumentsService {
@@ -16,23 +15,27 @@ export class ListsDocumentsService {
     private readonly listRepository: ListRespository,
     private readonly listsDocumentsRepository: ListsDocumentsRepository,
     private readonly documentRepository: DocumentRepository,
-  ) { }
+  ) {}
 
-  async update(document_id: string, updateListDocumentDto: UpdateListDocumentDto, user: User): Promise<void> {
+  async update(
+    document_id: string,
+    updateListDocumentDto: UpdateListDocumentDto,
+    user: User,
+  ): Promise<void> {
     try {
-      const { add_list_ids, remove_list_ids } =
-        updateListDocumentDto;
+      const { add_list_ids, remove_list_ids } = updateListDocumentDto;
 
-      const documentExist = await this.documentRepository.fetchDocumentDBById(document_id);
+      const documentExist =
+        await this.documentRepository.fetchDocumentDBById(document_id);
 
       if (!documentExist) {
-        throw new HttpException(
-          'Item does not exist',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (documentExist.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
+      if (
+        documentExist.user_id !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,
@@ -77,20 +80,26 @@ export class ListsDocumentsService {
   async fetchUserDocumentsByList(
     list_id: string,
     user: User,
-    {
-      page,
-      limit,
-    }: FetchUserListDocumentDto,
-  ): Promise<{ documents: Document[]; currentPage: number; totalPages: number; totalDocuments: number }> {
+    { page, limit }: FetchUserListDocumentDto,
+  ): Promise<{
+    documents: Document[];
+    currentPage: number;
+    totalPages: number;
+    totalDocuments: number;
+  }> {
     try {
-      const list: ListDB | null = await this.listRepository.fetchListById(list_id);
+      const list: ListDB | null =
+        await this.listRepository.fetchListById(list_id);
 
       if (!list) {
         throw new HttpException('List does not exist', HttpStatus.NOT_FOUND);
       }
 
       if (list.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
-        throw new HttpException('List does not belong to user', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          'List does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       const { documents, count } =
@@ -119,18 +128,22 @@ export class ListsDocumentsService {
     }
   }
 
-  async fetchDocumentLists(user: User, document_id: string): Promise<ListSummary[]> {
+  async fetchDocumentLists(
+    user: User,
+    document_id: string,
+  ): Promise<ListSummary[]> {
     try {
-      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
+      const document: DocumentDB | null =
+        await this.documentRepository.fetchDocumentDBById(document_id);
 
       if (!document) {
-        throw new HttpException(
-          'Item does not exist',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
+      if (
+        document.user_id !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,

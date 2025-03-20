@@ -51,13 +51,13 @@ export class GotenbergService {
 
         // Download and add original image
         const imageBuffer = await this.downloadImage(image.image_url);
-        const imageExtension = image.image_url
-          .split('?')[0] // Remove query parameters
-          .split('/')    // Split by path separator
-          .pop()         // Get the last segment (filename)
-          ?.split('.')   // Split filename by dot
-          .pop()         // Get the extension
-          || 'jpg';      // Fallback to jpg if no extension found
+        const imageExtension =
+          image.image_url
+            .split('?')[0] // Remove query parameters
+            .split('/') // Split by path separator
+            .pop() // Get the last segment (filename)
+            ?.split('.') // Split filename by dot
+            .pop() || 'jpg'; // Get the extension // Fallback to jpg if no extension found
         archive.append(imageBuffer, {
           name: `{original-image}.${imageExtension}`,
         });
@@ -65,8 +65,7 @@ export class GotenbergService {
         // Convert and add transcription PDF
         if (image.transcription_id) {
           const transcriptionContent: string | null =
-            image.current_transcription_text ??
-            image.ai_transcription_text;
+            image.current_transcription_text ?? image.ai_transcription_text;
           if (!transcriptionContent) return;
 
           const transcriptionPdf =
@@ -98,9 +97,9 @@ export class GotenbergService {
   async exportDocuments(documentIds: Array<string>): Promise<Buffer> {
     try {
       const documents =
-        (await this.documentRepository.fetchDocumentsByIdsWithImages(
+        await this.documentRepository.fetchDocumentsByIdsWithImages(
           documentIds,
-        ));
+        );
 
       if (!documents) {
         throw new HttpException('Items not found', HttpStatus.NOT_FOUND);
@@ -179,13 +178,13 @@ export class GotenbergService {
     const imageBuffer = await this.downloadImage(image.image_url);
     const imageName =
       image.image_name.split('.').shift() || `image-${image.id}`;
-    const imageExtension = image.image_url
-      .split('?')[0] // Remove query parameters
-      .split('/')    // Split by path separator
-      .pop()         // Get the last segment (filename)
-      ?.split('.')   // Split filename by dot
-      .pop()         // Get the extension
-      || 'jpg';      // Fallback to jpg if no extension found
+    const imageExtension =
+      image.image_url
+        .split('?')[0] // Remove query parameters
+        .split('/') // Split by path separator
+        .pop() // Get the last segment (filename)
+        ?.split('.') // Split filename by dot
+        .pop() || 'jpg'; // Get the extension // Fallback to jpg if no extension found
 
     archive.append(imageBuffer, {
       name: `${basePath}/images/${imageName}.${imageExtension}`,

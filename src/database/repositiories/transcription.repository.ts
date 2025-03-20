@@ -11,7 +11,7 @@ export class TranscriptRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async createTranscription(
     createTranscription: CreateTranscriptionDto,
@@ -20,7 +20,7 @@ export class TranscriptRepository {
       const { data, error } = await this.supabase
         .from(Tables.Transcriptions)
         .insert(createTranscription)
-        .select("id")
+        .select('id')
         .single();
 
       if (error) {
@@ -72,7 +72,7 @@ export class TranscriptRepository {
     updateTranscription: UpdateTranscriptionDto,
   ): Promise<void> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from(Tables.Transcriptions)
         .update(updateTranscription)
         .eq('id', transcriptionId);
@@ -93,10 +93,16 @@ export class TranscriptRepository {
         return [];
       }
 
-      const { data, error } = await this.supabase.rpc('get_untranscribed_image_ids', { p_document_ids: documentIds });
+      const { data, error } = await this.supabase.rpc(
+        'get_untranscribed_image_ids',
+        { p_document_ids: documentIds },
+      );
 
       if (error) {
-        throw new Error(error.message ?? 'Failed to fetch untranscribed images by document ids');
+        throw new Error(
+          error.message ??
+            'Failed to fetch untranscribed images by document ids',
+        );
       }
 
       if (!data) {
@@ -105,8 +111,9 @@ export class TranscriptRepository {
 
       return data;
     } catch (error) {
-      this.logger.error(error.message ?? 'Failed to fetch untranscribed images by document ids');
+      this.logger.error(
+        error.message ?? 'Failed to fetch untranscribed images by document ids',
+      );
     }
   }
 }
-

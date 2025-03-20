@@ -12,13 +12,10 @@ import { User as UserType } from '@clerk/clerk-sdk-node';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) { }
+  constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  async search(
-    @Query() { search_keyword }: SearchDto,
-    @User() user: UserType,
-  ) {
+  async search(@Query() { search_keyword }: SearchDto, @User() user: UserType) {
     try {
       const search = await this.searchService.searchDocumentAndList(
         search_keyword,

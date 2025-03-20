@@ -1,7 +1,6 @@
 import { IsOptional, IsEnum, IsString } from 'class-validator';
 import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
-
 export class UpdateTranscriptionJobDto {
   @IsOptional()
   @IsEnum(APITranscriptionJobStatus)

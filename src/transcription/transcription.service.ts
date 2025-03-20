@@ -9,9 +9,12 @@ import { ConfigService } from '@nestjs/config';
 import { User as ClerkUser } from '@clerk/clerk-sdk-node';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
 import { SupabaseService } from '@/src/supabase/supabase.service';
-import { APITranscriptionStatus, Transcription, TranscriptionStatus } from '@/types/transcription';
+import { Transcription, TranscriptionStatus } from '@/types/transcription';
 import { TranscriptionJobRepository } from '@/src/database/repositiories/transcription_job.repository';
-import { APITranscriptionJobStatus, TranscriptionJobDB, TranscriptionJobStatus } from '@/types/transcription_job';
+import {
+  APITranscriptionJobStatus,
+  TranscriptionJobDB,
+} from '@/types/transcription_job';
 import { Credit } from '@/types/credit';
 import { AiTranscriptionDto } from './dto/ai-transcription.dto';
 import { InjectQueue } from '@nestjs/bull';
@@ -42,47 +45,85 @@ export class TranscriptionService {
     private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseService,
     private readonly transcriptionJobRepository: TranscriptionJobRepository,
-    @InjectQueue(TRANSCRIPTION_QUEUE) private transcriptionQueue: Queue<TranscriptionJobData>,
-  ) { }
+    @InjectQueue(TRANSCRIPTION_QUEUE)
+    private transcriptionQueue: Queue<TranscriptionJobData>,
+  ) {}
 
-  async getTranscription(clerkUser: ClerkUser, imageId: string): Promise<Transcription | null> {
-    const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
+  async getTranscription(
+    clerkUser: ClerkUser,
+    imageId: string,
+  ): Promise<Transcription | null> {
+    const userIds: string[] | null =
+      await this.imageRepository.userIdsFromImageIds([imageId]);
 
     if (!userIds) {
       throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
     }
 
     if (userIds.length !== 1) {
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
-    if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
-      throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
+    if (
+      userIds[0] !== clerkUser.id &&
+      !PRIVILEGED_USER_IDS.includes(clerkUser.id)
+    ) {
+      throw new HttpException(
+        'Image does not belong to user',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    return await this.transcriptionRepository.fetchTranscriptionByImageId(imageId);
+    return await this.transcriptionRepository.fetchTranscriptionByImageId(
+      imageId,
+    );
   }
 
-  async getTranscribableImages(clerkUser: ClerkUser, documentIds: string[]): Promise<string[]> {
-    const userIds: string[] = [...new Set([...await this.documentRepository.userIdsFromDocumentIds(documentIds)])];
+  async getTranscribableImages(
+    clerkUser: ClerkUser,
+    documentIds: string[],
+  ): Promise<string[]> {
+    const userIds: string[] = [
+      ...new Set([
+        ...(await this.documentRepository.userIdsFromDocumentIds(documentIds)),
+      ]),
+    ];
 
     if (!userIds) {
       throw new HttpException('Document does not exist', HttpStatus.NOT_FOUND);
     }
 
     if (userIds.length !== 1) {
-      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Not authorized to transcribe these images',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
-      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+    if (
+      userIds[0] !== clerkUser.id &&
+      !PRIVILEGED_USER_IDS.includes(clerkUser.id)
+    ) {
+      throw new HttpException(
+        'Not authorized to transcribe these images',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    const untranscribedImages: string[] = await this.transcriptionRepository.fetchUntranscribedImagesByDocumentIds(documentIds);
+    const untranscribedImages: string[] =
+      await this.transcriptionRepository.fetchUntranscribedImagesByDocumentIds(
+        documentIds,
+      );
     return untranscribedImages;
   }
 
-  async aiTranscribe(clerkUser: ClerkUser, aiTranscriptionDto: AiTranscriptionDto): Promise<{
+  async aiTranscribe(
+    clerkUser: ClerkUser,
+    aiTranscriptionDto: AiTranscriptionDto,
+  ): Promise<{
     allImageIds: string[];
   }> {
     const { imageIds = [], documentIds = [] } = aiTranscriptionDto;
@@ -93,19 +134,33 @@ export class TranscriptionService {
       this.documentRepository.userIdsFromDocumentIds(documentIds),
     ]);
 
-    const allUserIds: string[] = [...new Set([...imageUserIds, ...documentUserIds])];
+    const allUserIds: string[] = [
+      ...new Set([...imageUserIds, ...documentUserIds]),
+    ];
 
     if (allUserIds.length !== 1) {
-      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Not authorized to transcribe these images',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    if (allUserIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
-      throw new HttpException('Not authorized to transcribe these images', HttpStatus.FORBIDDEN);
+    if (
+      allUserIds[0] !== clerkUser.id &&
+      !PRIVILEGED_USER_IDS.includes(clerkUser.id)
+    ) {
+      throw new HttpException(
+        'Not authorized to transcribe these images',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     let allImageIds: string[] = [];
     if (documentIds.length > 0) {
-      const untranscribedImages: string[] = await this.transcriptionRepository.fetchUntranscribedImagesByDocumentIds(documentIds);
+      const untranscribedImages: string[] =
+        await this.transcriptionRepository.fetchUntranscribedImagesByDocumentIds(
+          documentIds,
+        );
       allImageIds = [...untranscribedImages, ...imageIds];
     } else {
       allImageIds = imageIds;
@@ -121,9 +176,8 @@ export class TranscriptionService {
       const transcriptionCost: number = allImageIds.length;
 
       // Check credit balance
-      const credits: Credit | null = await this.creditsRepository.fetchUserCredits(
-        clerkUser.id,
-      );
+      const credits: Credit | null =
+        await this.creditsRepository.fetchUserCredits(clerkUser.id);
 
       if (!credits) {
         throw new HttpException('Credits not found', HttpStatus.BAD_REQUEST);
@@ -137,10 +191,13 @@ export class TranscriptionService {
       }
 
       // Fetch all images at once
-      const images: ImageDB[] = await this.imageRepository.fetchImagesByIds(allImageIds);
+      const images: ImageDB[] =
+        await this.imageRepository.fetchImagesByIds(allImageIds);
 
       // Get presigned URLs for all images
-      const presignedUrls = await this.supabaseService.getPresignedUrls(images.map((image) => image.filename));
+      const presignedUrls = await this.supabaseService.getPresignedUrls(
+        images.map((image) => image.filename),
+      );
 
       // Submit all transcription jobs concurrently
       const jobSubmissionPromises = images.map(async (image, index) => {
@@ -157,28 +214,33 @@ export class TranscriptionService {
 
           const payload = {
             input: {
-              image: presignedUrls[index]
-            }
+              image: presignedUrls[index],
+            },
           };
 
           // Submit job to API
-          const runResponse = await this.axiosWithRetry(`${apiUrl}/run`, payload, {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiToken}`,
-              Accept: 'application/json',
+          const runResponse = await this.axiosWithRetry(
+            `${apiUrl}/run`,
+            payload,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiToken}`,
+                Accept: 'application/json',
+              },
+              maxBodyLength: Infinity,
             },
-            maxBodyLength: Infinity,
-          });
+          );
 
           const jobId = runResponse.data.id;
 
           // Create transcription job record
-          const transcriptionJob = await this.transcriptionJobRepository.createTranscriptionJob({
-            image_id: image.id,
-            external_job_id: jobId,
-            status: APITranscriptionJobStatus.InProgress,
-          });
+          const transcriptionJob =
+            await this.transcriptionJobRepository.createTranscriptionJob({
+              image_id: image.id,
+              external_job_id: jobId,
+              status: APITranscriptionJobStatus.InProgress,
+            });
 
           return {
             imageId: image.id,
@@ -187,13 +249,18 @@ export class TranscriptionService {
             documentId: image.document_id,
           };
         } catch (error) {
-          console.error(`Failed to submit transcription job for image ${image.id}:`, error);
+          console.error(
+            `Failed to submit transcription job for image ${image.id}:`,
+            error,
+          );
           return null;
         }
       });
 
       // Wait for all jobs to be submitted and recorded in database
-      const submittedJobs = (await Promise.all(jobSubmissionPromises)).filter((job): job is NonNullable<typeof job> => job !== null);
+      const submittedJobs = (await Promise.all(jobSubmissionPromises)).filter(
+        (job): job is NonNullable<typeof job> => job !== null,
+      );
 
       // Add monitoring job to the queue
       if (submittedJobs.length > 0) {
@@ -234,22 +301,30 @@ export class TranscriptionService {
     createUpdateTranscription: CreateUpdateTranscriptionDto,
   ): Promise<string> {
     try {
-      const {
-        transcription_status,
-        current_transcription_text,
-      } = createUpdateTranscription;
-      const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
+      const { transcription_status, current_transcription_text } =
+        createUpdateTranscription;
+      const userIds: string[] | null =
+        await this.imageRepository.userIdsFromImageIds([imageId]);
 
       if (!userIds) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
       if (userIds.length !== 1) {
-        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
-      if (userIds[0] !== clerkUser.id && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
-        throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
+      if (
+        userIds[0] !== clerkUser.id &&
+        !PRIVILEGED_USER_IDS.includes(clerkUser.id)
+      ) {
+        throw new HttpException(
+          'Image does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       return this.createOrUpdateTranscriptionImpl(
@@ -321,19 +396,14 @@ export class TranscriptionService {
     currentTranscriptionText: string | undefined,
   ): Promise<string> {
     const transcription: Transcription | null =
-      await this.transcriptionRepository.fetchTranscriptionByImageId(
-        imageId,
-      );
+      await this.transcriptionRepository.fetchTranscriptionByImageId(imageId);
 
     if (transcription) {
-      await this.transcriptionRepository.updateTranscription(
-        transcription.id,
-        {
-          transcription_status: transcriptionStatus,
-          current_transcription_text: currentTranscriptionText,
-          ai_transcription_text: aiTranscriptionText,
-        },
-      );
+      await this.transcriptionRepository.updateTranscription(transcription.id, {
+        transcription_status: transcriptionStatus,
+        current_transcription_text: currentTranscriptionText,
+        ai_transcription_text: aiTranscriptionText,
+      });
       return transcription.id;
     }
 
@@ -345,8 +415,13 @@ export class TranscriptionService {
     });
   }
 
-  async getTranscriptionJobStatuses(clerkUser: ClerkUser, imageIds: string[], earliestCreatedAt: Date | null): Promise<TranscriptionJobDB[]> {
-    const userIds: string[] | null = await this.imageRepository.userIdsFromImageIds(imageIds);
+  async getTranscriptionJobStatuses(
+    clerkUser: ClerkUser,
+    imageIds: string[],
+    earliestCreatedAt: Date | null,
+  ): Promise<TranscriptionJobDB[]> {
+    const userIds: string[] | null =
+      await this.imageRepository.userIdsFromImageIds(imageIds);
 
     if (!userIds) {
       throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
@@ -355,14 +430,27 @@ export class TranscriptionService {
     const userIdsSet: Set<string> = new Set(userIds);
 
     if (userIdsSet.size !== 1) {
-      throw new HttpException('Not authorized to view these images', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Not authorized to view these images',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    if (!userIdsSet.has(clerkUser.id) && !PRIVILEGED_USER_IDS.includes(clerkUser.id)) {
-      throw new HttpException('Not authorized to view these images', HttpStatus.FORBIDDEN);
+    if (
+      !userIdsSet.has(clerkUser.id) &&
+      !PRIVILEGED_USER_IDS.includes(clerkUser.id)
+    ) {
+      throw new HttpException(
+        'Not authorized to view these images',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    const transcriptionJobs: TranscriptionJobDB[] = await this.transcriptionJobRepository.fetchTranscriptionJobsByImageIds(imageIds, earliestCreatedAt);
+    const transcriptionJobs: TranscriptionJobDB[] =
+      await this.transcriptionJobRepository.fetchTranscriptionJobsByImageIds(
+        imageIds,
+        earliestCreatedAt,
+      );
     return transcriptionJobs;
   }
 }

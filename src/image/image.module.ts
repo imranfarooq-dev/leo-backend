@@ -10,4 +10,4 @@ import { PdfModule } from '@/src/pdf/pdf.module';
   providers: [ImageService],
   exports: [ImageService],
 })
-export class ImageModule { }
+export class ImageModule {}

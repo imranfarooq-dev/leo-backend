@@ -8,15 +8,11 @@ import {
   NoteSearchByDocument,
 } from '@/types/search';
 
-
 @Injectable()
 export class SearchService {
-  constructor(private readonly searchRepository: SearchRepository) { }
+  constructor(private readonly searchRepository: SearchRepository) {}
 
-  async searchDocumentAndList(
-    searchKeyword: string,
-    userId: string,
-  ) {
+  async searchDocumentAndList(searchKeyword: string, userId: string) {
     try {
       const [itemResults, transcriptResults, notesResults] = await Promise.all([
         this.itemSearch(searchKeyword, userId),
@@ -28,7 +24,7 @@ export class SearchService {
         items: itemResults,
         transcripts: transcriptResults,
         notes: notesResults,
-      }
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -41,12 +37,16 @@ export class SearchService {
     }
   }
 
-  private async itemSearch(searchKeyword: string, userId: string): Promise<SearchDocumentAndList[]> {
+  private async itemSearch(
+    searchKeyword: string,
+    userId: string,
+  ): Promise<SearchDocumentAndList[]> {
     try {
-      const results: SearchDocumentAndList[] = await this.searchRepository.searchListAndDocument(
-        searchKeyword,
-        userId,
-      );
+      const results: SearchDocumentAndList[] =
+        await this.searchRepository.searchListAndDocument(
+          searchKeyword,
+          userId,
+        );
 
       return this.itemsSort(results, searchKeyword);
     } catch (error) {
@@ -61,13 +61,16 @@ export class SearchService {
     }
   }
 
-  private async transcriptSearch(searchKeyword: string, userId: string): Promise<TranscriptSearchByDocument[]> {
+  private async transcriptSearch(
+    searchKeyword: string,
+    userId: string,
+  ): Promise<TranscriptSearchByDocument[]> {
     try {
       const results: SearchTranscription[] =
-        (await this.searchRepository.searchUserTranscription(
+        await this.searchRepository.searchUserTranscription(
           searchKeyword,
           userId,
-        ));
+        );
 
       const documentMap = new Map();
 
@@ -104,13 +107,13 @@ export class SearchService {
     }
   }
 
-  private async notesSearch(searchKeyword: string, userId: string): Promise<NoteSearchByDocument[]> {
+  private async notesSearch(
+    searchKeyword: string,
+    userId: string,
+  ): Promise<NoteSearchByDocument[]> {
     try {
       const results: SearchUserNote[] =
-        (await this.searchRepository.searchUserNote(
-          searchKeyword,
-          userId,
-        ));
+        await this.searchRepository.searchUserNote(searchKeyword, userId);
 
       const documentMap = new Map();
 

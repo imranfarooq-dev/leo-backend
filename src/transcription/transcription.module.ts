@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { TranscriptionService, TRANSCRIPTION_QUEUE } from './transcription.service';
+import {
+  TranscriptionService,
+  TRANSCRIPTION_QUEUE,
+} from './transcription.service';
 import { TranscriptionController } from './transcription.controller';
 import { DatabaseModule } from '@/src/database/database.module';
 import { SupabaseModule } from '@/src/supabase/supabase.module';
@@ -37,4 +40,4 @@ import { ConfigModule } from '@nestjs/config';
   controllers: [TranscriptionController],
   providers: [TranscriptionService, TranscriptionProcessor],
 })
-export class TranscriptionModule { }
+export class TranscriptionModule {}

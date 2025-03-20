@@ -1,21 +1,31 @@
-import { CreditsRepository } from '@/src/database/repositiories/credits.repository'
-import { DocumentRepository } from '@/src/database/repositiories/document.repository'
-import { ImageRepository } from '@/src/database/repositiories/image.repository'
-import { CreateImageDto } from '@/src/image/dto/create-image.dto'
-import { UpdateImageDto } from '@/src/image/dto/update-image.dto'
-import { PdfService } from '@/src/pdf/pdf.service'
-import { SupabaseService } from '@/src/supabase/supabase.service'
-import { DocumentDB } from '@/types/document'
-import { ImageDB, ImageOrder, InsertImage, Image, BaseImage } from '@/types/image'
-import { User } from '@clerk/clerk-sdk-node'
+import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
+import { DocumentRepository } from '@/src/database/repositiories/document.repository';
+import { ImageRepository } from '@/src/database/repositiories/image.repository';
+import { CreateImageDto } from '@/src/image/dto/create-image.dto';
+import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
+import { PdfService } from '@/src/pdf/pdf.service';
+import { SupabaseService } from '@/src/supabase/supabase.service';
+import { DocumentDB } from '@/types/document';
+import {
+  ImageDB,
+  ImageOrder,
+  InsertImage,
+  Image,
+  BaseImage,
+} from '@/types/image';
+import { User } from '@clerk/clerk-sdk-node';
 import {
   ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
-} from '@nestjs/common'
-import { Readable } from 'stream'
-import { ImageStoragePath, PRIVILEGED_USER_IDS, ThumbnailStoragePath } from '@/src/shared/constant'
+} from '@nestjs/common';
+import { Readable } from 'stream';
+import {
+  ImageStoragePath,
+  PRIVILEGED_USER_IDS,
+  ThumbnailStoragePath,
+} from '@/src/shared/constant';
 @Injectable()
 export class ImageService {
   constructor(
@@ -24,11 +34,12 @@ export class ImageService {
     private readonly creditRepository: CreditsRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly pdfService: PdfService,
-  ) { }
+  ) {}
 
   async getImage(imageId: string): Promise<Image | null> {
     try {
-      const image: Image | null = await this.imageRepository.fetchImageById(imageId);
+      const image: Image | null =
+        await this.imageRepository.fetchImageById(imageId);
 
       if (!image) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
@@ -49,16 +60,17 @@ export class ImageService {
     userId: string,
   ): Promise<BaseImage[]> {
     try {
-      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(document_id);
+      const document: DocumentDB | null =
+        await this.documentRepository.fetchDocumentDBById(document_id);
 
       if (!document) {
-        throw new HttpException(
-          'Item does not exist',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== userId && !PRIVILEGED_USER_IDS.includes(userId)) {
+      if (
+        document.user_id !== userId &&
+        !PRIVILEGED_USER_IDS.includes(userId)
+      ) {
         throw new HttpException(
           'Item does not belong to user',
           HttpStatus.FORBIDDEN,
@@ -70,12 +82,15 @@ export class ImageService {
 
       for (const file of files) {
         if (file.mimetype === 'application/pdf') {
-          const pdfImages = await this.pdfService.extractImagesFromPdf(file.buffer);
+          const pdfImages = await this.pdfService.extractImagesFromPdf(
+            file.buffer,
+          );
 
           // Convert extracted images to proper Multer File objects
           const pdfImageFiles = pdfImages.map((buffer, index) => {
             // Detect if the buffer is a JPEG by checking its magic numbers
-            const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+            const isJpeg =
+              buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
             const extension = isJpeg ? 'jpg' : 'png';
             const mimeType = isJpeg ? 'image/jpeg' : 'image/png';
 
@@ -93,7 +108,7 @@ export class ImageService {
               stream: stream,
               destination: file.destination,
               filename: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
-              path: file.path
+              path: file.path,
             };
 
             return multerFile;
@@ -113,7 +128,8 @@ export class ImageService {
       }
 
       const credits = await this.creditRepository.fetchUserCredits(userId);
-      const numImages: number = await this.imageRepository.countImagesByUserId(userId);
+      const numImages: number =
+        await this.imageRepository.countImagesByUserId(userId);
 
       if (numImages + processedFiles.length > credits.image_limits) {
         throw new ForbiddenException(
@@ -121,21 +137,22 @@ export class ImageService {
         );
       }
 
-      const uploadedImages = await this.supabaseService.uploadFiles(
-        processedFiles,
-        userId,
-      );
+      const uploadedImages =
+        await this.supabaseService.uploadFiles(processedFiles);
 
       // Get highest order number for the document
-      const lastImageOrder: number | null = await this.imageRepository.getLastImageOrder(document_id);
+      const lastImageOrder: number | null =
+        await this.imageRepository.getLastImageOrder(document_id);
       const startOrder = lastImageOrder ? lastImageOrder + 1 : 1;
 
-      const imagesData: InsertImage[] = uploadedImages.map((uploadedImage, index) => ({
-        document_id: document_id,
-        image_name: uploadedImage.originalFilename,
-        filename: uploadedImage.filename,
-        order: startOrder + index,
-      }));
+      const imagesData: InsertImage[] = uploadedImages.map(
+        (uploadedImage, index) => ({
+          document_id: document_id,
+          image_name: uploadedImage.originalFilename,
+          filename: uploadedImage.filename,
+          order: startOrder + index,
+        }),
+      );
 
       return await this.imageRepository.createImage(imagesData);
     } catch (error) {
@@ -150,20 +167,34 @@ export class ImageService {
     }
   }
 
-  async update(user: User, imageId: string, updateImage: UpdateImageDto): Promise<void> {
+  async update(
+    user: User,
+    imageId: string,
+    updateImage: UpdateImageDto,
+  ): Promise<void> {
     try {
-      const imageUserIds: string[] | null = await this.imageRepository.userIdsFromImageIds([imageId]);
+      const imageUserIds: string[] | null =
+        await this.imageRepository.userIdsFromImageIds([imageId]);
 
       if (!imageUserIds) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
       if (imageUserIds.length !== 1) {
-        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
-      if (imageUserIds[0] !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
-        throw new HttpException('Image does not belong to user', HttpStatus.FORBIDDEN);
+      if (
+        imageUserIds[0] !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
+        throw new HttpException(
+          'Image does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       await this.imageRepository.updateImage(imageId, updateImage.image_name);
@@ -179,7 +210,11 @@ export class ImageService {
     }
   }
 
-  async updateOrder(user: User, documentId: string, updates: { id: string; order: number }[]): Promise<void> {
+  async updateOrder(
+    user: User,
+    documentId: string,
+    updates: { id: string; order: number }[],
+  ): Promise<void> {
     try {
       if (!updates.length) {
         throw new HttpException(
@@ -188,17 +223,25 @@ export class ImageService {
         );
       }
 
-      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(documentId);
+      const document: DocumentDB | null =
+        await this.documentRepository.fetchDocumentDBById(documentId);
 
       if (!document) {
         throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
       }
 
-      if (document.user_id !== user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
-        throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
+      if (
+        document.user_id !== user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
+        throw new HttpException(
+          'Item does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
-      const images: ImageDB[] = await this.imageRepository.fetchImagesDBByDocumentId(documentId);
+      const images: ImageDB[] =
+        await this.imageRepository.fetchImagesDBByDocumentId(documentId);
 
       if (!images.length) {
         throw new HttpException(
@@ -207,20 +250,40 @@ export class ImageService {
         );
       }
 
-      if (images.some(image => !updates.some(update => update.id === image.id))) {
-        throw new HttpException('Images do not have consistent parents', HttpStatus.BAD_REQUEST);
+      if (
+        images.some(
+          (image) => !updates.some((update) => update.id === image.id),
+        )
+      ) {
+        throw new HttpException(
+          'Images do not have consistent parents',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
-      if (new Set(updates.map(update => update.id)).size !== updates.length) {
-        throw new HttpException('Image IDs must be unique', HttpStatus.BAD_REQUEST);
+      if (new Set(updates.map((update) => update.id)).size !== updates.length) {
+        throw new HttpException(
+          'Image IDs must be unique',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Validate order values
-      const sortedOrders = [...updates.map(update => update.order)].sort((a, b) => a - b);
-      const expectedSequence = Array.from({ length: updates.length }, (_, i) => i + 1);
+      const sortedOrders = [...updates.map((update) => update.order)].sort(
+        (a, b) => a - b,
+      );
+      const expectedSequence = Array.from(
+        { length: updates.length },
+        (_, i) => i + 1,
+      );
 
-      if (!sortedOrders.every((order, index) => order === expectedSequence[index])) {
-        throw new HttpException('Image order values must form a complete 1-indexed sequence', HttpStatus.BAD_REQUEST);
+      if (
+        !sortedOrders.every((order, index) => order === expectedSequence[index])
+      ) {
+        throw new HttpException(
+          'Image order values must form a complete 1-indexed sequence',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       await this.imageRepository.updateImageOrder(updates);
@@ -238,24 +301,34 @@ export class ImageService {
 
   async delete(user: User, imageId: string): Promise<ImageOrder[]> {
     try {
-      const image: ImageDB | null = await this.imageRepository.fetchImageDB(imageId);
+      const image: ImageDB | null =
+        await this.imageRepository.fetchImageDB(imageId);
 
       if (!image) {
         throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
       }
 
-      const document: DocumentDB | null = await this.documentRepository.fetchDocumentDBById(image.document_id);
+      const document: DocumentDB | null =
+        await this.documentRepository.fetchDocumentDBById(image.document_id);
 
-      if (document.user_id != user.id && !PRIVILEGED_USER_IDS.includes(user.id)) {
-        throw new HttpException('Item does not belong to user', HttpStatus.FORBIDDEN);
+      if (
+        document.user_id != user.id &&
+        !PRIVILEGED_USER_IDS.includes(user.id)
+      ) {
+        throw new HttpException(
+          'Item does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
       }
 
       // Delete the image
-      const siblingImageOrders: ImageOrder[] = await this.imageRepository.deleteImage(
-        imageId,
-      );
+      const siblingImageOrders: ImageOrder[] =
+        await this.imageRepository.deleteImage(imageId);
 
-      await this.supabaseService.deleteFiles([`${ImageStoragePath}/${image.filename}`, `${ThumbnailStoragePath}/${image.filename}`]);
+      await this.supabaseService.deleteFiles([
+        `${ImageStoragePath}/${image.filename}`,
+        `${ThumbnailStoragePath}/${image.filename}`,
+      ]);
       return siblingImageOrders;
     } catch (error) {
       if (error instanceof HttpException) {

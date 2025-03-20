@@ -9,10 +9,7 @@ import { CreateUserDto } from '@/src/user/dto/create-user.dto';
 import { UserRepository } from '@/src/database/repositiories/user.repository';
 import { User } from '@/types/user';
 import { UserJSON } from '@clerk/clerk-sdk-node';
-import {
-  Provides,
-  SubscriptionStatus,
-} from '@/src/shared/constant';
+import { Provides, SubscriptionStatus } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import Stripe from 'stripe';
 import { SubscriptionRepository } from '@/src/database/repositiories/subscription.repository';
@@ -28,7 +25,7 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly subscriptionRepository: SubscriptionRepository,
     private readonly creditRepository: CreditsRepository,
-  ) { }
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {

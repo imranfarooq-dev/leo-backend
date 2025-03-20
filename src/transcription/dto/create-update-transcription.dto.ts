@@ -1,9 +1,4 @@
-import {
-  IsOptional,
-  IsEnum,
-  IsString,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsOptional, IsEnum, IsString } from 'class-validator';
 import { TranscriptionStatus } from '@/types/transcription';
 
 const VALID_TRANSCRIPTION_STATUSES: TranscriptionStatus[] = [

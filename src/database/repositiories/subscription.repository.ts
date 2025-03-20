@@ -8,7 +8,7 @@ export class SubscriptionRepository {
 
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
-  ) { }
+  ) {}
 
   async createSubscription(
     userId: string,
@@ -53,7 +53,7 @@ export class SubscriptionRepository {
       const { error } = await this.supabase
         .from(Tables.Subscriptions)
         .update(subscriptions)
-        .eq('user_id', userId)
+        .eq('user_id', userId);
 
       if (error) {
         throw new Error(error.message);
