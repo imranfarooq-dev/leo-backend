@@ -23,6 +23,7 @@ import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/clerk-sdk-node';
 import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
 import { Document } from '@/types/document';
+import * as Sentry from '@sentry/node';
 
 @Controller('document')
 export class DocumentController {
@@ -44,6 +45,7 @@ export class DocumentController {
         data: documents,
       };
     } catch (error) {
+      Sentry.captureException(error);
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,

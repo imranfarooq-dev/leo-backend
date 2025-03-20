@@ -20,12 +20,13 @@ import StripeConfig from '@/src/config/stripe.config';
 import ApiConfig from '@/src/config/api.config';
 import { BullModule } from '@nestjs/bull';
 import { SentryModule } from '@sentry/nestjs/setup';
-import { APP_FILTER } from '@nestjs/core';
-import { SentryGlobalFilter } from '@sentry/nestjs/setup';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { catchError } from 'rxjs/operators';
+import { SentryModule as CustomSentryModule } from './sentry/sentry.module';
+import * as Sentry from '@sentry/node';
 
 @Module({
   imports: [
-    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [SupabaseConfig, StripeConfig, ApiConfig],
@@ -36,6 +37,8 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
         '.env',
       ],
     }),
+    CustomSentryModule,
+    SentryModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -68,8 +71,20 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
   ],
   providers: [
     {
-      provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
+      provide: APP_INTERCEPTOR,
+      useFactory: () => ({
+        intercept(context, next) {
+          return next.handle().pipe(
+            catchError((error) => {
+              // Only report errors that don't have a status code (unhandled) or have status >= 500
+              if (!error.status || error.status >= 500) {
+                Sentry.captureException(error);
+              }
+              throw error;
+            }),
+          );
+        },
+      }),
     },
   ],
 })
