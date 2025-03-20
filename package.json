@@ -27,6 +27,7 @@
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@sentry/nestjs": "^9.7.0",
     "@types/archiver": "^6.0.2",
     "archiver": "^7.0.1",
     "axios": "^1.7.2",

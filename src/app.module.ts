@@ -19,9 +19,13 @@ import SupabaseConfig from '@/src/config/supabase.config';
 import StripeConfig from '@/src/config/stripe.config';
 import ApiConfig from '@/src/config/api.config';
 import { BullModule } from '@nestjs/bull';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [SupabaseConfig, StripeConfig, ApiConfig],
@@ -43,7 +47,7 @@ import { BullModule } from '@nestjs/bull';
             username: configService.get('REDISUSER'),
             family: 0,
           },
-        }
+        };
       },
       inject: [ConfigService],
     }),
@@ -61,6 +65,12 @@ import { BullModule } from '@nestjs/bull';
     SearchModule,
     SubscriptionModule,
     CreditModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
   ],
 })
 export class AppModule {

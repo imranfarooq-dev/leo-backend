@@ -1,3 +1,4 @@
+import './instrument.ts';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from '@/src/app.module';
 import * as cookieParser from 'cookie-parser';
