@@ -1,0 +1,53 @@
+# -------- Development stage -------- 
+FROM node:20.19.0-slim AS development
+
+ARG SENTRY_AUTH_TOKEN
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+
+# Install libvips dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential python3 meson ninja-build wget \
+    gobject-introspection libglib2.0-dev \
+    libgirepository1.0-dev \
+    libexpat1-dev libfftw3-dev libgif-dev libgsf-1-dev \
+    libheif-dev libde265-dev libx265-dev libtiff-dev libspng-dev \
+    libjpeg-dev libpng-dev libexif-dev librsvg2-dev  \
+    libwebp-dev libtiff5-dev pkg-config libopenjp2-7-dev \
+    libpango1.0-dev libcairo2-dev \
+    procps
+
+# Install libvips 
+RUN cd /tmp \
+    && wget https://github.com/libvips/libvips/releases/download/v8.16.1/vips-8.16.1.tar.xz \
+    && tar xf vips-8.16.1.tar.xz \
+    && cd vips-8.16.1 \
+    && meson setup build \
+    && cd build \
+    && meson compile \
+    && meson test \
+    && meson install \
+    && ldconfig \
+    && cd / \
+    && rm -rf /tmp/vips-8.16.1* \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy package definition files and install all dependencies (including dev)
+COPY package*.json ./
+RUN npm install
+
+# Reinstall sharp against the runtime libraries
+ENV SHARP_FORCE_GLOBAL_LIBVIPS=1
+RUN npm uninstall sharp && npm install --build-from-source sharp
+
+# Copy source code
+COPY . .
+
+# Expose application port
+EXPOSE 4000
+
+# Set Node environment to development and start the app with hot reload
+ENV NODE_ENV=development
+CMD ["npm", "run", "start:dev"]

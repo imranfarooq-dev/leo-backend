@@ -2,7 +2,7 @@ services:
   leo-backend-local:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
       target: development
     ports:
       - '4000:4000'
@@ -17,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
+      target: production
     ports:
       - '4000:4000'
     environment:
