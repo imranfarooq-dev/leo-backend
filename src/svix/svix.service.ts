@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Webhook } from 'svix';
 import { Provides } from '@/src/shared/constant';
 import { ClerkEvent as ClerkEventType } from '@/types/clerkEvent';
-import { UserJSON } from '@clerk/clerk-sdk-node';
+import { UserJSON } from '@clerk/express';
 import { UserService } from '@/src/user/user.service';
 
 @Injectable()

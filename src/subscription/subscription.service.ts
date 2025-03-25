@@ -12,7 +12,7 @@ import {
 } from '@/src/shared/constant';
 import { Credit } from '@/types/credit';
 import { FreePlanStatus, SubscriptionDB } from '@/types/subscription';
-import { User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { User as ClerkUser } from '@clerk/express';
 import {
   BadRequestException,
   HttpException,

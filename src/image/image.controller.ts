@@ -15,7 +15,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { ImageService } from '@/src/image/image.service';
 import { CreateImageDto } from '@/src/image/dto/create-image.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
-import { User as UserType } from '@clerk/clerk-sdk-node';
+import { User as UserType } from '@clerk/express';
 import {
   UpdateImageDto,
   UpdateImageOrderDto,
@@ -62,13 +62,15 @@ export class ImageController {
           'image/png',
           'image/gif',
           'image/webp',
+          'image/heic',
+          'image/heif',
           'application/pdf',
         ];
 
         if (!allowedMimeTypes.includes(file.mimetype)) {
           callback(
             new HttpException(
-              'File type not supported. Please upload images (JPG, PNG, GIF, WebP) or PDF files.',
+              'File type not supported. Please upload images (JPG, PNG, GIF, WebP, HEIC, HEIF) or PDF files.',
               HttpStatus.BAD_REQUEST,
             ),
             false,
@@ -84,14 +86,11 @@ export class ImageController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
-      console.log('createImage', createImage);
       const images: Image[] = await this.imageService.create(
         createImage,
         files,
         user.id,
       );
-
-      console.log('images', images);
 
       return {
         statusCode: HttpStatus.CREATED,

@@ -1,0 +1,37 @@
+services:
+  leo-backend-local:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - '4000:4000'
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    env_file:
+      - .env.local
+  leo-backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: development
+    env_file:
+      - .env.development
+  leo-backend-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: production
+    env_file:
+      - .env.production

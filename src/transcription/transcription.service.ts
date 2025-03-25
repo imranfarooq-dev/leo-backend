@@ -6,7 +6,7 @@ import { DocumentRepository } from '@/src/database/repositiories/document.reposi
 import { ImageDB } from '@/types/image';
 import axios, { AxiosResponse } from 'axios';
 import { ConfigService } from '@nestjs/config';
-import { User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { User as ClerkUser } from '@clerk/express';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { Transcription, TranscriptionStatus } from '@/types/transcription';
@@ -261,7 +261,6 @@ export class TranscriptionService {
       const submittedJobs = (await Promise.all(jobSubmissionPromises)).filter(
         (job): job is NonNullable<typeof job> => job !== null,
       );
-
       // Add monitoring job to the queue
       if (submittedJobs.length > 0) {
         await this.transcriptionQueue.add(
@@ -279,7 +278,6 @@ export class TranscriptionService {
           },
         );
       }
-
       return {
         allImageIds,
       };

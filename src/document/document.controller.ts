@@ -20,7 +20,7 @@ import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
 import { FetchDocumentDto } from '@/src/document/dto/fetch-document.dto';
 import { FetchUserDocumentDto } from '@/src/document/dto/fetch-user-document.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
-import { User as UserType } from '@clerk/clerk-sdk-node';
+import { User as UserType } from '@clerk/express';
 import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
 import { Document } from '@/types/document';
 import * as Sentry from '@sentry/node';

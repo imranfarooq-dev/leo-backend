@@ -8,7 +8,7 @@ import {
 import { SearchDto } from '@/src/search/dto/search.dto';
 import { SearchService } from '@/src/search/search.service';
 import { User } from '@/src/comon/decorators/user.decorator';
-import { User as UserType } from '@clerk/clerk-sdk-node';
+import { User as UserType } from '@clerk/express';
 
 @Controller('search')
 export class SearchController {

@@ -51,13 +51,36 @@ export class SupabaseService {
 
         const uploadPromises = batch.map(async (file) => {
           const fileExtension = file.originalname.split('.').pop() || '';
-          const filename = `${uuid()}.${fileExtension}`;
-          const filepath = `${ImageStoragePath}/${filename}`;
-          const thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
+          let filename = `${uuid()}.${fileExtension}`;
+          let filepath = `${ImageStoragePath}/${filename}`;
+          let thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
+
+          // Convert HEIC/HEIF to JPEG if needed
+          let processedBuffer = file.buffer;
+          let processedMimeType = file.mimetype;
+
+          if (
+            file.mimetype === 'image/heic' ||
+            file.mimetype === 'image/heif'
+          ) {
+            sharp.cache(false);
+            processedBuffer = await sharp(file.buffer)
+              .rotate() // auto-rotate based on EXIF data
+              .jpeg({ quality: 100 }) // lossless conversion
+              .toBuffer();
+            processedMimeType = 'image/jpeg';
+            // Update filename to use .jpg extension
+            const newFilename = `${uuid()}.jpg`;
+            filename = newFilename;
+            filepath = `${ImageStoragePath}/${filename}`;
+            thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
+          }
 
           const { data, error } = await this.supabase.storage
             .from(SupabaseStorageId)
-            .upload(filepath, file.buffer, { contentType: file.mimetype });
+            .upload(filepath, processedBuffer, {
+              contentType: processedMimeType,
+            });
 
           if (error) {
             throw new Error(
@@ -66,7 +89,7 @@ export class SupabaseService {
           }
 
           // Generate thumbnail buffer using sharp
-          const thumbnailBuffer = await sharp(file.buffer)
+          const thumbnailBuffer = await sharp(processedBuffer)
             .rotate() // auto-rotate based on EXIF data
             .resize(96, 96, {
               fit: 'cover',
@@ -78,7 +101,7 @@ export class SupabaseService {
           const { error: thumbnailError } = await this.supabase.storage
             .from(SupabaseStorageId)
             .upload(thumbnailPath, thumbnailBuffer, {
-              contentType: file.mimetype,
+              contentType: processedMimeType,
             });
 
           if (thumbnailError) {

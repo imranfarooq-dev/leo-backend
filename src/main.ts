@@ -1,10 +1,10 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@/src/app.module';
 import * as cookieParser from 'cookie-parser';
-import { ClerkAuthGuard } from '@/src/comon/guards/clerk.auth.guard';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { clerkMiddleware } from '@clerk/express'; // Clerk's Express middleware
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -23,11 +23,18 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
-  const reflector = app.get(Reflector);
   app.use(cookieParser());
   app.useLogger(new Logger());
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
-  app.useGlobalGuards(new ClerkAuthGuard(reflector));
+  app.use(
+    clerkMiddleware({
+      authorizedParties: [
+        'http://localhost:3000',
+        'https://leo-app-develop.vercel.app',
+        'https://www.tryleo.ai',
+      ],
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 4000);
 }

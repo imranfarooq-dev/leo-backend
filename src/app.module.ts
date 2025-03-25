@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { requireAuth } from '@clerk/express';
 import { SvixModule } from '@/src/svix/svix.module';
 import { SupabaseModule } from '@/src/supabase/supabase.module';
 import { UserModule } from '@/src/user/user.module';
@@ -24,7 +24,9 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { catchError } from 'rxjs/operators';
 import { SentryModule as CustomSentryModule } from './sentry/sentry.module';
 import * as Sentry from '@sentry/node';
-
+import { ClerkClientProvider } from './comon/providers/clerk-client.provider';
+import { APP_GUARD } from '@nestjs/core';
+import { ClerkAuthGuard } from './comon/guards/clerk.auth.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -86,10 +88,15 @@ import * as Sentry from '@sentry/node';
         },
       }),
     },
+    ClerkClientProvider,
+    {
+      provide: APP_GUARD,
+      useClass: ClerkAuthGuard,
+    },
   ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(ClerkExpressRequireAuth()).forRoutes();
+    consumer.apply(requireAuth()).forRoutes();
   }
 }

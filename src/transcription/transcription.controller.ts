@@ -11,7 +11,7 @@ import {
 import { TranscriptionService } from '@/src/transcription/transcription.service';
 import { CreateUpdateTranscriptionDto } from '@/src/transcription/dto/create-update-transcription.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
-import { User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { User as ClerkUser } from '@clerk/express';
 import { AiTranscriptionDto } from '@/src/transcription/dto/ai-transcription.dto';
 import { Transcription } from '@/types/transcription';
 import { GetTranscribableImagesDto } from './dto/get-transcribable-images.dto';

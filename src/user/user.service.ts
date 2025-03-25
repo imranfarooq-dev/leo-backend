@@ -8,7 +8,7 @@ import {
 import { CreateUserDto } from '@/src/user/dto/create-user.dto';
 import { UserRepository } from '@/src/database/repositiories/user.repository';
 import { User } from '@/types/user';
-import { UserJSON } from '@clerk/clerk-sdk-node';
+import { UserJSON } from '@clerk/express';
 import { Provides, SubscriptionStatus } from '@/src/shared/constant';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import Stripe from 'stripe';

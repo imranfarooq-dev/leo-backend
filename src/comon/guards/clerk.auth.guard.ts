@@ -1,38 +1,35 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { clerkClient } from '@clerk/clerk-sdk-node';
-import { Reflector } from '@nestjs/core';
-import { IsPublic } from '@/src/shared/constant';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Inject,
+} from '@nestjs/common';
+import { getAuth } from '@clerk/express'; // to retrieve auth data from the request
+import type { ClerkClient } from '@clerk/backend'; // ClerkClient type for typing (optional)
 
 @Injectable()
 export class ClerkAuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    @Inject('ClerkClient') private clerkClient: ClerkClient, // inject our Clerk client
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest();
+    const auth = getAuth(req);
+    const userId = auth.userId; // Clerk populates userId if token is valid
 
-    const isPublicRoute: boolean = this.reflector.getAllAndOverride<boolean>(
-      IsPublic,
-      [context.getHandler(), context.getClass()],
-    );
-
-    if (isPublicRoute) {
-      return true;
-    }
-
-    const sessionToken =
-      request.headers.session ?? request?.headers?.authorization?.split(' ')[1];
-
-    if (!sessionToken) {
+    if (!userId) {
+      // No valid session token present
       return false;
     }
 
     try {
-      const session = await clerkClient.verifyToken(sessionToken);
-      request.user = await clerkClient.users.getUser(session.sub);
+      const user = await this.clerkClient.users.getUser(userId);
+      req.user = user; // attach user info to request for controllers
     } catch (error) {
       return false;
     }
 
-    return true;
+    return true; // allow the request to proceed
   }
 }

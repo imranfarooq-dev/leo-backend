@@ -5,7 +5,7 @@ import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-l
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
 import { DocumentDB, Document } from '@/types/document';
 import { ListDB, ListSummary } from '@/types/list';
-import { User } from '@clerk/clerk-sdk-node';
+import { User } from '@clerk/express';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 

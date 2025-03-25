@@ -8,7 +8,7 @@ import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { ImageService } from '@/src/image/image.service';
-import { User } from '@clerk/clerk-sdk-node';
+import { User } from '@clerk/express';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
 import { DocumentDB, Document } from '@/types/document';
 import {

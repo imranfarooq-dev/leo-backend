@@ -8,7 +8,7 @@ import {
 import { CreateUpdateNoteDto } from '@/src/note/dto/create-update-note.dto';
 import { NoteService } from '@/src/note/note.service';
 import { User } from '@/src/comon/decorators/user.decorator';
-import { User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { User as ClerkUser } from '@clerk/express';
 import { Param } from '@nestjs/common';
 
 @Controller('note')

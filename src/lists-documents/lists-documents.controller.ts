@@ -4,7 +4,7 @@ import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-doc
 import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service';
 import { Document } from '@/types/document';
 import { ListSummary } from '@/types/list';
-import { User as UserType } from '@clerk/clerk-sdk-node';
+import { User as UserType } from '@clerk/express';
 import {
   Body,
   Controller,

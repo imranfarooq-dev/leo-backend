@@ -13,7 +13,7 @@ import {
   Image,
   BaseImage,
 } from '@/types/image';
-import { User } from '@clerk/clerk-sdk-node';
+import { User } from '@clerk/express';
 import {
   ForbiddenException,
   HttpException,

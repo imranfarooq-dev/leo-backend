@@ -11,7 +11,7 @@ import {
   Get,
   UseGuards,
 } from '@nestjs/common';
-import { User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { User as ClerkUser } from '@clerk/express';
 import { User } from '@/src/comon/decorators/user.decorator';
 import {
   ChangeSubscriptionPlanDto,
@@ -169,9 +169,8 @@ export class SubscriptionController {
     }
   }
 
-  @Public()
   @Get('pricings')
-  async fetchPricingAndPlans() {
+  async fetchPricingAndPlans(@User() user: ClerkUser) {
     try {
       const pricingAndPlans =
         await this.subscriptionService.fetchPricingAndPlans();
@@ -214,6 +213,7 @@ export class SubscriptionController {
           message: 'No user found',
         };
       }
+
       return {
         statusCode: HttpStatus.OK,
         message: 'Subscription status fetched',
