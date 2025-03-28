@@ -139,7 +139,6 @@ export type Database = {
           id: string;
           image_name: string | null;
           order: number;
-          status: Database['public']['Enums']['image_status'];
           updated_at: string | null;
         };
         Insert: {
@@ -149,7 +148,6 @@ export type Database = {
           id?: string;
           image_name?: string | null;
           order: number;
-          status: Database['public']['Enums']['image_status'];
           updated_at?: string | null;
         };
         Update: {
@@ -159,7 +157,6 @@ export type Database = {
           id?: string;
           image_name?: string | null;
           order?: number;
-          status?: Database['public']['Enums']['image_status'];
           updated_at?: string | null;
         };
         Relationships: [
