@@ -2,6 +2,8 @@ import { Database } from '@/database.types';
 import { TranscriptionStatus } from '@/types/transcription';
 import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
+export type ImageStatus = Database['public']['Enums']['image_status'];
+
 export type UploadedImage = {
   id: string;
   path: string;
@@ -13,7 +15,6 @@ export type InsertImage = {
   document_id: string;
   image_name: string;
   filename: string;
-  order: number;
 };
 
 export type ImageDB = Database['public']['Tables']['images']['Row'];
@@ -22,6 +23,7 @@ export type BaseImage = {
   id: string;
   document_id: string;
   image_name: string | null;
+  status: ImageStatus;
   order: number;
   thumbnail_url: string | null;
   transcription_status: TranscriptionStatus | null;
@@ -42,7 +44,6 @@ export type ImageOrder = {
   id: string;
   order: number;
 };
-
 
 export type FileBufferDownloadResult = {
   buffer: Buffer | null;
