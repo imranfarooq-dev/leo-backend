@@ -569,7 +569,6 @@ export type Database = {
       };
     };
     Enums: {
-      image_status: 'COMPLETE' | 'AWAITING_IMAGE';
       plan_status: 'never_subscribed' | 'previously_subscribed' | 'subscribed';
       subscription_status:
         | 'incomplete'
