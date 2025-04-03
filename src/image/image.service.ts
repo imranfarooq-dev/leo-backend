@@ -1,7 +1,7 @@
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { CreateImageDto } from '@/src/image/dto/create-image.dto';
+import { CreateImagesDto } from '@/src/image/dto/create-image.dto';
 import { UpdateImageDto } from '@/src/image/dto/update-image.dto';
 import { PdfService } from '@/src/pdf/pdf.service';
 import { SupabaseService } from '@/src/supabase/supabase.service';
@@ -55,10 +55,9 @@ export class ImageService {
   }
 
   async create(
-    { document_id }: CreateImageDto,
-    files: Array<Express.Multer.File>,
+    { document_id, image_names }: CreateImagesDto,
     userId: string,
-  ): Promise<BaseImage[]> {
+  ): Promise<Image[]> {
     try {
       const document: DocumentDB | null =
         await this.documentRepository.fetchDocumentDBById(document_id);
@@ -77,47 +76,95 @@ export class ImageService {
         );
       }
 
+      const credits = await this.creditRepository.fetchUserCredits(userId);
+      const numImages: number =
+        await this.imageRepository.countImagesByUserId(userId);
+
+      if (numImages + image_names.length > credits.image_limits) {
+        throw new ForbiddenException(
+          'You have reached the maximum limit of images you can upload',
+        );
+      }
+
+      return await this.imageRepository.createImages(document_id, image_names);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        'An error occurred while creating the image: ' + error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async upload(
+    imageId: string,
+    file: Express.Multer.File,
+    userId: string,
+  ): Promise<Image[]> {
+    try {
+      const imageUserIds: string[] | null =
+        await this.imageRepository.userIdsFromImageIds([imageId]);
+
+      if (!imageUserIds) {
+        throw new HttpException('Image does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      if (imageUserIds.length !== 1) {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      if (imageUserIds[0] !== userId && !PRIVILEGED_USER_IDS.includes(userId)) {
+        throw new HttpException(
+          'Image does not belong to user',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
       // Process files, separating PDFs and images
       const processedFiles: Express.Multer.File[] = [];
 
-      for (const file of files) {
-        if (file.mimetype === 'application/pdf') {
-          const pdfImages = await this.pdfService.extractImagesFromPdf(
-            file.buffer,
-          );
+      if (file.mimetype === 'application/pdf') {
+        const pdfImages = await this.pdfService.extractImagesFromPdf(
+          file.buffer,
+        );
 
-          // Convert extracted images to proper Multer File objects
-          const pdfImageFiles = pdfImages.map((buffer, index) => {
-            // Detect if the buffer is a JPEG by checking its magic numbers
-            const isJpeg =
-              buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
-            const extension = isJpeg ? 'jpg' : 'png';
-            const mimeType = isJpeg ? 'image/jpeg' : 'image/png';
+        // Convert extracted images to proper Multer File objects
+        const pdfImageFiles = pdfImages.map((buffer, index) => {
+          // Detect if the buffer is a JPEG by checking its magic numbers
+          const isJpeg =
+            buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+          const extension = isJpeg ? 'jpg' : 'png';
+          const mimeType = isJpeg ? 'image/jpeg' : 'image/png';
 
-            const stream = new Readable();
-            stream.push(buffer);
-            stream.push(null);
+          const stream = new Readable();
+          stream.push(buffer);
+          stream.push(null);
 
-            const multerFile: Express.Multer.File = {
-              buffer,
-              originalname: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
-              mimetype: mimeType,
-              fieldname: file.fieldname,
-              encoding: '7bit',
-              size: buffer.length,
-              stream: stream,
-              destination: file.destination,
-              filename: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
-              path: file.path,
-            };
+          const multerFile: Express.Multer.File = {
+            buffer,
+            originalname: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
+            mimetype: mimeType,
+            fieldname: file.fieldname,
+            encoding: '7bit',
+            size: buffer.length,
+            stream: stream,
+            destination: file.destination,
+            filename: `${file.originalname.replace('.pdf', '')}_page_${index + 1}.${extension}`,
+            path: file.path,
+          };
 
-            return multerFile;
-          });
+          return multerFile;
+        });
 
-          processedFiles.push(...pdfImageFiles);
-        } else {
-          processedFiles.push(file);
-        }
+        processedFiles.push(...pdfImageFiles);
+      } else {
+        processedFiles.push(file);
       }
 
       if (!processedFiles.length) {
@@ -127,34 +174,30 @@ export class ImageService {
         );
       }
 
-      const credits = await this.creditRepository.fetchUserCredits(userId);
-      const numImages: number =
-        await this.imageRepository.countImagesByUserId(userId);
-
-      if (numImages + processedFiles.length > credits.image_limits) {
-        throw new ForbiddenException(
-          'You have reached the maximum limit of images you can upload',
+      if (processedFiles.length !== 1) {
+        throw new HttpException(
+          'PDFs not yet supported',
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
+
+        // TODO(jaw)
+        // Need to check the user has enough image space for the expansion.
+        // Need to turn one image slot into N slots (need a special rpc for this).
+        // Probably should make image creation atomically check that the user has enough space in general.
       }
 
       const uploadedImages =
         await this.supabaseService.uploadFiles(processedFiles);
+      if (uploadedImages.length !== 1) {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
 
-      // Get highest order number for the document
-      const lastImageOrder: number | null =
-        await this.imageRepository.getLastImageOrder(document_id);
-      const startOrder = lastImageOrder ? lastImageOrder + 1 : 1;
-
-      const imagesData: InsertImage[] = uploadedImages.map(
-        (uploadedImage, index) => ({
-          document_id: document_id,
-          image_name: uploadedImage.originalFilename,
-          filename: uploadedImage.filename,
-          order: startOrder + index,
-        }),
-      );
-
-      return await this.imageRepository.createImage(imagesData);
+      return await this.imageRepository.setUploadedImages([
+        { imageId, filename: uploadedImages[0].filename },
+      ]);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

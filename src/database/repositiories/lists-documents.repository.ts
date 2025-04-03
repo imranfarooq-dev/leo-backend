@@ -94,11 +94,10 @@ export class ListsDocumentsRepository {
       const thumbnailUrlMap = new Map<string, string>();
       if (data.length > 0) {
         // Collect all filenames in a single pass
-        const filenames = data
-          .flatMap(
-            (document) => document.images?.map((image) => image.filename) ?? [],
-          )
-          .filter(Boolean); // Remove any potential undefined/null values
+        const filenames = data.flatMap(
+          (document) => document.images?.map((image) => image.filename) ?? [],
+        );
+        // .filter(Boolean); // Remove any potential undefined/null values
 
         if (filenames.length > 0) {
           const urls = await this.supabaseService.getPresignedUrls(
@@ -125,7 +124,7 @@ export class ListsDocumentsRepository {
             const { filename, ...imageRest } = image;
             return {
               ...imageRest,
-              thumbnail_url: thumbnailUrlMap.get(filename),
+              thumbnail_url: thumbnailUrlMap.get(filename) ?? null,
             };
           }) ?? [];
 

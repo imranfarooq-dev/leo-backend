@@ -18,25 +18,46 @@ export class SupabaseService {
   ) {}
 
   async getPresignedUrls(
-    filenames: string[],
+    filenames: (string | null)[],
     thumbnail: boolean = false,
     expiresIn: number = 3600,
-  ): Promise<string[]> {
+  ): Promise<(string | null)[]> {
     try {
-      const paths = filenames.map((filename) =>
+      // Filter out null filenames and keep track of their positions
+      const validFilenamesWithIndex = filenames
+        .map((filename, index) => ({ filename, index }))
+        .filter((item) => item.filename !== null);
+
+      // If no valid filenames, return array of nulls with same length
+      if (validFilenamesWithIndex.length === 0) {
+        return filenames.map(() => null);
+      }
+
+      // Create paths only for valid filenames
+      const paths = validFilenamesWithIndex.map(({ filename }) =>
         thumbnail
           ? `${ThumbnailStoragePath}/${filename}`
           : `${ImageStoragePath}/${filename}`,
       );
+
       const { data, error } = await this.supabase.storage
         .from(SupabaseStorageId)
         .createSignedUrls(paths, expiresIn);
 
       if (error) throw error;
-      return data.map((item) => item.signedUrl);
+
+      // Initialize result array with nulls
+      const result = Array(filenames.length).fill(null);
+
+      // Place signed URLs in their correct positions
+      validFilenamesWithIndex.forEach(({ index }, i) => {
+        result[index] = data[i].signedUrl;
+      });
+
+      return result;
     } catch (error) {
       console.error(`Failed to generate presigned URL: ${error.message}`);
-      return null;
+      return filenames.map(() => null);
     }
   }
 
@@ -63,7 +84,6 @@ export class SupabaseService {
             file.mimetype === 'image/heic' ||
             file.mimetype === 'image/heif'
           ) {
-            sharp.cache(false);
             processedBuffer = await sharp(file.buffer)
               .rotate() // auto-rotate based on EXIF data
               .jpeg({ quality: 100 }) // lossless conversion
@@ -76,44 +96,45 @@ export class SupabaseService {
             thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
           }
 
-          const { data, error } = await this.supabase.storage
-            .from(SupabaseStorageId)
-            .upload(filepath, processedBuffer, {
-              contentType: processedMimeType,
-            });
-
-          if (error) {
-            throw new Error(
-              `Failed to upload ${file.originalname}: ${error.message}`,
-            );
-          }
-
           // Generate thumbnail buffer using sharp
           const thumbnailBuffer = await sharp(processedBuffer)
-            .rotate() // auto-rotate based on EXIF data
+            .rotate()
             .resize(96, 96, {
               fit: 'cover',
               position: 'center',
             })
             .toBuffer();
 
-          // Upload the thumbnail
-          const { error: thumbnailError } = await this.supabase.storage
-            .from(SupabaseStorageId)
-            .upload(thumbnailPath, thumbnailBuffer, {
-              contentType: processedMimeType,
-            });
+          // Upload main image and thumbnail in parallel
+          const [mainUpload, thumbnailUpload] = await Promise.all([
+            this.supabase.storage
+              .from(SupabaseStorageId)
+              .upload(filepath, processedBuffer, {
+                contentType: processedMimeType,
+              }),
+            this.supabase.storage
+              .from(SupabaseStorageId)
+              .upload(thumbnailPath, thumbnailBuffer, {
+                contentType: processedMimeType,
+              }),
+          ]);
 
-          if (thumbnailError) {
+          if (mainUpload.error) {
             throw new Error(
-              `Failed to upload thumbnail: ${thumbnailError.message}`,
+              `Failed to upload ${file.originalname}: ${mainUpload.error.message}`,
+            );
+          }
+
+          if (thumbnailUpload.error) {
+            throw new Error(
+              `Failed to upload thumbnail: ${thumbnailUpload.error.message}`,
             );
           }
 
           return {
-            id: data.id,
+            id: mainUpload.data.id,
             originalFilename: file.originalname,
-            path: data.path,
+            path: mainUpload.data.path,
             filename: filename,
           };
         });

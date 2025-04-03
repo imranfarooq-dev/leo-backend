@@ -2,8 +2,6 @@ import { Database } from '@/database.types';
 import { TranscriptionStatus } from '@/types/transcription';
 import { APITranscriptionJobStatus } from '@/types/transcription_job';
 
-export type ImageStatus = Database['public']['Enums']['image_status'];
-
 export type UploadedImage = {
   id: string;
   path: string;
@@ -23,7 +21,6 @@ export type BaseImage = {
   id: string;
   document_id: string;
   image_name: string | null;
-  status: ImageStatus;
   order: number;
   thumbnail_url: string | null;
   transcription_status: TranscriptionStatus | null;
@@ -31,7 +28,7 @@ export type BaseImage = {
 };
 
 export type Image = BaseImage & {
-  image_url?: string;
+  image_url: string | null;
   transcription_id?: string | null;
   ai_transcription_text?: string | null;
   current_transcription_text?: string | null;

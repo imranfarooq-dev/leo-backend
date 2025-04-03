@@ -13,14 +13,13 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ImageService } from '@/src/image/image.service';
-import { CreateImageDto } from '@/src/image/dto/create-image.dto';
+import { CreateImagesDto } from '@/src/image/dto/create-image.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/express';
 import {
   UpdateImageDto,
   UpdateImageOrderDto,
 } from '@/src/image/dto/update-image.dto';
-import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
 import { ImageOrder, Image } from '@/types/image';
 
 @Controller('image')
@@ -53,10 +52,34 @@ export class ImageController {
   }
 
   @Post()
+  async create(@User() user: UserType, @Body() createImages: CreateImagesDto) {
+    try {
+      const data: Image[] = await this.imageService.create(
+        createImages,
+        user.id,
+      );
+
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Image(s) created',
+        data,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message:
+            error.message ?? 'An error occurred while creating the image(s)',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':image_id/upload')
   @UseInterceptors(
-    FilesInterceptor('files', MAX_IMAGE_ALLOWED, {
+    FilesInterceptor('files', 1, {
       fileFilter: (req, file, callback) => {
-        // FIXME TODO Update this type list
         const allowedMimeTypes = [
           'image/jpeg',
           'image/png',
@@ -64,13 +87,13 @@ export class ImageController {
           'image/webp',
           'image/heic',
           'image/heif',
-          'application/pdf',
+          // 'application/pdf',
         ];
 
         if (!allowedMimeTypes.includes(file.mimetype)) {
           callback(
             new HttpException(
-              'File type not supported. Please upload images (JPG, PNG, GIF, WebP, HEIC, HEIF) or PDF files.',
+              'File type not supported. Please upload images (JPG, PNG, GIF, WebP, HEIC, HEIF).',
               HttpStatus.BAD_REQUEST,
             ),
             false,
@@ -80,21 +103,29 @@ export class ImageController {
       },
     }),
   )
-  async create(
+  async upload(
     @User() user: UserType,
-    @Body() createImage: CreateImageDto,
+    @Param('image_id') imageId: string,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
-      const images: Image[] = await this.imageService.create(
-        createImage,
-        files,
+      // TODO: Should we configurably ask for whether we want the full or summary images back? From the dashboard view, we probably want only summaries.
+      if (files.length !== 1) {
+        throw new HttpException(
+          'Only one file can be uploaded at a time',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const file: Express.Multer.File = files[0];
+      const images: Image[] = await this.imageService.upload(
+        imageId,
+        file,
         user.id,
       );
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Image attached',
+        message: 'Image uploaded',
         data: images,
       };
     } catch (error) {
@@ -102,7 +133,7 @@ export class ImageController {
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
           message:
-            error.message ?? 'An error occurred while creating the image',
+            error.message ?? 'An error occurred while uploading the image',
         },
         error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
       );

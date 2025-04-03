@@ -1,5 +1,3 @@
-export const MAX_IMAGE_ALLOWED = 1000;
-
 export const IsPublic = 'isPublic';
 export const SupabaseStorageId = 'leo';
 export const ImageStoragePath = 'images/full';

@@ -13,12 +13,65 @@ export class ImageRepository {
     private readonly supabaseService: SupabaseService,
   ) {}
 
-  async createImage(images: InsertImage[]): Promise<Image[]> {
+  async createImages(
+    document_id: string,
+    image_names: string[],
+  ): Promise<Image[]> {
     try {
-      const { data: newImages, error } = await this.supabase
-        .from(Tables.Images)
-        .insert(images)
-        .select('id');
+      const { data, error } = await this.supabase.rpc(
+        'create_image_placeholders',
+        {
+          p_document_id: document_id,
+          p_image_names: image_names,
+        },
+      );
+
+      if (error) {
+        throw new Error(error.message ?? 'Failed to create image(s)');
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      const { data: imageData, error: imageError } = await this.supabase.rpc(
+        'get_images_by_ids',
+        {
+          p_image_ids: data.map((x) => x.id),
+        },
+      );
+
+      if (imageError) {
+        throw new Error(imageError.message ?? 'Failed to create image(s)');
+      }
+
+      if (!imageData) {
+        return [];
+      }
+
+      const mappedImageData = imageData.map((image) => ({
+        ...image,
+        thumbnail_url: null,
+      }));
+
+      return mappedImageData;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to create image(s)');
+      throw error;
+    }
+  }
+
+  async setUploadedImages(
+    images: { imageId: string; filename: string }[],
+  ): Promise<Image[]> {
+    try {
+      const { data: newImages, error } = await this.supabase.rpc(
+        'update_image_filenames',
+        {
+          p_image_ids: images.map((x) => x.imageId),
+          p_filenames: images.map((x) => x.filename),
+        },
+      );
 
       if (error) {
         throw new Error(error.message ?? 'Failed to create image(s)');

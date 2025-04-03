@@ -23,7 +23,7 @@ export class CreateDocumentDto {
 
   @IsString()
   @IsOptional()
-  date?: Date;
+  date?: string;
 
   @IsString()
   @IsOptional()

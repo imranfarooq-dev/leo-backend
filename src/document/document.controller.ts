@@ -9,20 +9,16 @@ import {
   Post,
   Put,
   Query,
-  UploadedFiles,
-  UseInterceptors,
 } from '@nestjs/common';
 import { DocumentService } from '@/src/document/document.service';
 import { CreateDocumentDto } from '@/src/document/dto/create-document.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
 import { DeleteDocumentDto } from '@/src/document/dto/delete-document.dto';
 import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
 import { FetchDocumentDto } from '@/src/document/dto/fetch-document.dto';
 import { FetchUserDocumentDto } from '@/src/document/dto/fetch-user-document.dto';
 import { User } from '@/src/comon/decorators/user.decorator';
 import { User as UserType } from '@clerk/express';
-import { MAX_IMAGE_ALLOWED } from '@/src/shared/constant';
-import { Document } from '@/types/document';
+import { Document, DocumentDB } from '@/types/document';
 import * as Sentry from '@sentry/node';
 
 @Controller('document')
@@ -57,12 +53,41 @@ export class DocumentController {
     }
   }
 
-  @Get(':id')
+  @Get('full/:id')
   async fetchById(@User() user: UserType, @Param() params: FetchDocumentDto) {
     try {
       const document: Document = await this.documentService.fetchById(
         user,
         params,
+        true,
+      );
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Item fetched',
+        data: document,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message: error.message ?? 'An error occurred while fetching the item',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('summary/:id')
+  async fetchSummaryById(
+    @User() user: UserType,
+    @Param() params: FetchDocumentDto,
+  ) {
+    try {
+      const document: Document = await this.documentService.fetchById(
+        user,
+        params,
+        false,
       );
 
       return {
@@ -82,17 +107,14 @@ export class DocumentController {
   }
 
   @Post()
-  @UseInterceptors(FilesInterceptor('files', MAX_IMAGE_ALLOWED))
   async create(
     @User() user: UserType,
     @Body() createDocument: CreateDocumentDto,
-    @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
       const document: Document = await this.documentService.create(
         user,
         createDocument,
-        files,
       );
 
       return {
@@ -119,7 +141,6 @@ export class DocumentController {
       return {
         statusCode: HttpStatus.OK,
         message: 'Item deleted',
-        data: document,
       };
     } catch (error) {
       throw new HttpException(

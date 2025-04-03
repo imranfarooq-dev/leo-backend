@@ -74,10 +74,14 @@ export class DocumentService {
   async fetchById(
     user: User,
     fetchDocument: FetchDocumentDto,
+    getFullImages: boolean,
   ): Promise<Document> {
     try {
       const document: Document | null =
-        await this.documentRepository.fetchDocumentById(fetchDocument.id);
+        await this.documentRepository.fetchDocumentById(
+          fetchDocument.id,
+          getFullImages,
+        );
 
       if (!document) {
         throw new HttpException('Item does not exist', HttpStatus.NOT_FOUND);
@@ -109,32 +113,28 @@ export class DocumentService {
   async create(
     user: User,
     createDocument: CreateDocumentDto,
-    files: Array<Express.Multer.File>,
-  ): Promise<Document | null> {
+  ): Promise<Document> {
     try {
-      const documentId = await this.documentRepository.createDocument(user.id, {
-        ...createDocument,
-      });
+      const document: Document = await this.documentRepository.createDocument(
+        user.id,
+        {
+          ...createDocument,
+        },
+      );
 
       if (createDocument?.list_ids?.length) {
         const addDocumentListPromises = createDocument.list_ids.map(
           async (list_id) =>
             await this.listsDocumentsRepository.createListDocument(
               list_id,
-              documentId,
+              document.id,
             ),
         );
 
         await Promise.all(addDocumentListPromises);
       }
 
-      await this.imageService.create(
-        { document_id: documentId },
-        files,
-        user.id,
-      );
-
-      return await this.documentRepository.fetchDocumentById(documentId);
+      return document;
     } catch (error) {
       throw new HttpException(
         'An error occurred while creating the item: ' + error.message,
@@ -148,6 +148,7 @@ export class DocumentService {
     try {
       const document = await this.documentRepository.fetchDocumentById(
         deleteDocument.id,
+        false,
       );
 
       if (!document) {

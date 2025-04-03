@@ -1,7 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsString } from 'class-validator';
 
-export class CreateImageDto {
+export class CreateImagesDto {
   @IsNotEmpty()
   @IsString()
   document_id: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  image_names: string[];
 }
