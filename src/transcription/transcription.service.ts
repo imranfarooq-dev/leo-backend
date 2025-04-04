@@ -206,6 +206,15 @@ export class TranscriptionService {
       const images: ImageDB[] =
         await this.imageRepository.fetchImagesByIds(allImageIds);
 
+      // Check for null filenames
+      const imagesWithNullFilenames = images.filter((image) => !image.filename);
+      if (imagesWithNullFilenames.length > 0) {
+        throw new HttpException(
+          'Some images have null filenames and cannot be transcribed',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // Get presigned URLs for all images
       const presignedUrls = await this.supabaseService.getPresignedUrls(
         images.map((image) => image.filename),
