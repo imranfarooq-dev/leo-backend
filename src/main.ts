@@ -11,12 +11,12 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   const corsOptions: CorsOptions = {
-    origin: [
-      'https://leo-app-develop.vercel.app',
-      'http://localhost:3000',
-      'https://www.tryleo.ai',
-    ],
+    origin: isDevelopment
+      ? true
+      : ['https://leo-app-develop.vercel.app', 'https://www.tryleo.ai'],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   };
@@ -28,14 +28,13 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.use(
     clerkMiddleware({
-      authorizedParties: [
-        'http://localhost:3000',
-        'https://leo-app-develop.vercel.app',
-        'https://www.tryleo.ai',
-      ],
+      authorizedParties: isDevelopment
+        ? undefined
+        : ['https://leo-app-develop.vercel.app', 'https://www.tryleo.ai'],
     }),
   );
 
-  await app.listen(process.env.PORT ?? 4000);
+  const port = process.env.PORT ?? 4000;
+  await app.listen(port);
 }
 bootstrap();

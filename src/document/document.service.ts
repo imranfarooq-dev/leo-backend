@@ -8,7 +8,7 @@ import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { ImageService } from '@/src/image/image.service';
-import { User } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import { ListsDocumentsRepository } from '@/src/database/repositiories/lists-documents.repository';
 import { DocumentDB, Document } from '@/types/document';
 import {
@@ -28,7 +28,7 @@ export class DocumentService {
   ) {}
 
   async fetchDocumentsByUser(
-    user: User,
+    user: UserType,
     { page, limit }: FetchUserDocumentDto,
   ): Promise<{
     documents: Document[];
@@ -72,7 +72,7 @@ export class DocumentService {
   }
 
   async fetchById(
-    user: User,
+    user: UserType,
     fetchDocument: FetchDocumentDto,
     getFullImages: boolean,
   ): Promise<Document> {
@@ -111,7 +111,7 @@ export class DocumentService {
   }
 
   async create(
-    user: User,
+    user: UserType,
     createDocument: CreateDocumentDto,
   ): Promise<Document> {
     try {
@@ -143,7 +143,10 @@ export class DocumentService {
     }
   }
 
-  async delete(user: User, deleteDocument: DeleteDocumentDto): Promise<void> {
+  async delete(
+    user: UserType,
+    deleteDocument: DeleteDocumentDto,
+  ): Promise<void> {
     // TODO: User IDs
     try {
       const document = await this.documentRepository.fetchDocumentById(
@@ -181,7 +184,7 @@ export class DocumentService {
   }
 
   async update(
-    user: User,
+    user: UserType,
     document_id: string,
     updateDocument: UpdateDocumentDto,
   ): Promise<void> {

@@ -1,10 +1,9 @@
-import { User } from '@/src/comon/decorators/user.decorator';
+import { User, UserType } from '@/src/comon/decorators/user.decorator';
 import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-list-document.dto';
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
 import { ListsDocumentsService } from '@/src/lists-documents/lists-documents.service';
 import { Document } from '@/types/document';
 import { ListSummary } from '@/types/list';
-import { User as UserType } from '@clerk/express';
 import {
   Body,
   Controller,

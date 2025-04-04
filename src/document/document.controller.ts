@@ -16,8 +16,7 @@ import { DeleteDocumentDto } from '@/src/document/dto/delete-document.dto';
 import { UpdateDocumentDto } from '@/src/document/dto/update-document.dto';
 import { FetchDocumentDto } from '@/src/document/dto/fetch-document.dto';
 import { FetchUserDocumentDto } from '@/src/document/dto/fetch-user-document.dto';
-import { User } from '@/src/comon/decorators/user.decorator';
-import { User as UserType } from '@clerk/express';
+import { User, UserType } from '@/src/comon/decorators/user.decorator';
 import { Document, DocumentDB } from '@/types/document';
 import * as Sentry from '@sentry/node';
 

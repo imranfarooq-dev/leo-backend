@@ -12,7 +12,7 @@ import {
 } from '@/src/shared/constant';
 import { Credit } from '@/types/credit';
 import { FreePlanStatus, SubscriptionDB } from '@/types/subscription';
-import { User as ClerkUser } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import {
   BadRequestException,
   HttpException,
@@ -65,7 +65,7 @@ export class SubscriptionService {
     }
   }
 
-  async fetchStatusAndCredits(clerkUser: ClerkUser): Promise<{
+  async fetchStatusAndCredits(clerkUser: UserType): Promise<{
     image_limits: number;
     lifetime_credits: number;
     monthly_credits: number;
@@ -111,7 +111,7 @@ export class SubscriptionService {
     }
   }
 
-  async fetchPaymentMethods(clerkUser: ClerkUser) {
+  async fetchPaymentMethods(clerkUser: UserType) {
     try {
       const subscription: SubscriptionDB = await this.fetchSubscription(
         clerkUser.id,
@@ -137,7 +137,7 @@ export class SubscriptionService {
     }
   }
 
-  async fetchInvoices(clerkUser: ClerkUser) {
+  async fetchInvoices(clerkUser: UserType) {
     try {
       const subscription: SubscriptionDB = await this.fetchSubscription(
         clerkUser.id,
@@ -172,7 +172,7 @@ export class SubscriptionService {
     }
   }
 
-  async cancelSubscription(clerkUser: ClerkUser) {
+  async cancelSubscription(clerkUser: UserType) {
     try {
       const subscription: SubscriptionDB = await this.fetchSubscription(
         clerkUser.id,
@@ -207,7 +207,7 @@ export class SubscriptionService {
     }
   }
 
-  async changeSubscriptionPlan(clerkUser: ClerkUser, priceId?: string) {
+  async changeSubscriptionPlan(clerkUser: UserType, priceId?: string) {
     try {
       const subscription: SubscriptionDB = await this.fetchSubscription(
         clerkUser.id,
@@ -243,7 +243,7 @@ export class SubscriptionService {
     }
   }
 
-  async selectFreePlan(clerkUser: ClerkUser): Promise<void> {
+  async selectFreePlan(clerkUser: UserType): Promise<void> {
     try {
       const subscription: SubscriptionDB = await this.fetchSubscription(
         clerkUser.id,
@@ -295,7 +295,7 @@ export class SubscriptionService {
   }
 
   async createCheckoutSession(
-    user: ClerkUser,
+    user: UserType,
     priceId: string,
     mode: StripeCheckoutMode,
   ) {

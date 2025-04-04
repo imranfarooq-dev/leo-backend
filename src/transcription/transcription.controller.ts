@@ -10,8 +10,7 @@ import {
 } from '@nestjs/common';
 import { TranscriptionService } from '@/src/transcription/transcription.service';
 import { CreateUpdateTranscriptionDto } from '@/src/transcription/dto/create-update-transcription.dto';
-import { User } from '@/src/comon/decorators/user.decorator';
-import { User as ClerkUser } from '@clerk/express';
+import { User, UserType } from '@/src/comon/decorators/user.decorator';
 import { AiTranscriptionDto } from '@/src/transcription/dto/ai-transcription.dto';
 import { Transcription } from '@/types/transcription';
 import { GetTranscribableImagesDto } from './dto/get-transcribable-images.dto';
@@ -24,7 +23,7 @@ export class TranscriptionController {
 
   @Get(':image_id')
   async getTranscription(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Param('image_id') imageId: string,
   ) {
     try {
@@ -51,7 +50,7 @@ export class TranscriptionController {
 
   @Post('ai')
   async aiTranscribe(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Body() aiTranscriptionDto: AiTranscriptionDto,
   ) {
     try {
@@ -80,7 +79,7 @@ export class TranscriptionController {
 
   @Post('transcribable')
   async getTranscribableImages(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Body() getTranscribableImagesDto: GetTranscribableImagesDto,
   ) {
     try {
@@ -110,7 +109,7 @@ export class TranscriptionController {
 
   @Put(':image_id')
   async createOrUpdate(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Param('image_id') imageId: string,
     @Body() createUpdateTranscription: CreateUpdateTranscriptionDto,
   ) {
@@ -142,7 +141,7 @@ export class TranscriptionController {
 
   @Post('/jobs')
   async transcriptionJobStatuses(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Body() getTranscriptionJobStatusesDto: GetTranscriptionJobStatusesDto,
   ) {
     try {

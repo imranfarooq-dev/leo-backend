@@ -13,12 +13,13 @@ import {
   Image,
   BaseImage,
 } from '@/types/image';
-import { User } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import {
   ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { Readable } from 'stream';
 import {
@@ -28,6 +29,8 @@ import {
 } from '@/src/shared/constant';
 @Injectable()
 export class ImageService {
+  private readonly logger = new Logger(ImageService.name);
+
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly imageRepository: ImageRepository,
@@ -113,6 +116,9 @@ export class ImageService {
       }
 
       if (imageUserIds.length !== 1) {
+        this.logger.error(
+          `Unexpected number of user IDs for image ${imageId}: ${imageUserIds.length}`,
+        );
         throw new HttpException(
           'Internal server error',
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -168,6 +174,7 @@ export class ImageService {
       }
 
       if (!processedFiles.length) {
+        this.logger.warn('No valid files to process after filtering');
         throw new HttpException(
           'There are no images to attach to the item',
           HttpStatus.BAD_REQUEST,
@@ -175,20 +182,22 @@ export class ImageService {
       }
 
       if (processedFiles.length !== 1) {
+        this.logger.warn(
+          `Multiple files detected (${processedFiles.length}), which is not yet supported`,
+        );
         throw new HttpException(
           'PDFs not yet supported',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-
-        // TODO(jaw)
-        // Need to check the user has enough image space for the expansion.
-        // Need to turn one image slot into N slots (need a special rpc for this).
-        // Probably should make image creation atomically check that the user has enough space in general.
       }
 
       const uploadedImages =
         await this.supabaseService.uploadFiles(processedFiles);
+
       if (uploadedImages.length !== 1) {
+        this.logger.error(
+          `Unexpected number of uploaded images: ${uploadedImages.length}`,
+        );
         throw new HttpException(
           'Internal server error',
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -199,6 +208,10 @@ export class ImageService {
         { imageId, filename: uploadedImages[0].filename },
       ]);
     } catch (error) {
+      this.logger.error(
+        `Error in upload process: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof HttpException) {
         throw error;
       }
@@ -211,7 +224,7 @@ export class ImageService {
   }
 
   async update(
-    user: User,
+    user: UserType,
     imageId: string,
     updateImage: UpdateImageDto,
   ): Promise<void> {
@@ -254,7 +267,7 @@ export class ImageService {
   }
 
   async updateOrder(
-    user: User,
+    user: UserType,
     documentId: string,
     updates: { id: string; order: number }[],
   ): Promise<void> {
@@ -342,7 +355,7 @@ export class ImageService {
     }
   }
 
-  async delete(user: User, imageId: string): Promise<ImageOrder[]> {
+  async delete(user: UserType, imageId: string): Promise<ImageOrder[]> {
     try {
       const image: ImageDB | null =
         await this.imageRepository.fetchImageDB(imageId);

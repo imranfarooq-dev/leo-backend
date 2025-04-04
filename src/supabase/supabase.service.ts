@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ImageStoragePath,
   Provides,
@@ -13,6 +13,8 @@ import * as sharp from 'sharp';
 
 @Injectable()
 export class SupabaseService {
+  private readonly logger = new Logger(SupabaseService.name);
+
   constructor(
     @Inject(Provides.Supabase) private readonly supabase: SupabaseClient,
   ) {}
@@ -62,6 +64,7 @@ export class SupabaseService {
   }
 
   async uploadFiles(files: Express.Multer.File[]): Promise<UploadedImage[]> {
+    this.logger.debug(`Starting batch upload of ${files.length} files`);
     try {
       const batchSize = 10;
       const batches = chunk(files, batchSize);
@@ -69,12 +72,19 @@ export class SupabaseService {
 
       for (let i = 0; i < batches.length; i++) {
         const batch = batches[i];
+        this.logger.debug(
+          `Processing batch ${i + 1}/${batches.length} with ${batch.length} files`,
+        );
 
         const uploadPromises = batch.map(async (file) => {
           const fileExtension = file.originalname.split('.').pop() || '';
           let filename = `${uuid()}.${fileExtension}`;
           let filepath = `${ImageStoragePath}/${filename}`;
           let thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
+
+          this.logger.debug(
+            `Processing file: ${file.originalname}, size: ${file.size} bytes`,
+          );
 
           // Convert HEIC/HEIF to JPEG if needed
           let processedBuffer = file.buffer;
@@ -84,6 +94,9 @@ export class SupabaseService {
             file.mimetype === 'image/heic' ||
             file.mimetype === 'image/heif'
           ) {
+            this.logger.debug(
+              `Converting HEIC/HEIF image to JPEG: ${file.originalname}`,
+            );
             processedBuffer = await sharp(file.buffer)
               .rotate() // auto-rotate based on EXIF data
               .jpeg({ quality: 100 }) // lossless conversion
@@ -96,6 +109,7 @@ export class SupabaseService {
             thumbnailPath = `${ThumbnailStoragePath}/${filename}`;
           }
 
+          this.logger.debug(`Generating thumbnail for: ${filename}`);
           // Generate thumbnail buffer using sharp
           const thumbnailBuffer = await sharp(processedBuffer)
             .rotate()
@@ -105,6 +119,9 @@ export class SupabaseService {
             })
             .toBuffer();
 
+          this.logger.debug(
+            `Uploading main image and thumbnail to Supabase: ${filename}`,
+          );
           // Upload main image and thumbnail in parallel
           const [mainUpload, thumbnailUpload] = await Promise.all([
             this.supabase.storage
@@ -120,17 +137,26 @@ export class SupabaseService {
           ]);
 
           if (mainUpload.error) {
+            this.logger.error(
+              `Failed to upload main image ${filename}: ${mainUpload.error.message}`,
+            );
             throw new Error(
               `Failed to upload ${file.originalname}: ${mainUpload.error.message}`,
             );
           }
 
           if (thumbnailUpload.error) {
+            this.logger.error(
+              `Failed to upload thumbnail for ${filename}: ${thumbnailUpload.error.message}`,
+            );
             throw new Error(
               `Failed to upload thumbnail: ${thumbnailUpload.error.message}`,
             );
           }
 
+          this.logger.debug(
+            `Successfully uploaded ${filename} and its thumbnail`,
+          );
           return {
             id: mainUpload.data.id,
             originalFilename: file.originalname,
@@ -141,10 +167,15 @@ export class SupabaseService {
 
         const batchResults = await Promise.all(uploadPromises);
         allUploadedImages = [...allUploadedImages, ...batchResults];
+        this.logger.debug(`Completed batch ${i + 1}/${batches.length}`);
       }
 
+      this.logger.debug(
+        `Successfully uploaded all ${allUploadedImages.length} files`,
+      );
       return allUploadedImages;
     } catch (error) {
+      this.logger.error(`File upload error: ${error.message}`, error.stack);
       throw new Error(`File upload error: ${error.message}`);
     }
   }

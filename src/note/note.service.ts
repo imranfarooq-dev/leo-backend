@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { NoteRepository } from '@/src/database/repositiories/note.repository';
 import { CreateUpdateNoteDto } from '@/src/note/dto/create-update-note.dto';
 import { ImageRepository } from '@/src/database/repositiories/image.repository';
-import { User as ClerkUser } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import { PRIVILEGED_USER_IDS } from '../shared/constant';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class NoteService {
   ) {}
 
   async createOrUpdate(
-    clerkUser: ClerkUser,
+    clerkUser: UserType,
     imageId: string,
     createUpdateNote: CreateUpdateNoteDto,
   ): Promise<string> {

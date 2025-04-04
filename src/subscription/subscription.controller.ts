@@ -11,7 +11,7 @@ import {
   Get,
   UseGuards,
 } from '@nestjs/common';
-import { User as ClerkUser } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import { User } from '@/src/comon/decorators/user.decorator';
 import {
   ChangeSubscriptionPlanDto,
@@ -33,7 +33,7 @@ export class SubscriptionController {
 
   @Post('checkout-session')
   async createCheckoutSession(
-    @User() user: ClerkUser,
+    @User() user: UserType,
     @Body() { priceId, mode }: CreateCheckoutSessionDto,
   ) {
     try {
@@ -100,7 +100,7 @@ export class SubscriptionController {
   }
 
   @Post('cancel')
-  async cancelSubscription(@User() clerkUser: ClerkUser) {
+  async cancelSubscription(@User() clerkUser: UserType) {
     try {
       const cancelSubscription =
         await this.subscriptionService.cancelSubscription(clerkUser);
@@ -123,7 +123,7 @@ export class SubscriptionController {
 
   @Post('change-plan')
   async changeSubscriptionPlan(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Body() data: ChangeSubscriptionPlanDto,
   ) {
     try {
@@ -150,7 +150,7 @@ export class SubscriptionController {
   }
 
   @Post('free-plan')
-  async selectFreePlan(@User() clerkUser: ClerkUser) {
+  async selectFreePlan(@User() clerkUser: UserType) {
     try {
       await this.subscriptionService.selectFreePlan(clerkUser);
       return {
@@ -170,7 +170,7 @@ export class SubscriptionController {
   }
 
   @Get('pricings')
-  async fetchPricingAndPlans(@User() user: ClerkUser) {
+  async fetchPricingAndPlans(@User() user: UserType) {
     try {
       const pricingAndPlans =
         await this.subscriptionService.fetchPricingAndPlans();
@@ -193,7 +193,7 @@ export class SubscriptionController {
   }
 
   @Get('status')
-  async fetchSubscriptionStatusAndCredits(@User() user: ClerkUser) {
+  async fetchSubscriptionStatusAndCredits(@User() user: UserType) {
     try {
       const statusAndCredits: {
         image_limits: number;
@@ -233,7 +233,7 @@ export class SubscriptionController {
   }
 
   @Get('payment-method')
-  async fetchPaymentMethods(@User() user: ClerkUser) {
+  async fetchPaymentMethods(@User() user: UserType) {
     try {
       const paymentMethods =
         await this.subscriptionService.fetchPaymentMethods(user);
@@ -255,7 +255,7 @@ export class SubscriptionController {
   }
 
   @Get('invoice')
-  async fetchCustomerInvoice(@User() user: ClerkUser) {
+  async fetchCustomerInvoice(@User() user: UserType) {
     try {
       const invoices = await this.subscriptionService.fetchInvoices(user);
       return {

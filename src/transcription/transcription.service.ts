@@ -6,7 +6,7 @@ import { DocumentRepository } from '@/src/database/repositiories/document.reposi
 import { ImageDB } from '@/types/image';
 import axios, { AxiosResponse } from 'axios';
 import { ConfigService } from '@nestjs/config';
-import { User as ClerkUser } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import { CreditsRepository } from '@/src/database/repositiories/credits.repository';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { Transcription, TranscriptionStatus } from '@/types/transcription';
@@ -50,7 +50,7 @@ export class TranscriptionService {
   ) {}
 
   async getTranscription(
-    clerkUser: ClerkUser,
+    clerkUser: UserType,
     imageId: string,
   ): Promise<Transcription | null> {
     const userIds: string[] | null =
@@ -83,7 +83,7 @@ export class TranscriptionService {
   }
 
   async getTranscribableImages(
-    clerkUser: ClerkUser,
+    clerkUser: UserType,
     documentIds: string[],
   ): Promise<string[]> {
     const userIds: string[] = [
@@ -98,7 +98,10 @@ export class TranscriptionService {
 
     if (userIds.length !== 1) {
       throw new HttpException(
-        'Not authorized to transcribe these images',
+        'Not authorized to transcribe these images, got userIds: ' +
+          userIds.join(', ') +
+          ' and clerkUser.id: ' +
+          clerkUser.id,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -108,7 +111,10 @@ export class TranscriptionService {
       !PRIVILEGED_USER_IDS.includes(clerkUser.id)
     ) {
       throw new HttpException(
-        'Not authorized to transcribe these images',
+        'Not authorized to transcribe these images, got userIds: ' +
+          userIds.join(', ') +
+          ' and clerkUser.id: ' +
+          clerkUser.id,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -121,7 +127,7 @@ export class TranscriptionService {
   }
 
   async aiTranscribe(
-    clerkUser: ClerkUser,
+    clerkUser: UserType,
     aiTranscriptionDto: AiTranscriptionDto,
   ): Promise<{
     allImageIds: string[];
@@ -140,7 +146,10 @@ export class TranscriptionService {
 
     if (allUserIds.length !== 1) {
       throw new HttpException(
-        'Not authorized to transcribe these images',
+        'Not authorized to transcribe these images, got userIds: ' +
+          allUserIds.join(', ') +
+          ' and clerkUser.id: ' +
+          clerkUser.id,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -150,7 +159,10 @@ export class TranscriptionService {
       !PRIVILEGED_USER_IDS.includes(clerkUser.id)
     ) {
       throw new HttpException(
-        'Not authorized to transcribe these images',
+        'Not authorized to transcribe these images, got userIds: ' +
+          allUserIds.join(', ') +
+          ' and clerkUser.id: ' +
+          clerkUser.id,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -294,7 +306,7 @@ export class TranscriptionService {
   }
 
   async createOrUpdate(
-    clerkUser: ClerkUser,
+    clerkUser: UserType,
     imageId: string,
     createUpdateTranscription: CreateUpdateTranscriptionDto,
   ): Promise<string> {
@@ -414,7 +426,7 @@ export class TranscriptionService {
   }
 
   async getTranscriptionJobStatuses(
-    clerkUser: ClerkUser,
+    clerkUser: UserType,
     imageIds: string[],
     earliestCreatedAt: Date | null,
   ): Promise<TranscriptionJobDB[]> {

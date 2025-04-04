@@ -31,17 +31,13 @@ export class ClerkAuthGuard implements CanActivate {
     const userId = auth.userId; // Clerk populates userId if token is valid
 
     if (!userId) {
-      // No valid session token present
       return false;
     }
 
-    try {
-      const user = await this.clerkClient.users.getUser(userId);
-      req.user = user; // attach user info to request for controllers
-    } catch (error) {
-      return false;
-    }
-
-    return true; // allow the request to proceed
+    // Set just the user ID on the request
+    req.user = {
+      id: userId,
+    };
+    return true;
   }
 }

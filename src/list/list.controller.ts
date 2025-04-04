@@ -11,8 +11,7 @@ import {
 } from '@nestjs/common';
 import { ListService } from '@/src/list/list.service';
 import { CreateListDto } from '@/src/list/dto/create-list.dto';
-import { User } from '@/src/comon/decorators/user.decorator';
-import { User as UserType } from '@clerk/express';
+import { User, UserType } from '@/src/comon/decorators/user.decorator';
 import { UpdateListDto } from '@/src/list/dto/update-list.dto';
 import { ListOrder, ListTree } from '@/types/list';
 import { UpdateOrderListDto } from '@/src/list/dto/update-order-list.dto';

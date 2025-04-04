@@ -5,7 +5,7 @@ import { FetchUserListDocumentDto } from '@/src/lists-documents/dto/fetch-user-l
 import { UpdateListDocumentDto } from '@/src/lists-documents/dto/update-list-document.dto';
 import { DocumentDB, Document } from '@/types/document';
 import { ListDB, ListSummary } from '@/types/list';
-import { User } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PRIVILEGED_USER_IDS } from '@/src/shared/constant';
 
@@ -20,7 +20,7 @@ export class ListsDocumentsService {
   async update(
     document_id: string,
     updateListDocumentDto: UpdateListDocumentDto,
-    user: User,
+    user: UserType,
   ): Promise<void> {
     try {
       const { add_list_ids, remove_list_ids } = updateListDocumentDto;
@@ -79,7 +79,7 @@ export class ListsDocumentsService {
 
   async fetchUserDocumentsByList(
     list_id: string,
-    user: User,
+    user: UserType,
     { page, limit }: FetchUserListDocumentDto,
   ): Promise<{
     documents: Document[];
@@ -129,7 +129,7 @@ export class ListsDocumentsService {
   }
 
   async fetchDocumentLists(
-    user: User,
+    user: UserType,
     document_id: string,
   ): Promise<ListSummary[]> {
     try {

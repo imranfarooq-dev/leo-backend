@@ -8,7 +8,7 @@ import {
 import { CreateUpdateNoteDto } from '@/src/note/dto/create-update-note.dto';
 import { NoteService } from '@/src/note/note.service';
 import { User } from '@/src/comon/decorators/user.decorator';
-import { User as ClerkUser } from '@clerk/express';
+import { UserType } from '@/src/comon/decorators/user.decorator';
 import { Param } from '@nestjs/common';
 
 @Controller('note')
@@ -17,7 +17,7 @@ export class NoteController {
 
   @Put(':image_id')
   async createOrUpdate(
-    @User() clerkUser: ClerkUser,
+    @User() clerkUser: UserType,
     @Param('image_id') imageId: string,
     @Body() createUpdateNote: CreateUpdateNoteDto,
   ) {

@@ -80,6 +80,14 @@ export class ImageController {
   @UseInterceptors(
     FilesInterceptor('files', 1, {
       fileFilter: (req, file, callback) => {
+        if (!file || !file.originalname || !file.mimetype) {
+          callback(
+            new HttpException('Invalid file data', HttpStatus.BAD_REQUEST),
+            false,
+          );
+          return;
+        }
+
         const allowedMimeTypes = [
           'image/jpeg',
           'image/png',
@@ -87,7 +95,6 @@ export class ImageController {
           'image/webp',
           'image/heic',
           'image/heif',
-          // 'application/pdf',
         ];
 
         if (!allowedMimeTypes.includes(file.mimetype)) {
@@ -109,7 +116,6 @@ export class ImageController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     try {
-      // TODO: Should we configurably ask for whether we want the full or summary images back? From the dashboard view, we probably want only summaries.
       if (files.length !== 1) {
         throw new HttpException(
           'Only one file can be uploaded at a time',
@@ -117,6 +123,11 @@ export class ImageController {
         );
       }
       const file: Express.Multer.File = files[0];
+
+      if (!file.originalname || !file.size) {
+        throw new HttpException('Invalid file data', HttpStatus.BAD_REQUEST);
+      }
+
       const images: Image[] = await this.imageService.upload(
         imageId,
         file,
