@@ -25,6 +25,7 @@ export type BaseImage = {
   thumbnail_url: string | null;
   transcription_status: TranscriptionStatus | null;
   note_exists: boolean;
+  transcription_job_status: APITranscriptionJobStatus | null;
 };
 
 export type Image = BaseImage & {
@@ -32,7 +33,6 @@ export type Image = BaseImage & {
   transcription_id?: string | null;
   ai_transcription_text?: string | null;
   current_transcription_text?: string | null;
-  transcription_job_status?: APITranscriptionJobStatus | null;
   note_id?: string | null;
   notes_text?: string | null;
 };
