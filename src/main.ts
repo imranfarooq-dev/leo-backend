@@ -24,10 +24,14 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
-  // Important: Don't use body parser middleware for Stripe webhooks
+  // Important: Don't use body parser middleware for webhooks
   // This ensures the raw body is preserved for signature verification
   app.use((req, res, next) => {
-    if (req.originalUrl === '/subscription/webhook') {
+    // Skip body parsing for webhook endpoints
+    if (
+      req.originalUrl === '/subscription/webhook' ||
+      req.originalUrl === '/clerk/webhooks'
+    ) {
       next();
     } else {
       json({ limit: '50mb' })(req, res, next);
@@ -35,7 +39,11 @@ async function bootstrap() {
   });
 
   app.use((req, res, next) => {
-    if (req.originalUrl === '/subscription/webhook') {
+    // Skip body parsing for webhook endpoints
+    if (
+      req.originalUrl === '/subscription/webhook' ||
+      req.originalUrl === '/clerk/webhooks'
+    ) {
       next();
     } else {
       urlencoded({ extended: true, limit: '50mb' })(req, res, next);
