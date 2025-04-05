@@ -24,9 +24,23 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
-  // Configure body parser with proper limits
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ extended: true, limit: '50mb' }));
+  // Important: Don't use body parser middleware for Stripe webhooks
+  // This ensures the raw body is preserved for signature verification
+  app.use((req, res, next) => {
+    if (req.originalUrl === '/subscription/webhook') {
+      next();
+    } else {
+      json({ limit: '50mb' })(req, res, next);
+    }
+  });
+
+  app.use((req, res, next) => {
+    if (req.originalUrl === '/subscription/webhook') {
+      next();
+    } else {
+      urlencoded({ extended: true, limit: '50mb' })(req, res, next);
+    }
+  });
 
   app.use(cookieParser());
   app.useLogger(new Logger());

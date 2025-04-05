@@ -68,6 +68,7 @@ export class SubscriptionController {
   ) {
     try {
       if (!request.rawBody) {
+        console.error('Stripe webhook error: request.rawBody is missing');
         throw new BadRequestException('Invalid request body');
       }
 
@@ -76,7 +77,15 @@ export class SubscriptionController {
       );
 
       if (!webhookSecret) {
+        console.error('Stripe webhook error: webhook secret is not configured');
         throw new Error('Webhook secret is not configured');
+      }
+
+      if (!signature) {
+        console.error(
+          'Stripe webhook error: stripe-signature header is missing',
+        );
+        throw new BadRequestException('Stripe signature is missing');
       }
 
       const event = await this.subscriptionService.constructWebhookEvent(
@@ -89,6 +98,7 @@ export class SubscriptionController {
 
       return { received: true };
     } catch (error) {
+      console.error(`Stripe webhook error: ${error.message}`, error);
       throw new HttpException(
         {
           statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
