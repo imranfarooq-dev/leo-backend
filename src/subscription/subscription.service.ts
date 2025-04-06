@@ -75,6 +75,10 @@ export class SubscriptionService {
     stripe_price_id: string | null;
     current_period_end: string | null;
     price: string | null;
+    cancel_at_period_end?: boolean;
+    scheduled_plan_change?: boolean;
+    scheduled_price_id?: string | null;
+    scheduled_effective_date?: string | null;
   } | null> {
     try {
       const [subscription, credits, numImages] = await Promise.all([
@@ -97,6 +101,10 @@ export class SubscriptionService {
         stripe_price_id: subscription?.stripe_price_id,
         current_period_end: subscription?.current_period_end,
         price: subscription?.price,
+        cancel_at_period_end: subscription?.cancel_at_period_end,
+        scheduled_plan_change: subscription?.scheduled_plan_change,
+        scheduled_price_id: subscription?.scheduled_price_id,
+        scheduled_effective_date: subscription?.scheduled_effective_date,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -189,10 +197,69 @@ export class SubscriptionService {
         );
       }
 
+      // First, find and release any active subscription schedules
+      const schedules = await this.stripeService.subscriptionSchedules.list({
+        customer: subscription.stripe_customer_id,
+      });
+
+      // Track if we found and released any schedules
+      let scheduleFound = false;
+
+      // Release any active schedules (like pending downgrades)
+      for (const schedule of schedules.data) {
+        // Only release schedules associated with this subscription
+        if (
+          (schedule.status === 'active' || schedule.status === 'not_started') &&
+          schedule.subscription === subscription.stripe_subscription_id
+        ) {
+          await this.stripeService.subscriptionSchedules.release(schedule.id);
+          scheduleFound = true;
+          this.logger.log(`Released subscription schedule ${schedule.id}`);
+        }
+      }
+
+      // If we released a schedule, we need to retrieve the subscription again
+      // as the release of the schedule may have modified it
+      if (scheduleFound) {
+        // Wait a moment for Stripe to process the schedule release
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Get the updated subscription
+        const updatedStripeSubscription =
+          await this.stripeService.subscriptions.retrieve(
+            subscription.stripe_subscription_id,
+          );
+
+        // If the subscription was already canceled by the schedule release, return early
+        if (updatedStripeSubscription.cancel_at_period_end) {
+          // Still update our local database
+          await this.subscriptionRepository.updateUserSubscription(
+            clerkUser.id,
+            {
+              cancel_at_period_end: true,
+              scheduled_plan_change: false,
+              scheduled_price_id: null,
+              scheduled_effective_date: null,
+            },
+          );
+          return true;
+        }
+      }
+
+      // Then schedule the cancellation at period end
       await this.stripeService.subscriptions.update(
         subscription.stripe_subscription_id,
         { cancel_at_period_end: true },
       );
+
+      // Update the local database to reflect cancellation scheduled
+      // Also clear any scheduled plan changes for clarity in the UI
+      await this.subscriptionRepository.updateUserSubscription(clerkUser.id, {
+        cancel_at_period_end: true,
+        scheduled_plan_change: false,
+        scheduled_price_id: null,
+        scheduled_effective_date: null,
+      });
 
       return true;
     } catch (error) {
@@ -222,14 +289,109 @@ export class SubscriptionService {
           subscription.stripe_subscription_id,
         );
 
-      return await this.stripeService.subscriptions.update(
-        subscription.stripe_subscription_id,
-        {
-          items: [{ id: stripeSubscription.items.data[0].id, price: priceId }],
-          proration_behavior: 'always_invoice',
-          cancel_at_period_end: false, // If plan is scheduled to be cancelled but get's updated
-        },
-      );
+      // Get the current price to determine if this is an upgrade or downgrade
+      const currentPriceId = stripeSubscription.items.data[0].price.id;
+
+      // Check if there's already a scheduled plan change
+      const hasScheduledChange = subscription.scheduled_plan_change;
+
+      // Even if the price is the same, we still need to clear any scheduled changes
+      if (currentPriceId === priceId && !hasScheduledChange) {
+        return stripeSubscription;
+      }
+
+      // Get prices to determine upgrade vs downgrade
+      const [currentPrice, newPrice] = await Promise.all([
+        this.stripeService.prices.retrieve(currentPriceId),
+        this.stripeService.prices.retrieve(priceId),
+      ]);
+
+      // For downgrades, schedule at period end
+      const isDowngrade = newPrice.unit_amount < currentPrice.unit_amount;
+
+      let updatedSubscription;
+
+      if (isDowngrade) {
+        // For downgrades, schedule the change at period end
+        updatedSubscription = await this.stripeService.subscriptions.update(
+          subscription.stripe_subscription_id,
+          {
+            cancel_at_period_end: false, // If plan is scheduled to be cancelled but gets updated
+          },
+        );
+
+        // Create a subscription schedule from the current subscription
+        const schedule = await this.stripeService.subscriptionSchedules.create({
+          from_subscription: subscription.stripe_subscription_id,
+        });
+
+        // Calculate the end of the current billing period in Unix timestamp format
+        const currentPeriodEndTimestamp = Math.floor(
+          new Date(subscription.current_period_end).getTime() / 1000,
+        );
+
+        // Now update the schedule to add the phase with the new price
+        await this.stripeService.subscriptionSchedules.update(schedule.id, {
+          phases: [
+            {
+              // Keep the current subscription settings for the current phase (until end of billing period)
+              items: [
+                {
+                  price: currentPriceId,
+                  quantity: 1,
+                },
+              ],
+              start_date: schedule.phases[0].start_date,
+              end_date: currentPeriodEndTimestamp,
+            },
+            {
+              // After current period, switch to the new price
+              items: [
+                {
+                  price: priceId,
+                  quantity: 1,
+                },
+              ],
+              start_date: currentPeriodEndTimestamp,
+            },
+          ],
+        });
+      } else {
+        // For upgrades, apply immediately
+        const prorationBehavior = 'always_invoice';
+
+        updatedSubscription = await this.stripeService.subscriptions.update(
+          subscription.stripe_subscription_id,
+          {
+            items: [
+              { id: stripeSubscription.items.data[0].id, price: priceId },
+            ],
+            proration_behavior: prorationBehavior,
+            cancel_at_period_end: false, // If plan is scheduled to be cancelled but gets updated
+          },
+        );
+      }
+
+      // If downgrade, update the local database to track scheduled change
+      if (isDowngrade) {
+        await this.subscriptionRepository.updateUserSubscription(clerkUser.id, {
+          scheduled_plan_change: true,
+          scheduled_price_id: priceId,
+          scheduled_effective_date: subscription.current_period_end,
+          cancel_at_period_end: false, // Clear any scheduled cancellation
+        });
+      }
+      // If it's an upgrade or staying on same plan, clear any scheduled changes
+      else {
+        await this.subscriptionRepository.updateUserSubscription(clerkUser.id, {
+          scheduled_plan_change: false,
+          scheduled_price_id: null,
+          scheduled_effective_date: null,
+          cancel_at_period_end: false, // Clear any scheduled cancellation
+        });
+      }
+
+      return updatedSubscription;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -251,10 +413,94 @@ export class SubscriptionService {
 
       // When we downgrade
       if (subscription.status === SubscriptionStatus.Active) {
-        await this.stripeService.subscriptions.update(
-          subscription.stripe_subscription_id,
-          { cancel_at_period_end: true },
-        );
+        // First, find and release any active subscription schedules
+        const schedules = await this.stripeService.subscriptionSchedules.list({
+          customer: subscription.stripe_customer_id,
+        });
+
+        // Track if we found and released any schedules
+        let scheduleFound = false;
+
+        // Release any active schedules (like pending downgrades)
+        for (const schedule of schedules.data) {
+          // Only release schedules associated with this subscription
+          if (
+            (schedule.status === 'active' ||
+              schedule.status === 'not_started') &&
+            schedule.subscription === subscription.stripe_subscription_id
+          ) {
+            await this.stripeService.subscriptionSchedules.release(schedule.id);
+            scheduleFound = true;
+            this.logger.log(`Released subscription schedule ${schedule.id}`);
+          }
+        }
+
+        // If we released a schedule, we need to retrieve the subscription again
+        if (scheduleFound) {
+          // Wait a moment for Stripe to process the schedule release
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          // Get the updated subscription
+          const updatedStripeSubscription =
+            await this.stripeService.subscriptions.retrieve(
+              subscription.stripe_subscription_id,
+            );
+
+          // Check if the subscription is already canceled (not just scheduled for cancellation)
+          if (updatedStripeSubscription.status === 'canceled') {
+            // Subscription is already canceled, update our database and set up free plan
+            await this.setUpFreePlan(clerkUser.id, subscription);
+            return;
+          }
+
+          // If the subscription is already scheduled for cancellation, just update our DB
+          if (updatedStripeSubscription.cancel_at_period_end) {
+            await this.subscriptionRepository.updateUserSubscription(
+              clerkUser.id,
+              {
+                cancel_at_period_end: true,
+                scheduled_plan_change: false,
+                scheduled_price_id: null,
+                scheduled_effective_date: null,
+              },
+            );
+            return;
+          }
+        }
+
+        try {
+          // Schedule the cancellation at period end
+          await this.stripeService.subscriptions.update(
+            subscription.stripe_subscription_id,
+            { cancel_at_period_end: true },
+          );
+
+          // Also update local database to indicate cancellation
+          await this.subscriptionRepository.updateUserSubscription(
+            clerkUser.id,
+            {
+              cancel_at_period_end: true,
+              scheduled_plan_change: false,
+              scheduled_price_id: null,
+              scheduled_effective_date: null,
+            },
+          );
+        } catch (error) {
+          // If we can't update the subscription (e.g., it's already canceled),
+          // set up the free plan directly
+          if (
+            error.message &&
+            error.message.includes('canceled subscription')
+          ) {
+            this.logger.warn(
+              `Subscription ${subscription.stripe_subscription_id} is already canceled: ${error.message}`,
+            );
+            await this.setUpFreePlan(clerkUser.id, subscription);
+          } else {
+            throw error;
+          }
+        }
+
         return;
       }
 
@@ -262,26 +508,7 @@ export class SubscriptionService {
         throw new BadRequestException('Already subscribed to free plan');
       }
 
-      const updatedCredits: Partial<Credit> = {
-        monthly_credits: FreePlan.monthly_credits,
-        image_limits: FreePlan.storage_limit,
-      };
-
-      const updatedSubscription: Partial<SubscriptionDB> = {
-        free_plan_status: FreePlanStatus.Subscribed,
-      };
-
-      if (!subscription.lifetime_tokens_awarded) {
-        updatedCredits.lifetime_credits = FreePlan.lifetime_credits;
-        updatedSubscription.lifetime_tokens_awarded = true;
-      }
-
-      await this.creditRepository.updateCredits(clerkUser.id, updatedCredits);
-
-      await this.subscriptionRepository.updateUserSubscription(
-        clerkUser.id,
-        updatedSubscription,
-      );
+      await this.setUpFreePlan(clerkUser.id, subscription);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -292,6 +519,38 @@ export class SubscriptionService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  // Helper method to set up free plan
+  private async setUpFreePlan(
+    userId: string,
+    subscription: SubscriptionDB,
+  ): Promise<void> {
+    const updatedCredits: Partial<Credit> = {
+      monthly_credits: FreePlan.monthly_credits,
+      image_limits: FreePlan.storage_limit,
+    };
+
+    const updatedSubscription: Partial<SubscriptionDB> = {
+      free_plan_status: FreePlanStatus.Subscribed,
+      // Clear any scheduled changes or cancellations just in case
+      cancel_at_period_end: false,
+      scheduled_plan_change: false,
+      scheduled_price_id: null,
+      scheduled_effective_date: null,
+    };
+
+    if (!subscription.lifetime_tokens_awarded) {
+      updatedCredits.lifetime_credits = FreePlan.lifetime_credits;
+      updatedSubscription.lifetime_tokens_awarded = true;
+    }
+
+    await this.creditRepository.updateCredits(userId, updatedCredits);
+
+    await this.subscriptionRepository.updateUserSubscription(
+      userId,
+      updatedSubscription,
+    );
   }
 
   async createCheckoutSession(
@@ -438,14 +697,49 @@ export class SubscriptionService {
         subscription.current_period_end * 1000,
       ).toISOString();
 
-      await this.subscriptionRepository.updateUserSubscription(userId, {
+      // Get the existing subscription data
+      const existingSubscription = await this.fetchSubscription(userId);
+
+      // Check if this is a plan change taking effect
+      const isPlanChangeComplete =
+        existingSubscription?.scheduled_plan_change &&
+        existingSubscription?.scheduled_price_id === priceId;
+
+      // Check if cancellation has been reverted through Stripe dashboard
+      const isStripeResumption =
+        existingSubscription?.cancel_at_period_end === true &&
+        subscription.cancel_at_period_end === false;
+
+      // Handle complete update from Stripe
+      const updateData: Partial<SubscriptionDB> = {
         status: subscription.status,
         price,
         stripe_price_id: priceId,
         current_period_start: currentPeriodStart,
         current_period_end: currentPeriodEnd,
         stripe_subscription_id: subscription.id,
-      });
+        cancel_at_period_end: subscription.cancel_at_period_end,
+      };
+
+      // Clear scheduled changes if they've taken effect or if subscription has been resumed
+      if (isPlanChangeComplete || isStripeResumption) {
+        updateData.scheduled_plan_change = false;
+        updateData.scheduled_price_id = null;
+        updateData.scheduled_effective_date = null;
+      }
+
+      // If Stripe says subscription is canceled, make sure to clear all scheduling flags
+      if (subscription.status === SubscriptionStatus.Canceled) {
+        updateData.scheduled_plan_change = false;
+        updateData.scheduled_price_id = null;
+        updateData.scheduled_effective_date = null;
+        updateData.cancel_at_period_end = false;
+      }
+
+      await this.subscriptionRepository.updateUserSubscription(
+        userId,
+        updateData,
+      );
     } catch (error) {
       this.logger.error(error.message);
     }
@@ -483,6 +777,11 @@ export class SubscriptionService {
         ).toISOString(),
         stripe_subscription_id: null,
         free_plan_status: FreePlanStatus.Subscribed,
+        // Clear any scheduled changes or cancellations as subscription is now canceled
+        cancel_at_period_end: false,
+        scheduled_plan_change: false,
+        scheduled_price_id: null,
+        scheduled_effective_date: null,
       };
 
       if (!subscriptionInfo.lifetime_tokens_awarded) {
@@ -642,6 +941,79 @@ export class SubscriptionService {
     } catch (error) {
       this.logger.error(`Error replenishing beta credits: ${error.message}`);
       throw error;
+    }
+  }
+
+  async resumeSubscription(clerkUser: UserType) {
+    try {
+      const subscription: SubscriptionDB = await this.fetchSubscription(
+        clerkUser.id,
+      );
+
+      if (!subscription.stripe_subscription_id) {
+        throw new HttpException('Subscription not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Check if there's a scheduled cancellation OR a scheduled plan change
+      if (
+        !subscription.cancel_at_period_end &&
+        !subscription.scheduled_plan_change
+      ) {
+        throw new HttpException(
+          'Subscription has no scheduled changes to resume',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Handle scheduled downgrades (subscription schedules)
+      if (subscription.scheduled_plan_change) {
+        // Find any active subscription schedules
+        const schedules = await this.stripeService.subscriptionSchedules.list({
+          customer: subscription.stripe_customer_id,
+        });
+
+        // Handle schedules - properly release instead of cancel
+        for (const schedule of schedules.data) {
+          // Only process schedules associated with this subscription
+          if (
+            (schedule.status === 'active' ||
+              schedule.status === 'not_started') &&
+            schedule.subscription === subscription.stripe_subscription_id
+          ) {
+            // Release the schedule instead of cancelling it
+            // This keeps the subscription active with current plan
+            await this.stripeService.subscriptionSchedules.release(schedule.id);
+            this.logger.log(`Released subscription schedule ${schedule.id}`);
+          }
+        }
+      }
+
+      // Update Stripe to remove the scheduled cancellation (if applicable)
+      if (subscription.cancel_at_period_end) {
+        await this.stripeService.subscriptions.update(
+          subscription.stripe_subscription_id,
+          { cancel_at_period_end: false },
+        );
+      }
+
+      // Update local database - clear any cancellation or scheduled plan changes
+      await this.subscriptionRepository.updateUserSubscription(clerkUser.id, {
+        cancel_at_period_end: false,
+        scheduled_plan_change: false,
+        scheduled_price_id: null,
+        scheduled_effective_date: null,
+      });
+
+      return true;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        error.message ?? 'An error occurred while resuming the subscription',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

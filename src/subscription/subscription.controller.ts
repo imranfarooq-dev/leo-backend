@@ -131,6 +131,28 @@ export class SubscriptionController {
     }
   }
 
+  @Post('resume')
+  async resumeSubscription(@User() clerkUser: UserType) {
+    try {
+      const resumeSubscription =
+        await this.subscriptionService.resumeSubscription(clerkUser);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Subscription resumed',
+        resumeSubscription,
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+          message:
+            error.message ?? 'An error occurred while resuming subscription',
+        },
+        error.status ?? HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('change-plan')
   async changeSubscriptionPlan(
     @User() clerkUser: UserType,
@@ -215,6 +237,10 @@ export class SubscriptionController {
         stripe_price_id: string | null;
         current_period_end: string | null;
         price: string | null;
+        cancel_at_period_end?: boolean;
+        scheduled_plan_change?: boolean;
+        scheduled_price_id?: string | null;
+        scheduled_effective_date?: string | null;
       } | null = await this.subscriptionService.fetchStatusAndCredits(user);
 
       if (!statusAndCredits) {

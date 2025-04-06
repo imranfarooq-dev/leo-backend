@@ -284,6 +284,7 @@ export type Database = {
       };
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean | null;
           created_at: string | null;
           current_period_end: string | null;
           current_period_start: string | null;
@@ -291,6 +292,9 @@ export type Database = {
           id: string;
           lifetime_tokens_awarded: boolean;
           price: string | null;
+          scheduled_effective_date: string | null;
+          scheduled_plan_change: boolean | null;
+          scheduled_price_id: string | null;
           status: Database['public']['Enums']['subscription_status'] | null;
           stripe_customer_id: string;
           stripe_price_id: string | null;
@@ -299,6 +303,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          cancel_at_period_end?: boolean | null;
           created_at?: string | null;
           current_period_end?: string | null;
           current_period_start?: string | null;
@@ -306,6 +311,9 @@ export type Database = {
           id?: string;
           lifetime_tokens_awarded?: boolean;
           price?: string | null;
+          scheduled_effective_date?: string | null;
+          scheduled_plan_change?: boolean | null;
+          scheduled_price_id?: string | null;
           status?: Database['public']['Enums']['subscription_status'] | null;
           stripe_customer_id: string;
           stripe_price_id?: string | null;
@@ -314,6 +322,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          cancel_at_period_end?: boolean | null;
           created_at?: string | null;
           current_period_end?: string | null;
           current_period_start?: string | null;
@@ -321,6 +330,9 @@ export type Database = {
           id?: string;
           lifetime_tokens_awarded?: boolean;
           price?: string | null;
+          scheduled_effective_date?: string | null;
+          scheduled_plan_change?: boolean | null;
+          scheduled_price_id?: string | null;
           status?: Database['public']['Enums']['subscription_status'] | null;
           stripe_customer_id?: string;
           stripe_price_id?: string | null;
@@ -554,6 +566,13 @@ export type Database = {
           name: string;
           type: string;
         }[];
+      };
+      update_image_filenames: {
+        Args: {
+          p_image_ids: string[];
+          p_filenames: string[];
+        };
+        Returns: Json;
       };
       update_image_orders: {
         Args: {
