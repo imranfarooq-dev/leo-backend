@@ -1,82 +1,104 @@
-## Description
+# leo-backend
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-## Installation
+Backend service for Leo, built with NestJS and deployed on Railway.
 
-```bash
-$ npm install
-```
+## Environment setup
 
-## Supabase Setup Guide
+The project uses different environment files for different environments:
 
-1. **Set Up Supabase Locally**  
-   Follow the instructions in the [Supabase CLI Getting Started Guide](https://supabase.com/docs/guides/cli/getting-started) to set up Supabase on your local machine.
+- `.env.local` - For local development
+- `.env.development` - For dev environment
+- `.env.production` - For production environment
 
-2. **Initialize Database**  
-   After the initial setup, run the following command to reset your database:
-   `supabase db reset` This command will:
-   - Clear any existing database.
-   - Create a fresh database from scratch.
-   - Apply all migrations to the new database.
-3. Access the Supabase Dashboard locally at http://localhost:54323/ and follow these steps
-   - Create a new storage bucket named `leo`
-   - Set up policies for the bucket to allow the following operations:
-     - SELECT 
-     - INSERT
-     - DELETE
-     - UPDATE
-
-> **Note**:
-There’s no need to run `supabase init` during the local setup process.
-
-
-## Environment Variable
-
-For Production Create a `.env` file and in dev environment `.env.development` by duplicating the `.env.example` file. Then, update the variables in the new file with their corresponding values.
-
-## Webhook
-
-To run a webhook locally, you will need to expose your local server to the internet, for that you will use ngrok. 
-
-You can run this command in your terminal `ngrok http --domain=eminently-discrete-slug.ngrok-free.app <port-number>`.
-
-Change your <port-number> to port you are running your backend on.
-## Running the app
+Copy `.env.example` to create your own environment file:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env.local
 ```
 
-## Test
+Configure the required variables in your environment file.
+
+## Local development
+
+### Running locally with Docker
+
+To run the application in a local Docker container:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+make docker-local
 ```
 
-## Support
+For a clean build (rebuilding from scratch):
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+make docker-local-clean
+```
 
-## Stay in touch
+The app will be available at http://localhost:4000.
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Deployment
 
-## License
+### Development environment
 
-Nest is [MIT licensed](LICENSE).
+Deploy to the development environment by pushing to the `dev` branch:
+
+```bash
+git push origin dev
+```
+
+The CI/CD pipeline will automatically deploy the changes to the dev environment on Railway.
+
+### Production environment
+
+Deploy to production by pushing to the `prod` branch:
+
+```bash
+git push origin prod
+```
+
+The CI/CD pipeline will automatically deploy the changes to the production environment on Railway.
+
+## Other Docker commands
+
+```bash
+# Run the development environment in Docker
+make docker-dev
+
+# Run the production environment in Docker
+make docker-prod
+
+# Clean build for development environment
+make docker-dev-clean
+
+# Clean build for production environment
+make docker-prod-clean
+
+# Stop all Docker containers
+make docker-stop
+```
+
+## Technology stack
+
+- **Framework**: NestJS
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Clerk
+- **Deployment**: Railway
+- **Monitoring**: Sentry
+- **Payment Processing**: Stripe
+- **Queue Management**: Bull
+
+## Testing
+
+```bash
+# Run tests
+npm test
+
+# Run e2e tests
+npm run test:e2e
+```
+
+## Useful Links
+
+- Railway Dashboard: [https://railway.app/](https://railway.app/)
+- Supabase Dashboard: [https://app.supabase.com/](https://app.supabase.com/)
+- Sentry Dashboard: [https://sentry.io/](https://sentry.io/)
