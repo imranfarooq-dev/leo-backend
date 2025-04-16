@@ -237,18 +237,13 @@ export class DocumentRepository {
         return [];
       }
 
+      const allFilenames = data.flatMap((document) =>
+        document.images.map((image) => image.filename),
+      );
+
       const [image_urls, thumbnail_urls] = await Promise.all([
-        this.supabaseService.getPresignedUrls(
-          data.map((document) =>
-            document.images.map((image) => image.filename),
-          ),
-        ),
-        this.supabaseService.getPresignedUrls(
-          data.map((document) =>
-            document.images.map((image) => image.filename),
-          ),
-          true,
-        ),
+        this.supabaseService.getPresignedUrls(allFilenames),
+        this.supabaseService.getPresignedUrls(allFilenames, true),
       ]);
 
       const documentsWithImages: Document[] = await Promise.all(
