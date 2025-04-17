@@ -8,7 +8,7 @@ import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { ExportRequestDto } from './dto/export.dto';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, PDFFont, rgb, StandardFonts } from 'pdf-lib';
 import { PassThrough } from 'stream';
 import fetch from 'node-fetch';
 import {
@@ -17,17 +17,15 @@ import {
   Paragraph,
   TextRun,
   HeadingLevel,
-  HorizontalPositionAlign,
   ImageRun,
-  HorizontalPositionRelativeFrom,
-  VerticalPositionAlign,
-  VerticalPositionRelativeFrom,
   BorderStyle,
 } from 'docx';
 import {
+  applyHtmlStylingToPdf,
   checkFileSize,
   drawHorizontalLine,
   drawPageNumber,
+  applyHtmlStylingToWord,
   wrapText,
 } from '../helpers/gotenberg.helper';
 
@@ -253,8 +251,11 @@ export class GotenbergService {
     let result;
     if (format === 'pdf') {
       result = await this.createPDF(contentType, imagesDetail);
-    } else if (contentType === 'images' && format === 'jpeg') {
-      result = await this.createImageZip(imagesDetail);
+    } else if (
+      (contentType === 'images' || contentType === 'both') &&
+      format === 'zip'
+    ) {
+      result = await this.createImageZip(imagesDetail, contentType);
     } else if (contentType === 'transcripts' && format === 'txt') {
       result = await this.createTxt(imagesDetail);
     } else if (format === 'word') {
@@ -269,13 +270,127 @@ export class GotenbergService {
     return result;
   }
 
+  private async createImageZip(
+    imagesDetail: any[],
+    contentType: string,
+  ): Promise<{
+    fileContent: Buffer;
+    contentType: string;
+    filename: string;
+  }> {
+    const includeTranscript = contentType === 'both';
+
+    return new Promise(async (resolve, reject) => {
+      const outputStream = new PassThrough();
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      const chunks: Buffer[] = [];
+      outputStream._read = () => {}; // Prevent premature stream closing
+
+      outputStream.on('data', (chunk) => chunks.push(chunk));
+      outputStream.on('end', () => {
+        const zipBuffer = Buffer.concat(chunks);
+        resolve({
+          fileContent: zipBuffer,
+          contentType: 'application/zip',
+          filename: 'export.zip',
+        });
+      });
+
+      outputStream.on('error', (error) => {
+        reject(new Error(`Output stream error: ${error.message}`));
+      });
+
+      archive.pipe(outputStream);
+
+      for (const imageData of imagesDetail) {
+        const imageUrl = imageData.image_url ?? imageData[0]?.image_url;
+        const filename =
+          imageData.filename ??
+          imageData[0]?.image_name ??
+          `image_${Date.now()}.jpg`;
+
+        if (imageUrl) {
+          try {
+            const imageBuffer = await this.downloadImage(imageUrl);
+            archive.append(imageBuffer, { name: filename });
+          } catch (error) {
+            return reject(
+              new Error(
+                `Error processing image "${imageUrl}": ${error.message}`,
+              ),
+            );
+          }
+        }
+
+        if (includeTranscript) {
+          const imageName =
+            imageData.image_name ?? imageData[0]?.image_name ?? 'untitled';
+          const transcriptText =
+            imageData.current_transcription_text ??
+            imageData[0]?.current_transcription_text ??
+            '';
+          const cleanText = transcriptText
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          const safeName = imageName.replace(/[^\w\-]+/g, '_'); // safe filename
+          const txtFilename = `${safeName}.txt`;
+
+          archive.append(Buffer.from(cleanText, 'utf-8'), {
+            name: txtFilename,
+          });
+        }
+      }
+
+      try {
+        await archive.finalize();
+      } catch (error) {
+        return reject(
+          new Error(`Failed to finalize archive: ${error.message}`),
+        );
+      }
+    });
+  }
+
+  private async createTxt(imagesDetail: any[]): Promise<{
+    fileContent: Buffer;
+    contentType: string;
+    filename: string;
+  }> {
+    const texts: string[] = [];
+
+    for (const imageData of imagesDetail) {
+      const imageName =
+        imageData.image_name ?? imageData[0]?.image_name ?? 'Untitled Image';
+      const transcriptText =
+        imageData.current_transcription_text ??
+        imageData[0]?.current_transcription_text ??
+        '';
+
+      const cleanText = transcriptText
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      texts.push(`--- ${imageName} ---\n${cleanText}\n`);
+    }
+
+    const fullText = texts.join('\n');
+    return {
+      fileContent: Buffer.from(fullText, 'utf-8'),
+      contentType: 'text/plain',
+      filename: 'transcripts.txt',
+    };
+  }
+
   private async createPDF(contentType: string, imagesDetail: any[]) {
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     const margin = 50;
-    const lineHeight = 18;
+    const lineHeight = 10;
     const titleSize = 14;
     const textSize = 11;
 
@@ -283,20 +398,29 @@ export class GotenbergService {
     let { width, height } = currentPage.getSize();
     let currentY = height - margin;
 
-    const ensureSpace = (spaceNeeded: number) => {
+    const ensureSpace = (
+      spaceNeeded: number,
+      currentPg: any,
+      pdfDoc: PDFDocument,
+      font: PDFFont,
+      margin: number,
+      rgbFn: any,
+    ) => {
       if (currentY < margin + spaceNeeded) {
         drawPageNumber(
-          currentPage,
+          currentPg,
           pdfDoc.getPages().length - 1,
           0,
           font,
           margin,
-          rgb,
+          rgbFn,
         );
-        currentPage = pdfDoc.addPage();
-        ({ width, height } = currentPage.getSize());
+        const newPage = pdfDoc.addPage();
+        ({ width, height } = newPage.getSize());
         currentY = height - margin;
+        return newPage;
       }
+      return null;
     };
 
     for (const imageData of imagesDetail) {
@@ -313,11 +437,8 @@ export class GotenbergService {
       const transcriptText =
         imageData.current_transcription_text ||
         (imageData[0] && imageData[0].current_transcription_text) ||
-        'No transcript available';
-      const cleanText = transcriptText
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+        '';
+      const cleanText = transcriptText.replace(/\s+/g, ' ').trim();
 
       // Title
       const titleLines = wrapText(
@@ -327,7 +448,7 @@ export class GotenbergService {
         titleSize,
       );
       const titleHeight = titleLines.length * lineHeight;
-      ensureSpace(titleHeight);
+      ensureSpace(titleHeight, currentPage, pdfDoc, font, margin, rgb);
       for (const line of titleLines) {
         currentPage.drawText(line, {
           x: margin,
@@ -358,7 +479,8 @@ export class GotenbergService {
         const displayWidth = imgDims.width * scale;
         const displayHeight = imgDims.height * scale;
 
-        ensureSpace(displayHeight + 20);
+        ensureSpace(displayHeight + 20, currentPage, pdfDoc, font, margin, rgb);
+
         currentPage.drawImage(pdfImage, {
           x: (width - displayWidth) / 2,
           y: currentY - displayHeight,
@@ -369,23 +491,32 @@ export class GotenbergService {
       }
 
       // Transcript
-      if (contentType === 'transcripts' || contentType === 'both') {
-        const lines = wrapText(cleanText, width - margin * 2, font, textSize);
-        for (const line of lines) {
-          ensureSpace(lineHeight);
-          currentPage.drawText(line, {
-            x: margin,
-            y: currentY,
-            size: textSize,
-            font,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-          currentY -= lineHeight;
-        }
+      if (
+        (contentType === 'transcripts' || contentType === 'both') &&
+        cleanText
+      ) {
+        const result = await applyHtmlStylingToPdf(
+          pdfDoc,
+          currentPage,
+          cleanText,
+          font,
+          boldFont,
+          margin,
+          currentY,
+          width - margin * 2,
+          lineHeight,
+          textSize,
+          textSize + 1,
+          { r: 0.1, g: 0.1, b: 0.1 },
+          margin,
+          ensureSpace,
+        );
+        currentPage = result.page;
+        currentY = result.y;
       }
 
-      // Separator line after image + text
-      ensureSpace(10);
+      // Separator line
+      ensureSpace(10, currentPage, pdfDoc, font, margin, rgb);
       drawHorizontalLine(currentPage, currentY, margin, rgb);
       currentY -= 40;
     }
@@ -400,98 +531,6 @@ export class GotenbergService {
       fileContent: Buffer.from(pdfBytes),
       contentType: 'application/pdf',
       filename: 'export.pdf',
-    };
-  }
-
-  private async createImageZip(imagesDetail: any[]): Promise<{
-    fileContent: Buffer;
-    contentType: string;
-    filename: string;
-  }> {
-    return new Promise(async (resolve, reject) => {
-      const outputStream = new PassThrough();
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      const chunks: Buffer[] = [];
-      outputStream._read = () => {}; // Prevent premature stream closing
-
-      outputStream.on('data', (chunk) => chunks.push(chunk));
-
-      outputStream.on('end', () => {
-        const zipBuffer = Buffer.concat(chunks);
-        resolve({
-          fileContent: zipBuffer,
-          contentType: 'application/zip',
-          filename: 'images.zip',
-        });
-      });
-
-      outputStream.on('error', (error) => {
-        reject(new Error(`Output stream error: ${error.message}`));
-      });
-
-      archive.pipe(outputStream);
-
-      for (const imageData of imagesDetail) {
-        const imageUrl = imageData.image_url ?? imageData[0]?.image_url;
-        const filename =
-          imageData.filename ??
-          imageData[0]?.filename ??
-          `image_${Date.now()}.jpg`;
-
-        if (!imageUrl) {
-          continue;
-        }
-
-        try {
-          const imageBuffer = await this.downloadImage(imageUrl);
-          if (!imageBuffer) {
-            throw new Error(`Failed to download image from URL: ${imageUrl}`);
-          }
-          archive.append(imageBuffer, { name: filename });
-        } catch (error) {
-          return reject(
-            new Error(`Error processing image "${imageUrl}": ${error.message}`),
-          );
-        }
-      }
-
-      try {
-        await archive.finalize(); // Triggers outputStream 'end' event
-      } catch (error) {
-        return reject(
-          new Error(`Failed to finalize archive: ${error.message}`),
-        );
-      }
-    });
-  }
-  private async createTxt(imagesDetail: any[]): Promise<{
-    fileContent: Buffer;
-    contentType: string;
-    filename: string;
-  }> {
-    const texts: string[] = [];
-
-    for (const imageData of imagesDetail) {
-      const imageName =
-        imageData.image_name ?? imageData[0]?.image_name ?? 'Untitled Image';
-      const transcriptText =
-        imageData.current_transcription_text ??
-        imageData[0]?.current_transcription_text ??
-        'No transcript available';
-
-      const cleanText = transcriptText
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      texts.push(`--- ${imageName} ---\n${cleanText}\n`);
-    }
-
-    const fullText = texts.join('\n');
-    return {
-      fileContent: Buffer.from(fullText, 'utf-8'),
-      contentType: 'text/plain',
-      filename: 'transcripts.txt',
     };
   }
 
@@ -512,11 +551,8 @@ export class GotenbergService {
       const transcriptText =
         imageData.current_transcription_text ??
         imageData[0]?.current_transcription_text ??
-        'No transcript available';
-      const cleanText = transcriptText
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+        '';
+
       const filename = imageData.filename || imageData[0]?.filename || '';
       const ext = filename.split('.').pop()?.toLowerCase() || 'jpeg';
       const imageType = ['jpeg', 'png', 'bmp', 'gif'].includes(ext)
@@ -583,14 +619,16 @@ export class GotenbergService {
           }),
         );
 
-        cleanText.split('\n').forEach((line) => {
-          children.push(
-            new Paragraph({
-              children: [new TextRun({ text: line, size: 22 })],
-              spacing: { after: 120 },
-            }),
-          );
-        });
+        const formattedTranscript =
+          await applyHtmlStylingToWord(transcriptText);
+
+        // Make sure the TextRun array is correctly passed as Paragraph children
+        children.push(
+          new Paragraph({
+            children: formattedTranscript, // Pass the TextRun array here
+            spacing: { after: 120 },
+          }),
+        );
       }
 
       children.push(

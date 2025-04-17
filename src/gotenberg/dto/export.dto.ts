@@ -8,7 +8,7 @@ export enum ExportContentType {
 
 export enum ExportFormat {
   PDF = 'pdf',
-  JPEG = 'jpeg',
+  ZIP = 'zip',
   WORD = 'word',
   TXT = 'txt',
 }
