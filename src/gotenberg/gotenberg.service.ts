@@ -8,7 +8,7 @@ import { ImageRepository } from '@/src/database/repositiories/image.repository';
 import { DocumentRepository } from '@/src/database/repositiories/document.repository';
 import { SupabaseService } from '@/src/supabase/supabase.service';
 import { ExportRequestDto } from './dto/export.dto';
-import { PDFDocument, PDFFont, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { PassThrough } from 'stream';
 import fetch from 'node-fetch';
 import {
@@ -27,7 +27,9 @@ import {
   drawPageNumber,
   applyHtmlStylingToWord,
   wrapText,
+  ensureSpace,
 } from '../helpers/gotenberg.helper';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class GotenbergService {
@@ -241,12 +243,27 @@ export class GotenbergService {
   }> {
     const { contentType, format, selectedImages } = exportRequest;
 
-    const imagesDetail = await Promise.all(
-      selectedImages.map(async (img) => {
-        const image = await this.imageRepository.fetchImageById(img.imgId);
-        return image;
-      }),
-    );
+    // Batch size for image fetching
+    const BATCH_SIZE = 10;
+
+    // Helper function to fetch images in batches
+    const fetchImagesInBatch = async (images: any[], batchSize: number) => {
+      const imageDetails = [];
+      for (let i = 0; i < images.length; i += batchSize) {
+        const batch = images.slice(i, i + batchSize);
+        const batchImages = await Promise.all(
+          batch.map(async (img) => {
+            const image = await this.imageRepository.fetchImageById(img.imgId);
+            return image;
+          }),
+        );
+        imageDetails.push(...batchImages);
+      }
+      return imageDetails;
+    };
+
+    // Fetch images in batches
+    const imagesDetail = await fetchImagesInBatch(selectedImages, BATCH_SIZE);
 
     let result;
     if (format === 'pdf') {
@@ -386,151 +403,273 @@ export class GotenbergService {
 
   private async createPDF(contentType: string, imagesDetail: any[]) {
     const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const [font, boldFont] = await Promise.all([
+      pdfDoc.embedFont(StandardFonts.Helvetica),
+      pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    ]);
 
     const margin = 50;
-    const lineHeight = 10;
+    const lineHeight = 20; // Increased line height for better spacing
     const titleSize = 14;
     const textSize = 11;
 
     let currentPage = pdfDoc.addPage();
-    let { width, height } = currentPage.getSize();
+    const { width, height } = currentPage.getSize();
     let currentY = height - margin;
 
-    const ensureSpace = (
-      spaceNeeded: number,
-      currentPg: any,
-      pdfDoc: PDFDocument,
-      font: PDFFont,
-      margin: number,
-      rgbFn: any,
-    ) => {
-      if (currentY < margin + spaceNeeded) {
-        drawPageNumber(
-          currentPg,
-          pdfDoc.getPages().length - 1,
-          0,
+    // Improved ensure space function
+
+    // Process each image in the array
+    const processedImagesResults = await Promise.allSettled(
+      imagesDetail.map(async (imageData) => {
+        try {
+          const imageUrl =
+            imageData.image_url || (imageData[0] && imageData[0].image_url);
+          const filename =
+            imageData.filename ||
+            (imageData[0] && imageData[0].filename) ||
+            'image.jpg';
+          const imageName =
+            imageData.image_name ||
+            (imageData[0] && imageData[0].image_name) ||
+            'Untitled Image';
+          const transcriptText =
+            imageData.current_transcription_text ||
+            (imageData[0] && imageData[0].current_transcription_text) ||
+            '';
+          const cleanText = transcriptText.replace(/\s+/g, ' ').trim();
+
+          let imageBuffer: Buffer | null = null;
+          let pdfImage: any = null;
+
+          if (
+            (contentType === 'images' || contentType === 'both') &&
+            imageUrl
+          ) {
+            try {
+              const imageBytes = await this.downloadImage(imageUrl);
+              const image = sharp(imageBytes);
+              const rotatedImageBuffer = await image.rotate().toBuffer();
+              imageBuffer = rotatedImageBuffer;
+              pdfImage = filename.toLowerCase().endsWith('.png')
+                ? await pdfDoc.embedPng(rotatedImageBuffer)
+                : await pdfDoc.embedJpg(rotatedImageBuffer);
+            } catch (error) {
+              console.error(`Error processing image: ${error}`);
+            }
+          }
+
+          return {
+            imageName,
+            filename,
+            cleanText,
+            pdfImage,
+          };
+        } catch (err) {
+          console.error(`Failed to process image metadata: ${err}`);
+          return null;
+        }
+      }),
+    );
+
+    const processedImages = processedImagesResults
+      .filter((result) => result.status === 'fulfilled')
+      .map((result) => (result as PromiseFulfilledResult<any>).value)
+      .filter((item) => item !== null);
+
+    for (const item of processedImages) {
+      if (!item) continue;
+
+      const { imageName, filename, cleanText, pdfImage } = item;
+
+      try {
+        // Ensure space
+        const estimatedContentHeight = 200;
+        currentPage = ensureSpace(
+          estimatedContentHeight,
+          currentPage,
+          pdfDoc,
           font,
           margin,
-          rgbFn,
+          rgb,
+          width,
+          height,
+          currentY,
         );
-        const newPage = pdfDoc.addPage();
-        ({ width, height } = newPage.getSize());
-        currentY = height - margin;
-        return newPage;
-      }
-      return null;
-    };
 
-    for (const imageData of imagesDetail) {
-      const imageUrl =
-        imageData.image_url || (imageData[0] && imageData[0].image_url);
-      const filename =
-        imageData.filename ||
-        (imageData[0] && imageData[0].filename) ||
-        'image.jpg';
-      const imageName =
-        imageData.image_name ||
-        (imageData[0] && imageData[0].image_name) ||
-        'Untitled Image';
-      const transcriptText =
-        imageData.current_transcription_text ||
-        (imageData[0] && imageData[0].current_transcription_text) ||
-        '';
-      const cleanText = transcriptText.replace(/\s+/g, ' ').trim();
+        // Title
+        const titleLines = wrapText(
+          imageName,
+          width - margin * 2,
+          boldFont,
+          titleSize,
+        );
+        const titleHeight = titleLines.length * lineHeight;
+        currentPage = ensureSpace(
+          titleHeight,
+          currentPage,
+          pdfDoc,
+          font,
+          margin,
+          rgb,
+          width,
+          height,
+          currentY,
+        );
 
-      // Title
-      const titleLines = wrapText(
-        imageName,
-        width - margin * 2,
-        boldFont,
-        titleSize,
-      );
-      const titleHeight = titleLines.length * lineHeight;
-      ensureSpace(titleHeight, currentPage, pdfDoc, font, margin, rgb);
-      for (const line of titleLines) {
-        currentPage.drawText(line, {
+        for (const line of titleLines) {
+          currentPage.drawText(line, {
+            x: margin,
+            y: currentY,
+            size: titleSize,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          currentY -= lineHeight;
+        }
+        currentY -= 10;
+
+        // Image
+        if (pdfImage) {
+          const imgDims = pdfImage.scale(1);
+          const maxImgWidth = width - margin * 2;
+          const maxImgHeight = height / 2;
+          const scale = Math.min(
+            maxImgWidth / imgDims.width,
+            maxImgHeight / imgDims.height,
+            1,
+          );
+
+          const displayWidth = imgDims.width * scale;
+          const displayHeight = imgDims.height * scale;
+          currentPage = ensureSpace(
+            displayHeight + 20,
+            currentPage,
+            pdfDoc,
+            font,
+            margin,
+            rgb,
+            width,
+            height,
+            currentY,
+          );
+
+          currentPage.drawImage(pdfImage, {
+            x: (width - displayWidth) / 2,
+            y: currentY - displayHeight,
+            width: displayWidth,
+            height: displayHeight,
+          });
+
+          currentY -= displayHeight + 20;
+        } else if (contentType === 'images' || contentType === 'both') {
+          currentPage.drawText(`[Error loading image: ${filename}]`, {
+            x: margin,
+            y: currentY,
+            size: textSize,
+            font: font,
+            color: rgb(0.8, 0.2, 0.2),
+          });
+          currentY -= lineHeight;
+        }
+
+        // Transcript
+        if (
+          (contentType === 'transcripts' || contentType === 'both') &&
+          cleanText
+        ) {
+          currentPage = ensureSpace(
+            lineHeight * 2,
+            currentPage,
+            pdfDoc,
+            font,
+            margin,
+            rgb,
+            width,
+            height,
+            currentY,
+          );
+
+          currentPage.drawText('Transcript:', {
+            x: margin,
+            y: currentY,
+            size: textSize,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          currentY -= lineHeight;
+
+          try {
+            const result = await applyHtmlStylingToPdf(
+              pdfDoc,
+              currentPage,
+              cleanText,
+              font,
+              boldFont,
+              margin,
+              currentY,
+              width - margin * 2,
+              lineHeight,
+              textSize,
+              textSize + 1,
+              { r: 0.1, g: 0.1, b: 0.1 },
+              margin,
+            );
+
+            currentPage = result.page;
+            currentY = result.y;
+          } catch (err) {
+            console.error(`Error processing transcript: ${err}`);
+            currentPage.drawText(`[Error rendering transcript]`, {
+              x: margin,
+              y: currentY,
+              size: textSize,
+              font: font,
+              color: rgb(0.8, 0.2, 0.2),
+            });
+            currentY -= lineHeight;
+          }
+        }
+
+        // Separator
+        currentPage = ensureSpace(
+          40,
+          currentPage,
+          pdfDoc,
+          font,
+          margin,
+          rgb,
+          width,
+          height,
+          currentY,
+        );
+        drawHorizontalLine(currentPage, currentY - 10, margin, rgb, width);
+        currentY -= 40;
+      } catch (err) {
+        console.error(`Failed to render section: ${err}`);
+        currentPage.drawText(`[Failed to render section]`, {
           x: margin,
           y: currentY,
-          size: titleSize,
-          font: boldFont,
-          color: rgb(0.1, 0.1, 0.1),
+          size: textSize,
+          font: font,
+          color: rgb(0.8, 0.2, 0.2),
         });
-        currentY -= lineHeight;
+        currentY -= lineHeight * 2;
       }
-
-      // Image
-      if ((contentType === 'images' || contentType === 'both') && imageUrl) {
-        const imageBytes = await this.downloadImage(imageUrl);
-        const pdfImage = filename.toLowerCase().endsWith('.png')
-          ? await pdfDoc.embedPng(imageBytes)
-          : await pdfDoc.embedJpg(imageBytes);
-
-        const imgDims = pdfImage.scale(1);
-        const maxImgWidth = width - margin * 2;
-        const maxImgHeight = height / 2;
-
-        const scale = Math.min(
-          maxImgWidth / imgDims.width,
-          maxImgHeight / imgDims.height,
-          1,
-        );
-        const displayWidth = imgDims.width * scale;
-        const displayHeight = imgDims.height * scale;
-
-        ensureSpace(displayHeight + 20, currentPage, pdfDoc, font, margin, rgb);
-
-        currentPage.drawImage(pdfImage, {
-          x: (width - displayWidth) / 2,
-          y: currentY - displayHeight,
-          width: displayWidth,
-          height: displayHeight,
-        });
-        currentY -= displayHeight + 20;
-      }
-
-      // Transcript
-      if (
-        (contentType === 'transcripts' || contentType === 'both') &&
-        cleanText
-      ) {
-        const result = await applyHtmlStylingToPdf(
-          pdfDoc,
-          currentPage,
-          cleanText,
-          font,
-          boldFont,
-          margin,
-          currentY,
-          width - margin * 2,
-          lineHeight,
-          textSize,
-          textSize + 1,
-          { r: 0.1, g: 0.1, b: 0.1 },
-          margin,
-          ensureSpace,
-        );
-        currentPage = result.page;
-        currentY = result.y;
-      }
-
-      // Separator line
-      ensureSpace(10, currentPage, pdfDoc, font, margin, rgb);
-      drawHorizontalLine(currentPage, currentY, margin, rgb);
-      currentY -= 40;
     }
 
+    // Add page numbers to all pages
     const pages = pdfDoc.getPages();
     pages.forEach((page, i) =>
       drawPageNumber(page, i, pages.length, font, margin, rgb),
     );
+    console.log(processedImages[0]);
 
     const pdfBytes = await pdfDoc.save();
     return {
       fileContent: Buffer.from(pdfBytes),
       contentType: 'application/pdf',
-      filename: 'export.pdf',
+      filename: `${processedImages[0]?.imageName || 'export'}.pdf`,
     };
   }
 
