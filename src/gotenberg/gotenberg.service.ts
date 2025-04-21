@@ -33,6 +33,8 @@ import {
 } from '../helpers/gotenberg.helper';
 import * as sharp from 'sharp';
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 @Injectable()
 export class GotenbergService {
   private readonly gotenbergUrl: string;
@@ -412,19 +414,13 @@ export class GotenbergService {
       const __dirname = path.resolve();
       const pdfDoc = await PDFDocument.create();
       pdfDoc.registerFontkit(fontKit);
-      const regularFontPath = path.resolve(
-        __dirname,
-        'public',
-        'fonts',
-        'NotoSans-Regular.ttf',
-      );
+      const regularFontPath = isDevelopment
+        ? path.resolve(process.cwd(), 'public/fonts/NotoSans-Regular.ttf')
+        : path.resolve(process.cwd(), 'dist/assets/fonts/NotoSans-Regular.ttf');
 
-      const boldFontPath = path.resolve(
-        __dirname,
-        'public',
-        'fonts',
-        'NotoSans-Bold.ttf',
-      );
+      const boldFontPath = isDevelopment
+        ? path.resolve(process.cwd(), 'public/fonts/NotoSans-Bold.ttf')
+        : path.resolve(process.cwd(), 'dist/assets/fonts/NotoSans-Bold.ttf');
 
       if (!cachedRegularFontBytes) {
         cachedRegularFontBytes = fs.readFileSync(regularFontPath);

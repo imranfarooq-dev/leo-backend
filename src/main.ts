@@ -6,7 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { clerkMiddleware } from '@clerk/express'; // Clerk's Express middleware
 import { json, urlencoded } from 'express';
-
+import * as path from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
@@ -60,6 +60,12 @@ async function bootstrap() {
         : ['https://leo-app-develop.vercel.app', 'https://www.tryleo.ai'],
     }),
   );
+  if (isDevelopment) {
+    app.useStaticAssets(path.join(__dirname, '..', 'public'));
+  } else {
+    // Serve static assets in production from the 'dist/assets' folder
+    app.useStaticAssets(path.join(__dirname, '..', 'dist', 'assets'));
+  }
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
