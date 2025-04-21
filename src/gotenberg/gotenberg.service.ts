@@ -11,11 +11,13 @@ import { ExportRequestDto } from './dto/export.dto';
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { PassThrough } from 'stream';
 import fetch from 'node-fetch';
+import * as path from 'path';
+import * as fs from 'fs';
+
 import {
   Document,
   Packer,
   Paragraph,
-  TextRun,
   HeadingLevel,
   ImageRun,
   BorderStyle,
@@ -402,225 +404,211 @@ export class GotenbergService {
   }
 
   private async createPDF(contentType: string, imagesDetail: any[]) {
-    const pdfDoc = await PDFDocument.create();
-    const [font, boldFont] = await Promise.all([
-      pdfDoc.embedFont(StandardFonts.Helvetica),
-      pdfDoc.embedFont(StandardFonts.HelveticaBold),
-    ]);
+    try {
+      const fontKit = await import('@pdf-lib/fontkit');
+      let cachedRegularFontBytes: Buffer | null = null;
+      let cachedBoldFontBytes: Buffer | null = null;
 
-    const margin = 50;
-    const lineHeight = 20; // Increased line height for better spacing
-    const titleSize = 14;
-    const textSize = 11;
+      const __dirname = path.resolve();
+      const pdfDoc = await PDFDocument.create();
+      pdfDoc.registerFontkit(fontKit);
+      const regularFontPath = path.join(
+        __dirname,
+        'src',
+        'assets',
+        'fonts',
+        'NotoSans-Regular.ttf',
+      );
+      const boldFontPath = path.join(
+        __dirname,
+        'src',
+        'assets',
+        'fonts',
+        'NotoSans-Bold.ttf',
+      );
 
-    let currentPage = pdfDoc.addPage();
-    const { width, height } = currentPage.getSize();
-    let currentY = height - margin;
+      if (!cachedRegularFontBytes) {
+        cachedRegularFontBytes = fs.readFileSync(regularFontPath);
+      }
+      if (!cachedBoldFontBytes) {
+        cachedBoldFontBytes = fs.readFileSync(boldFontPath);
+      }
 
-    // Improved ensure space function
+      const [font, boldFont] = await Promise.all([
+        pdfDoc.embedFont(cachedRegularFontBytes),
+        pdfDoc.embedFont(cachedBoldFontBytes),
+      ]);
 
-    // Process each image in the array
-    const processedImagesResults = await Promise.allSettled(
-      imagesDetail.map(async (imageData) => {
-        try {
-          const imageUrl =
-            imageData.image_url || (imageData[0] && imageData[0].image_url);
-          const filename =
-            imageData.filename ||
-            (imageData[0] && imageData[0].filename) ||
-            'image.jpg';
-          const imageName =
-            imageData.image_name ||
-            (imageData[0] && imageData[0].image_name) ||
-            'Untitled Image';
-          const transcriptText =
-            imageData.current_transcription_text ||
-            (imageData[0] && imageData[0].current_transcription_text) ||
-            '';
-          const cleanText = transcriptText.replace(/\s+/g, ' ').trim();
+      const margin = 50;
+      const lineHeight = 20;
+      const titleSize = 14;
+      const textSize = 11;
 
-          let imageBuffer: Buffer | null = null;
-          let pdfImage: any = null;
+      let currentPage = pdfDoc.addPage();
+      const { width, height } = currentPage.getSize();
+      let currentY = height - margin;
 
-          if (
-            (contentType === 'images' || contentType === 'both') &&
-            imageUrl
-          ) {
-            try {
-              const imageBytes = await this.downloadImage(imageUrl);
-              const image = sharp(imageBytes);
-              const rotatedImageBuffer = await image.rotate().toBuffer();
-              imageBuffer = rotatedImageBuffer;
-              pdfImage = filename.toLowerCase().endsWith('.png')
-                ? await pdfDoc.embedPng(rotatedImageBuffer)
-                : await pdfDoc.embedJpg(rotatedImageBuffer);
-            } catch (error) {
-              console.error(`Error processing image: ${error}`);
-            }
-          }
-
-          return {
-            imageName,
-            filename,
-            cleanText,
-            pdfImage,
-          };
-        } catch (err) {
-          console.error(`Failed to process image metadata: ${err}`);
-          return null;
-        }
-      }),
-    );
-
-    const processedImages = processedImagesResults
-      .filter((result) => result.status === 'fulfilled')
-      .map((result) => (result as PromiseFulfilledResult<any>).value)
-      .filter((item) => item !== null);
-
-    for (const item of processedImages) {
-      if (!item) continue;
-
-      const { imageName, filename, cleanText, pdfImage } = item;
-
-      try {
-        // Ensure space
-        const estimatedContentHeight = 200;
-        currentPage = ensureSpace(
-          estimatedContentHeight,
-          currentPage,
-          pdfDoc,
-          font,
-          margin,
-          rgb,
-          width,
-          height,
-          currentY,
-        );
-
-        // Title
-        const titleLines = wrapText(
-          imageName,
-          width - margin * 2,
-          boldFont,
-          titleSize,
-        );
-        const titleHeight = titleLines.length * lineHeight;
-        currentPage = ensureSpace(
-          titleHeight,
-          currentPage,
-          pdfDoc,
-          font,
-          margin,
-          rgb,
-          width,
-          height,
-          currentY,
-        );
-
-        for (const line of titleLines) {
-          currentPage.drawText(line, {
-            x: margin,
-            y: currentY,
-            size: titleSize,
-            font: boldFont,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-          currentY -= lineHeight;
-        }
-        currentY -= 10;
-
-        // Image
-        if (pdfImage) {
-          const imgDims = pdfImage.scale(1);
-          const maxImgWidth = width - margin * 2;
-          const maxImgHeight = height / 2;
-          const scale = Math.min(
-            maxImgWidth / imgDims.width,
-            maxImgHeight / imgDims.height,
-            1,
-          );
-
-          const displayWidth = imgDims.width * scale;
-          const displayHeight = imgDims.height * scale;
-          currentPage = ensureSpace(
-            displayHeight + 20,
-            currentPage,
-            pdfDoc,
-            font,
-            margin,
-            rgb,
-            width,
-            height,
-            currentY,
-          );
-
-          currentPage.drawImage(pdfImage, {
-            x: (width - displayWidth) / 2,
-            y: currentY - displayHeight,
-            width: displayWidth,
-            height: displayHeight,
-          });
-
-          currentY -= displayHeight + 20;
-        } else if (contentType === 'images' || contentType === 'both') {
-          currentPage.drawText(`[Error loading image: ${filename}]`, {
-            x: margin,
-            y: currentY,
-            size: textSize,
-            font: font,
-            color: rgb(0.8, 0.2, 0.2),
-          });
-          currentY -= lineHeight;
-        }
-
-        // Transcript
-        if (
-          (contentType === 'transcripts' || contentType === 'both') &&
-          cleanText
-        ) {
-          currentPage = ensureSpace(
-            lineHeight * 2,
-            currentPage,
-            pdfDoc,
-            font,
-            margin,
-            rgb,
-            width,
-            height,
-            currentY,
-          );
-
-          currentPage.drawText('Transcript:', {
-            x: margin,
-            y: currentY,
-            size: textSize,
-            font: boldFont,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-          currentY -= lineHeight;
-
+      // Process each image in the array
+      const processedImagesResults = await Promise.allSettled(
+        imagesDetail.map(async (imageData) => {
           try {
-            const result = await applyHtmlStylingToPdf(
-              pdfDoc,
-              currentPage,
+            const imageUrl =
+              imageData.image_url || (imageData[0] && imageData[0].image_url);
+            const filename =
+              imageData.filename ||
+              (imageData[0] && imageData[0].filename) ||
+              'image.jpg';
+            const imageName =
+              imageData.image_name ||
+              (imageData[0] && imageData[0].image_name) ||
+              'Untitled Image';
+            const transcriptText =
+              imageData.current_transcription_text ||
+              (imageData[0] && imageData[0].current_transcription_text) ||
+              '';
+            const cleanText = transcriptText.replace(/\s+/g, ' ').trim();
+
+            let imageBuffer: Buffer | null = null;
+            let pdfImage: any = null;
+
+            if (
+              (contentType === 'images' || contentType === 'both') &&
+              imageUrl
+            ) {
+              try {
+                const imageBytes = await this.downloadImage(imageUrl);
+                const image = sharp(imageBytes);
+                const rotatedImageBuffer = await image.rotate().toBuffer();
+                imageBuffer = rotatedImageBuffer;
+                pdfImage = filename.toLowerCase().endsWith('.png')
+                  ? await pdfDoc.embedPng(rotatedImageBuffer)
+                  : await pdfDoc.embedJpg(rotatedImageBuffer);
+              } catch (error) {
+                console.error(`Error processing image: ${error}`);
+              }
+            }
+
+            return {
+              imageName,
+              filename,
               cleanText,
-              font,
-              boldFont,
-              margin,
-              currentY,
-              width - margin * 2,
-              lineHeight,
-              textSize,
-              textSize + 1,
-              { r: 0.1, g: 0.1, b: 0.1 },
-              margin,
+              pdfImage,
+            };
+          } catch (err) {
+            console.error(`Failed to process image metadata: ${err}`);
+            return null;
+          }
+        }),
+      );
+
+      const processedImages = processedImagesResults
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => (result as PromiseFulfilledResult<any>).value)
+        .filter((item) => item !== null);
+
+      for (const item of processedImages) {
+        if (!item) continue;
+
+        const { imageName, filename, cleanText, pdfImage } = item;
+
+        try {
+          // Calculate the total required space for this content section
+          let totalSectionHeight = 0;
+
+          // Title space calculation
+          const titleLines = wrapText(
+            imageName,
+            width - margin * 2,
+            boldFont,
+            titleSize,
+          );
+          const titleHeight = titleLines.length * lineHeight + 10; // Including space after title
+          totalSectionHeight += titleHeight;
+
+          // Image space calculation (if present)
+          let displayWidth = 0;
+          let displayHeight = 0;
+
+          if (pdfImage) {
+            const imgDims = pdfImage.scale(1);
+            const maxImgWidth = width - margin * 2;
+            const maxImgHeight = Math.min(height / 2, 400); // Limit max image height
+            const scale = Math.min(
+              maxImgWidth / imgDims.width,
+              maxImgHeight / imgDims.height,
+              1,
             );
 
-            currentPage = result.page;
-            currentY = result.y;
-          } catch (err) {
-            console.error(`Error processing transcript: ${err}`);
-            currentPage.drawText(`[Error rendering transcript]`, {
+            displayWidth = imgDims.width * scale;
+            displayHeight = imgDims.height * scale;
+            totalSectionHeight += displayHeight + 20; // Image height + spacing
+          } else if (contentType === 'images' || contentType === 'both') {
+            totalSectionHeight += lineHeight; // Error message height
+          }
+
+          // Transcript space calculation
+          let transcriptHeight = 0;
+          if (
+            (contentType === 'transcripts' || contentType === 'both') &&
+            cleanText
+          ) {
+            // Transcript title + spacing
+            transcriptHeight += lineHeight * 2;
+
+            // Rough estimate for transcript text (can be refined)
+            const wordsPerLine = Math.floor(
+              (width - margin * 2) / (textSize * 0.6),
+            );
+            const wordCount = cleanText.split(' ').length;
+            const estimatedLines = Math.ceil(wordCount / wordsPerLine);
+            transcriptHeight += estimatedLines * lineHeight;
+          }
+          totalSectionHeight += transcriptHeight;
+
+          // Add separator height
+          totalSectionHeight += 40;
+
+          // Check if we need a new page based on the TOTAL height required
+          const spaceResult = ensureSpace(
+            totalSectionHeight,
+            currentPage,
+            pdfDoc,
+            font,
+            margin,
+            rgb,
+            width,
+            height,
+            currentY,
+          );
+
+          currentPage = spaceResult.page;
+          currentY = spaceResult.y;
+
+          // Now draw the title
+          for (const line of titleLines) {
+            currentPage.drawText(line, {
+              x: margin,
+              y: currentY,
+              size: titleSize,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+            currentY -= lineHeight;
+          }
+          currentY -= 10;
+
+          // Draw the image (if available)
+          if (pdfImage) {
+            currentPage.drawImage(pdfImage, {
+              x: (width - displayWidth) / 2,
+              y: currentY - displayHeight,
+              width: displayWidth,
+              height: displayHeight,
+            });
+
+            currentY -= displayHeight + 20;
+          } else if (contentType === 'images' || contentType === 'both') {
+            currentPage.drawText(`[Error loading image: ${filename}]`, {
               x: margin,
               y: currentY,
               size: textSize,
@@ -629,48 +617,85 @@ export class GotenbergService {
             });
             currentY -= lineHeight;
           }
+
+          // Draw transcript
+          if (
+            (contentType === 'transcripts' || contentType === 'both') &&
+            cleanText
+          ) {
+            currentPage.drawText('Transcript:', {
+              x: margin,
+              y: currentY,
+              size: textSize,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+            currentY -= lineHeight;
+
+            try {
+              const result = await applyHtmlStylingToPdf(
+                pdfDoc,
+                currentPage,
+                cleanText,
+                font,
+                boldFont,
+                margin,
+                currentY,
+                width - margin * 2,
+                lineHeight,
+                textSize,
+                textSize + 1,
+                { r: 0.1, g: 0.1, b: 0.1 },
+                margin,
+              );
+
+              currentPage = result.page;
+              currentY = result.y;
+            } catch (err) {
+              console.error(`Error processing transcript: ${err}`);
+              currentPage.drawText(`[Error rendering transcript]`, {
+                x: margin,
+                y: currentY,
+                size: textSize,
+                font: font,
+                color: rgb(0.8, 0.2, 0.2),
+              });
+              currentY -= lineHeight;
+            }
+          }
+
+          // Add separator with less space
+          currentY -= 20; // Reduced from 40
+          drawHorizontalLine(currentPage, currentY - 10, margin, rgb, width);
+          currentY -= 10; // Reduced from 40
+        } catch (err) {
+          console.error(`Failed to render section: ${err}`);
+          currentPage.drawText(`[Failed to render section]`, {
+            x: margin,
+            y: currentY,
+            size: textSize,
+            font: font,
+            color: rgb(0.8, 0.2, 0.2),
+          });
+          currentY -= lineHeight * 2;
         }
-
-        // Separator
-        currentPage = ensureSpace(
-          40,
-          currentPage,
-          pdfDoc,
-          font,
-          margin,
-          rgb,
-          width,
-          height,
-          currentY,
-        );
-        drawHorizontalLine(currentPage, currentY - 10, margin, rgb, width);
-        currentY -= 40;
-      } catch (err) {
-        console.error(`Failed to render section: ${err}`);
-        currentPage.drawText(`[Failed to render section]`, {
-          x: margin,
-          y: currentY,
-          size: textSize,
-          font: font,
-          color: rgb(0.8, 0.2, 0.2),
-        });
-        currentY -= lineHeight * 2;
       }
+
+      // Add page numbers to all pages
+      const pages = pdfDoc.getPages();
+      pages.forEach((page, i) =>
+        drawPageNumber(page, i, pages.length, font, margin, rgb),
+      );
+
+      const pdfBytes = await pdfDoc.save();
+      return {
+        fileContent: Buffer.from(pdfBytes),
+        contentType: 'application/pdf',
+        filename: `${processedImages[0]?.imageName || 'export'}.pdf`,
+      };
+    } catch (error) {
+      console.error('Error inside createPDF:', error);
     }
-
-    // Add page numbers to all pages
-    const pages = pdfDoc.getPages();
-    pages.forEach((page, i) =>
-      drawPageNumber(page, i, pages.length, font, margin, rgb),
-    );
-    console.log(processedImages[0]);
-
-    const pdfBytes = await pdfDoc.save();
-    return {
-      fileContent: Buffer.from(pdfBytes),
-      contentType: 'application/pdf',
-      filename: `${processedImages[0]?.imageName || 'export'}.pdf`,
-    };
   }
 
   private async createWordDoc(

@@ -39,34 +39,25 @@ export async function checkFileSize(fileContent: Buffer): Promise<void> {
  * @param lastPageForContent The last PDF page that content was added to.
  * @returns A promise that resolves to the updated y-coordinate after processing the node and its children.
  */
-export // Text wrapping function
-const wrapText = (
+export const wrapText = (
   text: string,
   maxWidth: number,
-  font: PDFFont,
-  fontSize: number,
+  textFont: any,
+  size: number,
 ): string[] => {
   const words = text.split(' ');
   const lines: string[] = [];
   let currentLine = '';
 
   for (const word of words) {
-    if (
-      currentLine === '' &&
-      font.widthOfTextAtSize(word, fontSize) > maxWidth
-    ) {
-      lines.push(word);
-      continue;
-    }
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = textFont.widthOfTextAtSize(testLine, size);
 
-    const withSpace = currentLine ? `${currentLine} ${word}` : word;
-    const textWidth = font.widthOfTextAtSize(withSpace, fontSize);
-
-    if (textWidth <= maxWidth) {
-      currentLine = withSpace;
-    } else {
+    if (testWidth > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
+    } else {
+      currentLine = testLine;
     }
   }
 
@@ -96,22 +87,20 @@ export const drawPageNumber = (
   });
 };
 
-export // Draw horizontal line function
-const drawHorizontalLine = (
-  page: PDFPage,
+export const drawHorizontalLine = (
+  page: any,
   y: number,
   margin: number,
-  rgbFn: any,
+  colorFn: any,
   width: number,
 ) => {
   page.drawLine({
     start: { x: margin, y },
     end: { x: width - margin, y },
     thickness: 1,
-    color: rgbFn(0.8, 0.8, 0.8),
+    color: colorFn(0.7, 0.7, 0.7),
   });
 };
-
 async function processNode(
   node: Node,
   currentPg: any,
@@ -132,77 +121,113 @@ async function processNode(
     underline: boolean;
     strike: boolean;
     indentLevel: number;
+    superscript: boolean;
+    subscript: boolean;
   } = {
     bold: false,
     italics: false,
     underline: false,
     strike: false,
     indentLevel: 0,
+    superscript: false,
+    subscript: false,
   },
   listLevel: number = 0,
   listCounter: number = 0,
   listType: string = '',
-): Promise<{ page: any; y: number }> {
+  // Add tracking for current text position
+  textInfo: {
+    currentX: number;
+    currentLineY: number;
+    lineStarted: boolean;
+  } = { currentX: 0, currentLineY: 0, lineStarted: false },
+): Promise<{ page: any; y: number; textInfo: any }> {
   let localCurrentPage = currentPg;
   let localCurrentY = currentYPos;
+  let localTextInfo = { ...textInfo };
+
+  // If no line is started, init the X position and set lineStarted to true
+  if (!localTextInfo.lineStarted) {
+    localTextInfo.currentX = x + currentStyle.indentLevel * 20;
+    localTextInfo.currentLineY = localCurrentY;
+    localTextInfo.lineStarted = true;
+  }
 
   // Text node processing
   if (node.nodeType === 3) {
     // Text Node
     if (node.textContent?.trim()) {
-      const lines = wrapTextPdf(
-        node.textContent,
-        width - currentStyle.indentLevel * 20,
-        currentStyle.bold ? boldFont : font,
-        currentStyle.bold ? boldFontSize : fontSize,
-      );
+      // Calculate font size based on style
+      let currentFontSize = currentStyle.bold ? boldFontSize : fontSize;
+      if (currentStyle.superscript || currentStyle.subscript) {
+        currentFontSize = currentFontSize * 0.7;
+      }
 
-      for (const line of lines) {
-        // Check if we need a new page
-        if (localCurrentY - lineHeight < margin) {
-          // Add page number to current page
-          const { width: pageWidth } = localCurrentPage.getSize();
-          const pageNumber = pdfDoc.getPages().indexOf(localCurrentPage) + 1;
-          const pageText = `Page ${pageNumber} of ${pdfDoc.getPages().length + 1}`;
-          const textWidth = font.widthOfTextAtSize(pageText, 10);
+      // Calculate vertical offset for superscript/subscript
+      let yOffset = 0;
+      if (currentStyle.superscript) {
+        yOffset = currentFontSize * 0.6; // Move up for superscript
+      } else if (currentStyle.subscript) {
+        yOffset = -currentFontSize * 0.3; // Move down for subscript
+      }
 
-          localCurrentPage.drawText(pageText, {
-            x: (pageWidth - textWidth) / 2,
-            y: margin / 2,
-            size: 10,
-            font: font,
-            color: rgb(0.5, 0.5, 0.5),
-          });
+      // Process text word by word to keep inline formatting
+      const words = node.textContent.split(/\s+/);
 
-          // Create a new page
-          localCurrentPage = pdfDoc.addPage();
-          const { height: newHeight } = localCurrentPage.getSize();
-          localCurrentY = newHeight - margin;
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (!word) continue;
+
+        // Add space before word if not first word
+        const textToAdd = i > 0 ? ` ${word}` : word;
+
+        // Calculate width of text to add
+        const currentFont = currentStyle.bold ? boldFont : font;
+        const textWidth = currentFont.widthOfTextAtSize(
+          textToAdd,
+          currentFontSize,
+        );
+
+        // Check if we need to wrap to next line
+        if (
+          localTextInfo.currentX + textWidth >
+          x + width - currentStyle.indentLevel * 20
+        ) {
+          // Wrap to next line
+          localTextInfo.currentX = x + currentStyle.indentLevel * 20;
+          localTextInfo.currentLineY -= lineHeight;
+          localCurrentY = localTextInfo.currentLineY; // Update current Y
+
+          // Check if we need a new page
+          if (localCurrentY - lineHeight < margin) {
+            // Create a new page
+            localCurrentPage = pdfDoc.addPage();
+            const { height: newHeight } = localCurrentPage.getSize();
+            localCurrentY = newHeight - margin;
+            localTextInfo.currentLineY = localCurrentY;
+          }
         }
 
-        const textToDraw = line;
-        const xPosition = x + currentStyle.indentLevel * 20;
-
-        // Draw text with appropriate styling
-        localCurrentPage.drawText(textToDraw, {
-          x: xPosition,
-          y: localCurrentY,
-          font: currentStyle.bold ? boldFont : font,
-          size: currentStyle.bold ? boldFontSize : fontSize,
+        // Draw the word
+        localCurrentPage.drawText(textToAdd, {
+          x: localTextInfo.currentX,
+          y: localTextInfo.currentLineY + yOffset,
+          font: currentFont,
+          size: currentFontSize,
           color: rgb(color.r, color.g, color.b),
         });
 
         // Add underline if needed
         if (currentStyle.underline) {
-          const textWidth = (
-            currentStyle.bold ? boldFont : font
-          ).widthOfTextAtSize(
-            textToDraw,
-            currentStyle.bold ? boldFontSize : fontSize,
-          );
           localCurrentPage.drawLine({
-            start: { x: xPosition, y: localCurrentY - 2 },
-            end: { x: xPosition + textWidth, y: localCurrentY - 2 },
+            start: {
+              x: localTextInfo.currentX,
+              y: localTextInfo.currentLineY + yOffset - 2,
+            },
+            end: {
+              x: localTextInfo.currentX + textWidth,
+              y: localTextInfo.currentLineY + yOffset - 2,
+            },
             thickness: 1,
             color: rgb(color.r, color.g, color.b),
           });
@@ -210,23 +235,18 @@ async function processNode(
 
         // Add strikethrough if needed
         if (currentStyle.strike) {
-          const textWidth = (
-            currentStyle.bold ? boldFont : font
-          ).widthOfTextAtSize(
-            textToDraw,
-            currentStyle.bold ? boldFontSize : fontSize,
-          );
           const middleY =
-            localCurrentY + (currentStyle.bold ? boldFontSize : fontSize) / 4;
+            localTextInfo.currentLineY + yOffset + currentFontSize / 4;
           localCurrentPage.drawLine({
-            start: { x: xPosition, y: middleY },
-            end: { x: xPosition + textWidth, y: middleY },
+            start: { x: localTextInfo.currentX, y: middleY },
+            end: { x: localTextInfo.currentX + textWidth, y: middleY },
             thickness: 1,
             color: rgb(color.r, color.g, color.b),
           });
         }
 
-        localCurrentY -= lineHeight;
+        // Update X position for next word
+        localTextInfo.currentX += textWidth;
       }
     }
   } else if (node.nodeType === 1) {
@@ -247,14 +267,51 @@ async function processNode(
       newStyle.underline = true;
     } else if (tagName === 's' || tagName === 'strike' || tagName === 'del') {
       newStyle.strike = true;
+    } else if (tagName === 'sup') {
+      // Add support for superscript
+      newStyle.superscript = true;
+      newStyle.subscript = false;
+    } else if (tagName === 'sub') {
+      // Add support for subscript
+      newStyle.subscript = true;
+      newStyle.superscript = false;
     } else if (tagName === 'br') {
-      localCurrentY -= lineHeight;
-      return { page: localCurrentPage, y: localCurrentY };
-    } else if (tagName === 'p') {
-      if (element.previousElementSibling) {
-        localCurrentY -= lineHeight / 2;
+      // Line break - start new line
+      localTextInfo.currentX = x + currentStyle.indentLevel * 20;
+      localTextInfo.currentLineY -= lineHeight;
+      localCurrentY = localTextInfo.currentLineY;
+
+      // Check if we need a new page
+      if (localCurrentY - lineHeight < margin) {
+        // Create a new page
+        localCurrentPage = pdfDoc.addPage();
+        const { height: newHeight } = localCurrentPage.getSize();
+        localCurrentY = newHeight - margin;
+        localTextInfo.currentLineY = localCurrentY;
       }
 
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
+    } else if (tagName === 'p') {
+      // Paragraph - complete current line and add paragraph spacing
+      if (localTextInfo.lineStarted) {
+        // End current line if one is in progress
+        localTextInfo.lineStarted = false;
+        localTextInfo.currentX = x + currentStyle.indentLevel * 20;
+        localTextInfo.currentLineY -= lineHeight;
+        localCurrentY = localTextInfo.currentLineY;
+      }
+
+      if (element.previousElementSibling) {
+        // Add extra space between paragraphs
+        localCurrentY -= lineHeight / 2;
+        localTextInfo.currentLineY = localCurrentY;
+      }
+
+      // Process paragraph content
       for (const child of Array.from(element.childNodes)) {
         const result = await processNode(
           child,
@@ -274,14 +331,26 @@ async function processNode(
           newListLevel,
           newListCounter,
           newListType,
+          localTextInfo,
         );
 
         localCurrentPage = result.page;
         localCurrentY = result.y;
+        localTextInfo = result.textInfo;
       }
 
+      // End paragraph with spacing
+      if (localTextInfo.lineStarted) {
+        localTextInfo.lineStarted = false;
+      }
       localCurrentY -= lineHeight / 2;
-      return { page: localCurrentPage, y: localCurrentY };
+      localTextInfo.currentLineY = localCurrentY;
+
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
     } else if (
       tagName === 'h1' ||
       tagName === 'h2' ||
@@ -290,7 +359,10 @@ async function processNode(
       tagName === 'h5' ||
       tagName === 'h6'
     ) {
+      // Reset line tracking for headings
+      localTextInfo.lineStarted = false;
       localCurrentY -= lineHeight;
+      localTextInfo.currentLineY = localCurrentY;
 
       const headingStyle = { ...newStyle, bold: true };
       const headingSizes = {
@@ -306,13 +378,21 @@ async function processNode(
         node: Node,
         page: any,
         y: number,
-      ): Promise<{ page: any; y: number }> {
+        textPos: any,
+      ): Promise<{ page: any; y: number; textInfo: any }> {
         let innerPage = page;
         let innerY = y;
+        let innerTextInfo = { ...textPos, lineStarted: false };
 
         if (node.nodeType === 3 && node.textContent?.trim()) {
           const headingSize =
             headingSizes[tagName as keyof typeof headingSizes];
+
+          // Process heading as a single unit
+          innerTextInfo.currentX = x;
+          innerTextInfo.currentLineY = innerY;
+          innerTextInfo.lineStarted = true;
+
           const lines = wrapTextPdf(
             node.textContent,
             width,
@@ -327,6 +407,7 @@ async function processNode(
               innerPage = pdfDoc.addPage();
               const { height: newHeight } = innerPage.getSize();
               innerY = newHeight - margin;
+              innerTextInfo.currentLineY = innerY;
             }
 
             innerPage.drawText(line, {
@@ -338,30 +419,50 @@ async function processNode(
             });
 
             innerY -= lineHeight * 1.5;
+            innerTextInfo.currentLineY = innerY;
           }
+
+          innerTextInfo.lineStarted = false;
         } else if (node.nodeType === 1) {
           for (const child of Array.from((node as Element).childNodes)) {
-            const result = await processHeadingText(child, innerPage, innerY);
+            const result = await processHeadingText(
+              child,
+              innerPage,
+              innerY,
+              innerTextInfo,
+            );
             innerPage = result.page;
             innerY = result.y;
+            innerTextInfo = result.textInfo;
           }
         }
-        return { page: innerPage, y: innerY };
+        return { page: innerPage, y: innerY, textInfo: innerTextInfo };
       }
 
-      for (const child of Array.from(element.childNodes)) {
-        const result = await processHeadingText(
-          child,
-          localCurrentPage,
-          localCurrentY,
-        );
-        localCurrentPage = result.page;
-        localCurrentY = result.y;
-      }
+      // Process heading content
+      const headingResult = await processHeadingText(
+        element,
+        localCurrentPage,
+        localCurrentY,
+        localTextInfo,
+      );
+
+      localCurrentPage = headingResult.page;
+      localCurrentY = headingResult.y;
+      localTextInfo = headingResult.textInfo;
 
       localCurrentY -= lineHeight / 2;
-      return { page: localCurrentPage, y: localCurrentY };
+      localTextInfo.currentLineY = localCurrentY;
+
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
     } else if (tagName === 'ul' || tagName === 'ol') {
+      // Reset line tracking for lists
+      localTextInfo.lineStarted = false;
+
       newListType = tagName;
       newListLevel++;
       newListCounter = tagName === 'ol' ? 1 : 0;
@@ -382,6 +483,7 @@ async function processNode(
             localCurrentPage = pdfDoc.addPage();
             const { height: newHeight } = localCurrentPage.getSize();
             localCurrentY = newHeight - margin;
+            localTextInfo.currentLineY = localCurrentY;
           }
 
           const bulletX = x + (listItemStyle.indentLevel - 1) * 20;
@@ -398,6 +500,11 @@ async function processNode(
           if (newListType === 'ol') {
             newListCounter++;
           }
+
+          // Set up for list item content
+          localTextInfo.currentX = x + listItemStyle.indentLevel * 20;
+          localTextInfo.currentLineY = localCurrentY;
+          localTextInfo.lineStarted = true;
 
           const result = await processNode(
             child,
@@ -417,10 +524,12 @@ async function processNode(
             newListLevel,
             newListCounter - (newListType === 'ol' ? 1 : 0),
             newListType,
+            localTextInfo,
           );
 
           localCurrentPage = result.page;
           localCurrentY = result.y;
+          localTextInfo = result.textInfo;
         } else if (child.nodeType === 1) {
           const result = await processNode(
             child,
@@ -440,14 +549,20 @@ async function processNode(
             newListLevel,
             newListCounter,
             newListType,
+            localTextInfo,
           );
 
           localCurrentPage = result.page;
           localCurrentY = result.y;
+          localTextInfo = result.textInfo;
         }
       }
 
-      return { page: localCurrentPage, y: localCurrentY };
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
     } else if (tagName === 'li') {
       for (const child of Array.from(element.childNodes)) {
         const result = await processNode(
@@ -468,21 +583,37 @@ async function processNode(
           newListLevel,
           newListCounter,
           newListType,
+          localTextInfo,
         );
 
         localCurrentPage = result.page;
         localCurrentY = result.y;
+        localTextInfo = result.textInfo;
       }
 
+      // End list item with proper spacing
+      if (localTextInfo.lineStarted) {
+        localTextInfo.lineStarted = false;
+      }
       localCurrentY -= lineHeight / 2;
-      return { page: localCurrentPage, y: localCurrentY };
+      localTextInfo.currentLineY = localCurrentY;
+
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
     } else if (tagName === 'hr') {
+      // Reset line tracking for horizontal rule
+      localTextInfo.lineStarted = false;
+
       // Check if we need a new page
       if (localCurrentY - lineHeight < margin) {
         // Add a new page
         localCurrentPage = pdfDoc.addPage();
         const { height: newHeight } = localCurrentPage.getSize();
         localCurrentY = newHeight - margin;
+        localTextInfo.currentLineY = localCurrentY;
       }
 
       localCurrentPage.drawLine({
@@ -493,9 +624,19 @@ async function processNode(
       });
 
       localCurrentY -= lineHeight;
-      return { page: localCurrentPage, y: localCurrentY };
+      localTextInfo.currentLineY = localCurrentY;
+
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
     } else if (tagName === 'blockquote') {
+      // Reset line tracking for blockquote
+      localTextInfo.lineStarted = false;
+
       localCurrentY -= lineHeight / 2;
+      localTextInfo.currentLineY = localCurrentY;
 
       const blockquoteStyle = {
         ...newStyle,
@@ -522,10 +663,12 @@ async function processNode(
           newListLevel,
           newListCounter,
           newListType,
+          localTextInfo,
         );
 
         localCurrentPage = result.page;
         localCurrentY = result.y;
+        localTextInfo = result.textInfo;
       }
 
       if (startY !== localCurrentY) {
@@ -538,7 +681,13 @@ async function processNode(
       }
 
       localCurrentY -= lineHeight / 2;
-      return { page: localCurrentPage, y: localCurrentY };
+      localTextInfo.currentLineY = localCurrentY;
+
+      return {
+        page: localCurrentPage,
+        y: localCurrentY,
+        textInfo: localTextInfo,
+      };
     }
 
     // Process child nodes of the element
@@ -561,14 +710,16 @@ async function processNode(
         newListLevel,
         newListCounter,
         newListType,
+        localTextInfo,
       );
 
       localCurrentPage = result.page;
       localCurrentY = result.y;
+      localTextInfo = result.textInfo;
     }
   }
 
-  return { page: localCurrentPage, y: localCurrentY };
+  return { page: localCurrentPage, y: localCurrentY, textInfo: localTextInfo };
 }
 
 export async function applyHtmlStylingToPdf(
@@ -592,12 +743,14 @@ export async function applyHtmlStylingToPdf(
   // Make sure we're working with a clean body that contains our HTML
   const bodyContent = document.body.firstChild;
 
-  // Create a new variable to track the current page throughout processing
-  const currentProcessingPage = currentPage;
+  // Set up initial text position tracking
+  const initialTextInfo = {
+    currentX: x,
+    currentLineY: currentY,
+    lineStarted: false,
+  };
 
-  // Process node function with improved page tracking
-
-  // Process the body content
+  // Process the body content with text position tracking
   const result = await processNode(
     bodyContent || document.body,
     currentPage,
@@ -612,49 +765,29 @@ export async function applyHtmlStylingToPdf(
     boldFontSize,
     color,
     margin,
+    {
+      bold: false,
+      italics: false,
+      underline: false,
+      strike: false,
+      indentLevel: 0,
+      superscript: false,
+      subscript: false,
+    },
+    0,
+    0,
+    '',
+    initialTextInfo,
   );
 
   return { page: result.page, y: result.y };
 }
 
-export const ensureSpace = (
-  spaceNeeded: number,
-  currentPg: PDFPage,
-  pdfDoc: PDFDocument,
-  font: PDFFont,
-  margin: number,
-  rgbFn: any,
-  width: number,
-  height: number,
-  currentY: number,
-) => {
-  if (currentY < margin + spaceNeeded) {
-    // Draw page number on current page before adding a new one
-    drawPageNumber(
-      currentPg,
-      pdfDoc.getPages().length - 1,
-      pdfDoc.getPages().length,
-      font,
-      margin,
-      rgbFn,
-    );
-
-    // Add a new page
-    const newPage = pdfDoc.addPage();
-    const newPageSize = newPage.getSize();
-    width = newPageSize.width;
-    height = newPageSize.height;
-    currentY = height - margin;
-    return newPage;
-  }
-  return currentPg;
-};
-
-// Helper function to wrap text properly in PDF
-export function wrapTextPdf(
+// Helper function to wrap text
+function wrapTextPdf(
   text: string,
   maxWidth: number,
-  font: PDFFont,
+  textFont: PDFFont,
   fontSize: number,
 ): string[] {
   const words = text.split(' ');
@@ -662,23 +795,14 @@ export function wrapTextPdf(
   let currentLine = '';
 
   for (const word of words) {
-    if (
-      currentLine === '' &&
-      font.widthOfTextAtSize(word, fontSize) > maxWidth
-    ) {
-      // If a single word is too long for a line, just add it anyway
-      lines.push(word);
-      continue;
-    }
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = textFont.widthOfTextAtSize(testLine, fontSize);
 
-    const withSpace = currentLine ? `${currentLine} ${word}` : word;
-    const textWidth = font.widthOfTextAtSize(withSpace, fontSize);
-
-    if (textWidth <= maxWidth) {
-      currentLine = withSpace;
-    } else {
+    if (testWidth > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
+    } else {
+      currentLine = testLine;
     }
   }
 
@@ -688,6 +812,35 @@ export function wrapTextPdf(
 
   return lines;
 }
+
+// Improved ensure space function
+export const ensureSpace = (
+  requiredSpace: number,
+  page: any,
+  doc: any,
+  pageFont: any,
+  pageMargin: number,
+  colorFn: any,
+  pageWidth: number,
+  pageHeight: number,
+  yPos: number,
+) => {
+  // Check if there's enough space on the current page
+  if (yPos - requiredSpace < pageMargin) {
+    // Not enough space, create new page
+    const newPage = doc.addPage();
+    return {
+      page: newPage,
+      y: pageHeight - pageMargin,
+    };
+  }
+  // Enough space on current page
+  return {
+    page: page,
+    y: yPos,
+  };
+};
+
 /**
  * Processes a single HTML DOM node and its children to generate Word document text runs
  * with applied styling. This function recursively traverses the DOM tree, applying
