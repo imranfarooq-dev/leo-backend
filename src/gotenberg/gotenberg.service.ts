@@ -412,16 +412,16 @@ export class GotenbergService {
       const __dirname = path.resolve();
       const pdfDoc = await PDFDocument.create();
       pdfDoc.registerFontkit(fontKit);
-      const regularFontPath = path.join(
+      const regularFontPath = path.resolve(
         __dirname,
-        'src',
+        '..',
         'assets',
         'fonts',
         'NotoSans-Regular.ttf',
       );
-      const boldFontPath = path.join(
+      const boldFontPath = path.resolve(
         __dirname,
-        'src',
+        '..',
         'assets',
         'fonts',
         'NotoSans-Bold.ttf',
