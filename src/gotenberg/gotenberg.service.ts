@@ -414,15 +414,14 @@ export class GotenbergService {
       pdfDoc.registerFontkit(fontKit);
       const regularFontPath = path.resolve(
         __dirname,
-        '..',
-        'assets',
+        'public',
         'fonts',
         'NotoSans-Regular.ttf',
       );
+
       const boldFontPath = path.resolve(
         __dirname,
-        '..',
-        'assets',
+        'public',
         'fonts',
         'NotoSans-Bold.ttf',
       );
@@ -495,6 +494,8 @@ export class GotenbergService {
               pdfImage,
             };
           } catch (err) {
+            console.log(path.resolve(__dirname));
+
             console.error(`Failed to process image metadata: ${err}`);
             return null;
           }

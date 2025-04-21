@@ -40,8 +40,6 @@ RUN npm ci
 # Copy source and compile TypeScript to JavaScript
 COPY . .
 RUN npm run build 
-RUN cp -r src/assets /app/dist/assets
-
 
 # Remove development dependencies after build to reduce size
 RUN npm prune --omit=dev
