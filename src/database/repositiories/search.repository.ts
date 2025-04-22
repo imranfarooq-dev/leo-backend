@@ -2,6 +2,7 @@ import { Provides, Tables } from '@/src/shared/constant';
 import { Inject, Logger } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
+  SearchDocumentByDate,
   SearchDocumentAndList,
   SearchTranscription,
   SearchUserNote,
@@ -122,6 +123,17 @@ export class SearchRepository {
       }));
 
       return transformedData;
+    } catch (error) {
+      this.logger.error(error.message ?? 'Failed to search user notes');
+    }
+  }
+
+  async searchDocumentByDate(
+    searchKeyword: string,
+    userId: string,
+  ): Promise<SearchDocumentByDate[]> {
+    try {
+      return;
     } catch (error) {
       this.logger.error(error.message ?? 'Failed to search user notes');
     }

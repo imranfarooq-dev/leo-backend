@@ -34,7 +34,6 @@ export type SearchUserNote = {
   notes_text: string;
 };
 
-
 export type TranscriptSearchImage = {
   id: string;
   name: string;
@@ -61,4 +60,10 @@ export type NoteSearchByDocument = {
   document_id: string;
   document_name: string;
   images: NoteSearchImage[];
+};
+
+export type SearchDocumentByDate = {
+  id: string;
+  image_name: string;
+  created_at: Date;
 };

@@ -876,21 +876,29 @@ async function traverseNode(
   formattedText: TextRun[],
   context: {
     skipNextLineBreak?: boolean;
+    lastWasBlock?: boolean;
+    lastWasBr?: boolean;
   } = {},
-  lastTextContent: string = '',
-): Promise<string> {
+): Promise<void> {
   return new Promise(async (resolveTraversal) => {
-    let updatedLastTextContent = lastTextContent;
     if (node.nodeType === 3) {
       // Text node
-      const textContent = node.textContent.trim();
+      const textContent = node.textContent || '';
+      const trimmedContent = textContent.trim();
 
+      // Always preserve whitespace in text nodes to maintain formatting
       if (textContent !== '') {
-        const textRun = new TextRun({ text: textContent, ...currentStyle });
-        formattedText.push(textRun);
-        updatedLastTextContent = textContent; // Track the last text content
+        // If it's just whitespace and we're between blocks, don't add unnecessary spaces
+        if (trimmedContent === '' && context.lastWasBlock) {
+          // Skip pure whitespace between blocks
+        } else {
+          const textRun = new TextRun({ text: textContent, ...currentStyle });
+          formattedText.push(textRun);
+          context.lastWasBlock = false;
+          context.lastWasBr = false;
+        }
       }
-      resolveTraversal(updatedLastTextContent);
+      resolveTraversal();
     } else if (node.nodeType === 1) {
       // Element node
       const element = node as Element;
@@ -898,12 +906,12 @@ async function traverseNode(
       const newStyle = { ...currentStyle };
       const newContext = { ...context };
       let newListLevel = listLevel;
-      let newlistType = listType;
+      let newListType = listType;
       let newListCounter = listCounter;
       let newInList = inList;
 
-      // Special handling for block elements
-      const isBlockElement = [
+      // Define block elements
+      const blockElements = [
         'p',
         'div',
         'h1',
@@ -917,21 +925,42 @@ async function traverseNode(
         'ol',
         'li',
         'hr',
-      ].includes(tagName);
+        'table',
+        'tr',
+        'td',
+        'th',
+        'pre',
+        'section',
+        'article',
+        'header',
+        'footer',
+      ];
 
-      // Add spacing before block elements if needed
-      if (
-        isBlockElement &&
-        formattedText.length > 0 &&
-        !context.skipNextLineBreak
-      ) {
-        if (!updatedLastTextContent.endsWith('\n\n')) {
-          if (updatedLastTextContent.endsWith('\n')) {
+      const isBlockElement = blockElements.includes(tagName);
+
+      // Handle block element spacing before processing
+      if (isBlockElement) {
+        if (formattedText.length > 0) {
+          const lastItem = formattedText[formattedText.length - 1];
+          const lastText =
+            lastItem instanceof TextRun
+              ? (lastItem as any)._options?.text || ''
+              : '';
+
+          // Add appropriate line breaks before block elements
+          if (!lastText.endsWith('\n\n') && !context.lastWasBr) {
+            if (lastText.endsWith('\n')) {
+              formattedText.push(new TextRun({ text: '\n' }));
+            } else {
+              formattedText.push(new TextRun({ text: '\n\n' }));
+            }
+          } else if (context.lastWasBr) {
+            // If last element was a BR, add one more line break for block separation
             formattedText.push(new TextRun({ text: '\n' }));
-          } else {
-            formattedText.push(new TextRun({ text: '\n\n' }));
           }
         }
+
+        newContext.lastWasBlock = true;
       }
 
       switch (tagName) {
@@ -964,20 +993,32 @@ async function traverseNode(
             .getAttribute('style')
             ?.match(/color:\s*([^;]+)/)?.[1];
           if (color) {
-            // Convert color to hex if it's a valid CSS color
             const hexColor = color.startsWith('#') ? color.substring(1) : color;
             newStyle.color = hexColor;
+          }
+
+          // Handle font size if specified
+          const fontSize = element
+            .getAttribute('style')
+            ?.match(/font-size:\s*([^;]+)/)?.[1];
+          if (fontSize) {
+            const sizeMatch = fontSize.match(/(\d+)(px|pt)/);
+            if (sizeMatch) {
+              let size = parseInt(sizeMatch[1]);
+              if (sizeMatch[2] === 'px') {
+                // Convert px to pt (approximate)
+                size = Math.round(size * 0.75);
+              }
+              newStyle.size = size;
+            }
           }
           break;
 
         // Line breaks
         case 'br':
-          formattedText.push(new TextRun({ text: '\n' }));
-          newContext.skipNextLineBreak = true;
-          break;
-
-        // Block elements
-        case 'p':
+          formattedText.push(new TextRun({ break: 1, text: '' }));
+          newContext.lastWasBr = true;
+          newContext.lastWasBlock = false;
           break;
 
         // Headings
@@ -1003,34 +1044,38 @@ async function traverseNode(
         case 'ul':
         case 'ol':
           newInList = true;
-          newlistType = tagName;
+          newListType = tagName;
           newListLevel++;
           newListCounter = 0;
-          newContext.skipNextLineBreak = true;
           break;
 
         // List items
         case 'li':
           const indent = '  '.repeat(newListLevel - 1);
-          if (newlistType === 'ul') {
+          if (newListType === 'ul') {
             formattedText.push(new TextRun({ text: `${indent}• ` }));
-          } else if (newlistType === 'ol') {
+          } else if (newListType === 'ol') {
             newListCounter++;
             formattedText.push(
               new TextRun({ text: `${indent}${newListCounter}. ` }),
             );
           }
-          newContext.skipNextLineBreak = true;
           break;
 
         // Horizontal rule
         case 'hr':
+          formattedText.push(new TextRun({ break: 1, text: '' })); // Line break before the separator
           formattedText.push(
             new TextRun({
-              text: '\n───────────────────────────────────────\n',
+              text: '───────────────────────────────────────',
+              bold: true,
+              font: 'Arial',
+              size: 24,
             }),
           );
-          newContext.skipNextLineBreak = true;
+          formattedText.push(new TextRun({ break: 1, text: '' })); // Line break after the separator
+
+          newContext.lastWasBlock = true;
           break;
 
         // Blockquote
@@ -1039,22 +1084,21 @@ async function traverseNode(
           break;
       }
 
-      let currentChildLastText = '';
+      // Process all child nodes
       for (const childNode of Array.from(element.childNodes)) {
-        currentChildLastText = await traverseNode(
+        await traverseNode(
           childNode as Node,
           newStyle,
           newInList,
           newListLevel,
-          newlistType,
+          newListType,
           newListCounter,
           formattedText,
           newContext,
-          currentChildLastText,
         );
       }
-      updatedLastTextContent = currentChildLastText;
 
+      // Handle specific closing elements
       switch (tagName) {
         case 'ul':
         case 'ol':
@@ -1062,68 +1106,62 @@ async function traverseNode(
           if (newListLevel === 0) {
             newInList = false;
           }
+          formattedText.push(new TextRun({ text: '\n' }));
           break;
+
         case 'li':
           if (
             element.nextElementSibling &&
             element.nextElementSibling.tagName.toLowerCase() === 'li'
           ) {
             formattedText.push(new TextRun({ text: '\n' }));
-            newContext.skipNextLineBreak = true;
           }
           break;
+
         case 'blockquote':
           formattedText.push(new TextRun({ text: '\n' }));
           break;
-      }
 
-      if (
-        isBlockElement &&
-        element.nextElementSibling &&
-        !newContext.skipNextLineBreak
-      ) {
-        const nextTagName = element.nextElementSibling.tagName.toLowerCase();
-        const isNextBlockElement = [
-          'p',
-          'div',
-          'h1',
-          'h2',
-          'h3',
-          'h4',
-          'h5',
-          'h6',
-          'blockquote',
-          'ul',
-          'ol',
-          'li',
-          'hr',
-        ].includes(nextTagName);
+        case 'p':
+        case 'div':
+        case 'h1':
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+          // Ensure proper spacing after block elements
+          if (element.nextElementSibling) {
+            const nextTagName =
+              element.nextElementSibling.tagName.toLowerCase();
+            // If followed by another block element, add proper spacing
+            if (blockElements.includes(nextTagName)) {
+              const lastItem = formattedText[formattedText.length - 1];
+              const lastText =
+                lastItem instanceof TextRun
+                  ? (lastItem as any)._options?.text || ''
+                  : '';
 
-        if (isNextBlockElement && formattedText.length > 0) {
-          const lastItem = formattedText[formattedText.length - 1];
-          if (lastItem instanceof TextRun) {
-            // Try accessing a known property that might hold the text
-            if (
-              typeof (lastItem as any)._options?.text === 'string' &&
-              !(lastItem as any)._options.text.endsWith('\n')
-            ) {
-              formattedText.push(new TextRun({ text: '\n' }));
-            } else if (
-              typeof (lastItem as any).text === 'string' &&
-              !(lastItem as any).text.endsWith('\n')
-            ) {
-              formattedText.push(new TextRun({ text: '\n' }));
+              if (!lastText.endsWith('\n\n')) {
+                if (lastText.endsWith('\n')) {
+                  formattedText.push(new TextRun({ text: '\n' }));
+                } else {
+                  formattedText.push(new TextRun({ text: '\n\n' }));
+                }
+              }
             }
-          } else {
-            // If the last item wasn't a TextRun, add a newline.
-            formattedText.push(new TextRun({ text: '\n' }));
           }
-        }
+          break;
       }
 
-      resolveTraversal(updatedLastTextContent);
+      // After processing a block element
+      if (isBlockElement && !tagName.match(/^(li|ul|ol)$/)) {
+        newContext.lastWasBlock = true;
+      }
+
+      resolveTraversal();
     } else {
-      resolveTraversal(updatedLastTextContent);
+      resolveTraversal();
     }
   });
 }
@@ -1137,12 +1175,20 @@ async function traverseNode(
  * @param transcriptText The HTML string containing the transcript with styling.
  * @returns A promise that resolves to an array of `TextRun` objects representing the styled text.
  */
+
 export async function applyHtmlStylingToWord(
   transcriptText: string,
 ): Promise<TextRun[]> {
   return new Promise(async (resolve) => {
     const formattedText: TextRun[] = [];
-    const dom = new JSDOM(transcriptText);
+
+    // Normalize HTML: replace multiple <br> tags with a single one and fix common issues
+    const normalizedHtml = transcriptText
+      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '<br>') // Replace multiple <br> with single
+      .replace(/>\s+</g, '><') // Remove whitespace between tags
+      .replace(/\n+/g, ' '); // Replace multiple newlines with space
+
+    const dom = new JSDOM(normalizedHtml);
     const document = dom.window.document;
 
     // Track list state
@@ -1151,12 +1197,15 @@ export async function applyHtmlStylingToWord(
     let listType = '';
     let listCounter = 0;
 
-    // Track the last text content manually for break detection
-    let lastTextContent = '';
-
     // Process the body and its children
+    const context = {
+      skipNextLineBreak: false,
+      lastWasBlock: false,
+      lastWasBr: false,
+    };
+
     for (const childNode of Array.from(document.body.childNodes)) {
-      lastTextContent = await traverseNode(
+      await traverseNode(
         childNode as Node,
         {},
         inList,
@@ -1164,9 +1213,9 @@ export async function applyHtmlStylingToWord(
         listType,
         listCounter,
         formattedText,
-        {},
-        lastTextContent,
+        context,
       );
+
       // Update list state based on the traversal
       const currentElement = childNode as Element;
       if (
@@ -1180,6 +1229,31 @@ export async function applyHtmlStylingToWord(
       }
     }
 
-    resolve(formattedText);
+    // Normalize the output to prevent excessive blank lines
+    const normalizedOutput: TextRun[] = [];
+    let consecutiveNewlines = 0;
+
+    for (const textRun of formattedText) {
+      if (textRun instanceof TextRun) {
+        const text = (textRun as any)._options?.text || '';
+        const newlineCount = (text.match(/\n/g) || []).length;
+
+        if (newlineCount > 0) {
+          consecutiveNewlines += newlineCount;
+          // Limit to max 2 consecutive newlines
+          if (consecutiveNewlines > 2 && text === '\n') {
+            continue; // Skip this newline
+          }
+        } else {
+          consecutiveNewlines = 0;
+        }
+
+        normalizedOutput.push(textRun);
+      } else {
+        normalizedOutput.push(textRun);
+      }
+    }
+
+    resolve(normalizedOutput);
   });
 }

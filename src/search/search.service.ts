@@ -6,6 +6,7 @@ import {
   SearchUserNote,
   TranscriptSearchByDocument,
   NoteSearchByDocument,
+  SearchDocumentByDate,
 } from '@/types/search';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class SearchService {
         this.itemSearch(searchKeyword, userId),
         this.transcriptSearch(searchKeyword, userId),
         this.notesSearch(searchKeyword, userId),
+        // this.dateSearch(searchKeyword, userId)
       ]);
 
       return {
@@ -147,6 +149,28 @@ export class SearchService {
       );
     }
   }
+
+  // private async dateSearch(searchKeyword: string,
+  //   userId: string): Promise<SearchDocumentByDate[]> {
+  //     try {
+  //       const results: SearchDocumentByDate[] =
+  //       await this.searchRepository.searchDocumentByDate(searchKeyword, userId);
+
+  //     const documentMap = new Map();
+
+  //       return  results
+  //     } catch (error) {
+  //       if (error instanceof HttpException) {
+  //         throw error;
+  //       }
+
+  //       throw new HttpException(
+  //         'An error occurred while searching notes',
+  //         HttpStatus.INTERNAL_SERVER_ERROR,
+  //       );
+  //     }
+
+  // }
 
   private itemsSort(
     results: SearchDocumentAndList[],

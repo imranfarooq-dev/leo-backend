@@ -17,6 +17,7 @@ export class SelectedImageDto {
   @IsString()
   @IsNotEmpty()
   imgId: string;
+  documentId: string;
 }
 
 export class ExportRequestDto {

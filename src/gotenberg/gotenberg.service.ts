@@ -21,6 +21,7 @@ import {
   HeadingLevel,
   ImageRun,
   BorderStyle,
+  TextRun,
 } from 'docx';
 import {
   applyHtmlStylingToPdf,
@@ -246,7 +247,6 @@ export class GotenbergService {
     filename: string;
   }> {
     const { contentType, format, selectedImages } = exportRequest;
-
     // Batch size for image fetching
     const BATCH_SIZE = 10;
 
@@ -266,29 +266,100 @@ export class GotenbergService {
       return imageDetails;
     };
 
-    // Fetch images in batches
     const imagesDetail = await fetchImagesInBatch(selectedImages, BATCH_SIZE);
 
-    let result;
-    if (format === 'pdf') {
-      result = await this.createPDF(contentType, imagesDetail);
-    } else if (
-      (contentType === 'images' || contentType === 'both') &&
-      format === 'zip'
-    ) {
-      result = await this.createImageZip(imagesDetail, contentType);
-    } else if (contentType === 'transcripts' && format === 'txt') {
-      result = await this.createTxt(imagesDetail);
-    } else if (format === 'word') {
-      result = await this.createWordDoc(contentType, imagesDetail);
-    } else {
-      throw new Error('Unsupported combination of content type and format');
+    // Group images by document ID
+    const groupedByDocId = new Map<string, any[]>();
+    imagesDetail.forEach((imageData) => {
+      const docId = imageData[0]?.document_id || 'unknown';
+      if (!groupedByDocId.has(docId)) {
+        groupedByDocId.set(docId, []);
+      }
+      groupedByDocId.get(docId).push(imageData);
+    });
+
+    if (groupedByDocId.size === 1) {
+      let result;
+      if (format === 'pdf') {
+        result = await this.createPDF(contentType, imagesDetail);
+      } else if (
+        (contentType === 'images' || contentType === 'both') &&
+        format === 'zip'
+      ) {
+        result = await this.createImageZip(imagesDetail, contentType);
+      } else if (contentType === 'transcripts' && format === 'txt') {
+        result = await this.createTxt(imagesDetail);
+      } else if (format === 'word') {
+        result = await this.createWordDoc(contentType, imagesDetail);
+      } else {
+        throw new Error('Unsupported combination of content type and format');
+      }
+
+      await checkFileSize(result.fileContent);
+      return result;
     }
 
-    // Check file size before returning
-    await checkFileSize(result.fileContent);
+    // Initialize archiver for zipping files
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Set compression level
+    });
 
-    return result;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    // Prepare an array to collect promises for file processing
+    const filePromises: Promise<any>[] = [];
+
+    // Process each document group
+    await Promise.all(
+      Array.from(groupedByDocId.entries()).map(async ([docId, images]) => {
+        if (format === 'pdf') {
+          const pdfResult = await this.createPDF(contentType, images);
+          const safeName = (
+            await this.documentRepository.fetchDocumentDBById(docId)
+          ).document_name;
+          archive.append(pdfResult.fileContent, { name: `${safeName}.pdf` });
+        } else if (
+          (contentType === 'images' || contentType === 'both') &&
+          format === 'zip'
+        ) {
+          const imageZipResult = await this.createImageZip(images, contentType);
+          archive.append(imageZipResult.fileContent, { name: `${docId}.zip` });
+        } else if (contentType === 'transcripts' && format === 'txt') {
+          const txtResult = await this.createTxt(images);
+          const safeName = (
+            await this.documentRepository.fetchDocumentDBById(docId)
+          ).document_name;
+          archive.append(txtResult.fileContent, {
+            name: `${safeName}_transcripts.txt`,
+          });
+        } else if (format === 'word') {
+          const wordResult = await this.createWordDoc(contentType, images);
+          const safeName = (
+            await this.documentRepository.fetchDocumentDBById(docId)
+          ).document_name;
+          archive.append(wordResult.fileContent, { name: `${safeName}.docx` });
+        }
+      }),
+    );
+
+    // Finalize the zip and collect the result
+    const zipContent = await new Promise<Buffer>((resolve, reject) => {
+      const buffers: Buffer[] = [];
+      archive.on('data', (data) => buffers.push(data));
+      archive.on('end', () => resolve(Buffer.concat(buffers)));
+      archive.on('error', (err) => reject(err));
+
+      // Finalize the archive and close it
+      archive.finalize();
+    });
+
+    await checkFileSize(zipContent);
+
+    return {
+      fileContent: zipContent,
+      contentType: 'application/zip',
+      filename: `exported_documents_${timestamp}.zip`,
+    };
   }
 
   private async createImageZip(
@@ -734,6 +805,21 @@ export class GotenbergService {
           if (res.ok) {
             const arrayBuffer = await res.arrayBuffer();
             const imageBuffer = Buffer.from(arrayBuffer);
+            const image = sharp(imageBuffer);
+            const maxWidth = 500; // maximum width in pixels
+            const maxHeight = 500;
+            const metadata = await image.metadata();
+            let width = metadata.width || 0;
+            let height = metadata.height || 0;
+
+            // Calculate the scale factor to maintain the aspect ratio
+            const scale = Math.min(maxWidth / width, maxHeight / height);
+
+            // If the image is larger than the max width or height, resize it
+            if (scale < 1) {
+              width = Math.floor(width * scale);
+              height = Math.floor(height * scale);
+            }
 
             children.push(
               new Paragraph({
@@ -741,8 +827,8 @@ export class GotenbergService {
                   new ImageRun({
                     data: imageBuffer,
                     transformation: {
-                      width: 500,
-                      height: 300,
+                      width: width,
+                      height: height,
                     },
                     type: imageType,
                   }),
@@ -794,14 +880,14 @@ export class GotenbergService {
 
       children.push(
         new Paragraph({
-          border: {
-            bottom: {
-              style: BorderStyle.SINGLE,
+          children: [
+            new TextRun({
+              text: '──────────────────────────────────────────────────────────────────────',
+              size: 12,
               color: 'auto',
-              size: 6,
-              space: 1,
-            },
-          },
+            }),
+          ],
+          alignment: 'center',
           spacing: { after: 300 },
         }),
       );
