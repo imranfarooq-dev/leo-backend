@@ -455,10 +455,10 @@ export class GotenbergService {
 
     for (const imageData of imagesDetail) {
       const imageName =
-        imageData.image_name ?? imageData[0]?.image_name ?? 'Untitled Image';
+        imageData?.image_name || imageData?.[0]?.image_name || 'Untitled Image';
       const transcriptText =
-        imageData.current_transcription_text ??
-        imageData[0]?.current_transcription_text ??
+        imageData?.current_transcription_text ||
+        imageData?.[0]?.current_transcription_text ||
         '';
 
       const cleanText = transcriptText
